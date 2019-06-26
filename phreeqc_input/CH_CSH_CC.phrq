@@ -1,0 +1,97 @@
+# Porlandite, C-S-H and Calcite system (Ca, C)
+PHASES
+CSHQ_TobH
+#from Table 6
+
+ (CaO)0.66666667(SiO2)1(H2O)1.5  = 0.66666667Ca++ + 1 SiO(OH)3- + 0.33333334OH- -0.16666667 H2O
+  log_K -6.190832
+
+CSHQ_TobD
+#from Table 6
+ (CaO)0.8333333333(SiO2)0.6666666667(H2O)1.8333333333  = 0.8333333333 Ca++ + 0.6666666667 SiO(OH)3- + 0.99999999990 OH- + 0.3333333333 H2O
+  log_K -6.8995533
+
+CSHQ_JenH
+#from Table 6
+ (CaO)1.3333333333(SiO2)1(H2O)2.1666666667  = 1.3333333333 Ca++ + 1 SiO(OH)3- + 1.6666666667 OH- -0.1666666667 H2O
+  log_K -10.96765
+
+CSHQ_JenD
+#from Table 6
+ (CaO)1.5(SiO2)0.6666666667(H2O)2.5  = 1.5 Ca++ + 0.6666666667 SiO(OH)3- + 2.3333333333 OH- + 0.3333333333 H2O
+  log_K -10.47635
+
+knobs
+-iterations 8000
+#-tolerance 1e-17
+#-convergence_tolerance 1e-12
+
+#boundary_solution
+SOLUTION 100001
+-units mol/l # mmol/kgw #
+-water 1 #kg
+pH 7 charge
+Ca 0
+Si 0
+C 0.02 #mol/kgw water
+
+#----------------
+
+
+#solution_liquid
+SOLUTION 100002
+units mol/l #mmol/kgw
+-water 1 #kg initial porosity
+pH 7 charge 
+C 0#1 portlandite #mol/l water
+Ca 1 portlandite
+Si 1 portlandite
+
+EQUILIBRIUM_PHASES 100002
+portlandite 0 0 #[target saturation index] [amount mol/dm3]
+calcite 0 0
+
+#----------------
+
+#solution in domain with portlandite
+SOLUTION 100003
+-units mol/l
+-water 1 #-06
+-pH 7 charge
+Ca 1 portlandite
+C 0#1 portlandite #mol/l water
+Si 1 portlandite
+
+
+EQUILIBRIUM_PHASES 100003
+portlandite 0 1  #[target saturation index] [amount mol/dm3]
+calcite 0 0
+
+#----------------
+
+#solution in domain with c-s-h
+SOLUTION 100004
+-water 0.448230266981165#kg  which is equal to porosity
+-units mol/kgw
+pH 12 charge
+#Ca  1.955e-002
+#Si  3.018e-005
+
+EQUILIBRIUM_PHASES 100004
+calcite 0 0
+#CSHQ_TobH 0  0.1041
+#CSHQ_TobD 0  2.5050
+#CSHQ_JenH 0  2.1555
+#CSHQ_JenD 0  3.2623
+
+solid_solutions 100004
+Tob_jen_ss
+ -comp CSHQ_TobH  0.1041
+ -comp CSHQ_TobD  2.5050
+ -comp CSHQ_JenH  2.1555
+ -comp CSHQ_JenD  3.2623
+
+
+#solution_solid
+SOLUTION 100005
+-water 1
