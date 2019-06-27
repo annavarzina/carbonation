@@ -13,7 +13,7 @@ from yantra.physics._phrqc_wrapper import  Phrqc
 from yantra.physics.PhrqcReactiveTransport import PhrqcReactiveTransport 
 from yantra.physics.PhrqcReactiveTransport import Solid
 
-import modules.add_ons.cell_type as ct # change the path to cell_type file
+import cell_type as ct # change the path to cell_type file
 import func as fn
 
 class MyPhrqcReactiveTransport(PhrqcReactiveTransport):

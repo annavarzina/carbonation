@@ -9,7 +9,7 @@ import matplotlib.pylab as plt
 
 import pickle
 import json
-import modules.add_ons.cell_type as ct 
+import cell_type as ct 
 
 from yantra._pyevtk.hl  import pointsToVTK
 from yantra._pyevtk.hl  import gridToVTK

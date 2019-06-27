@@ -6,7 +6,8 @@ Sript for both CH and CSH systems
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_dir)
 import matplotlib.pylab as plt
 import numpy as np
 import time
@@ -14,9 +15,9 @@ import copy
 np.set_printoptions(precision=5, threshold=np.inf)
 
 #%% CUSTOM MODULES
-sys.path.append('C:\\Users\\mat\\Documents\\Python_Projects\\yantra') # change the path
+#sys.path.append('C:\\Users\\mat\\Documents\\Python_Projects\\yantra') # change the path
 import yantra
-import modules.add_ons.cell_type as ct # change the path to cell_type file
+import cell_type as ct # change the path to cell_type file
 import func as fn
 import classes as cl
 
@@ -71,7 +72,7 @@ app_tort = 1. * porosity ** (1./3.)
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
-                                     input_file = 'CH_CC-01percent.phrq')#'CH_CC-1percent.phrq'
+                                     input_file = root_dir +'\\phreeqc_input\\CH_CC_nat.phrq')#'CH_CC-1percent.phrq'
                                      #input_file = 'CH_CC_-2.phrq')
 bc_params={'solution_labels':{'left':100001}, 
            'top':['flux', 0.0],
@@ -79,7 +80,7 @@ bc_params={'solution_labels':{'left':100001},
            'left':['flux', 0.0],
            'right':['flux', 0.0],}
 
-solver_params = fn.set_solver_params(tfact = 1./6./2)
+solver_params = fn.set_solver_params(tfact = 1./6.*2)
 
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 
@@ -91,7 +92,7 @@ print(rt.solid.nodetype)
 #%% SETTINGS
 
 nn='low_conc_order_2'#'acc10'
-path = 'output/'
+path = root_dir+'\\results\\output\\'
  
 rt.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all active cells or 'interface' 
                'diffusivity':{'type':'fixed', #'fixed' or 'archie
