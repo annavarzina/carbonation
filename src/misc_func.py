@@ -1,5 +1,5 @@
 '''
-Functions for the CC-CH-CO2 system
+Miscellaneous functions for the carbonation solver
 '''
 
 import numpy as np
@@ -163,173 +163,10 @@ def set_solver_params(tfact = 1./6.*2):
     sp['tfact']= tfact
     return sp
 
-def get_csh_conc(rt):    
-    csh = rt.solid.CSHQ_TobH.c+ rt.solid.CSHQ_TobD.c +\
-            rt.solid.CSHQ_JenH.c + rt.solid.CSHQ_JenD.c
-    return csh 
-
-def set_feq(rt):
-    def get_feq(c,poros):
-        shape = np.shape(c) #(ly, lx)    
-        f = np.zeros((shape[0], shape[1], 5))    
-        f[:,:,0] = c*poros
-        f[:,:,1] = 0
-        f[:,:,2] = 0
-        f[:,:,3] = 0
-        f[:,:,4] = 0
-        return f
-    c = rt.fluid.get_attr('c')
-    poros = rt.solid._poros
-    f= rt.fluid.get_attr('f')
-    for key, value in f.iteritems():
-        f[key] = get_feq(c[key], poros)
-    rt.fluid.set_attr('f',f)
 
 
-#%% VOLUMES
-def get_CH_volume(rt):
-    CH_vol = rt.solid.portlandite.c * rt.solid.portlandite.mvol
-    return CH_vol
-
-def get_CSH_volume(rt):
-    CSH_vol = rt.solid.CSHQ_JenD.c * rt.solid.CSHQ_JenD.mvol +\
-              rt.solid.CSHQ_JenH.c * rt.solid.CSHQ_JenH.mvol +\
-              rt.solid.CSHQ_TobD.c * rt.solid.CSHQ_TobD.mvol +\
-              rt.solid.CSHQ_TobH.c * rt.solid.CSHQ_TobH.mvol 
-    return CSH_vol
-
-def get_CC_volume(rt):
-    CC_vol = rt.solid.calcite.c * rt.solid.calcite.mvol
-    return CC_vol
-
-def get_pore_volume(rt):
-    pore_vol = rt.solid._poros
-    return pore_vol
-
-def get_calcite_pore_volume(rt):
-    v = rt.solid.pore_amount * np.pi * rt.solid.pore_radius**2 * \
-        rt.solid.pore_length #*2
-    return v
-
-def get_free_volume(self):
-    v = self.solid._voxel_vol - self.solid.vol_ch - self.solid.vol_cc - \
-                ((self.solid.radius_max**2) *np.pi * self.solid.pore_length* \
-                 self.solid.pore_amount)
-    return v
 
 
-def get_free_volume2(self):
-    v = self.solid._voxel_vol - self.solid.vol_ch - self.solid.vol_cc
-    return v
-#%% PORE RADIUS
-
-def get_pore_amount(rt, ptype='CH'):
-    #TODO
-    '''
-    Return matrix of pore amounts per each cell
-    '''  
-    cc = rt.solid.vol_cc   
-    n = rt.settings['si_params']['N'] * cc #* np.ones(np.shape(pore_vol))
-    n[n<1] = 1
-    return n    
-
-def get_cylinder_radius(pore_vol, pore_num, pore_length, dx):
-    '''
-    Formula for cylinder pore radius
-    Pore volume is total free volume or porosity
-    '''
-    r = (pore_vol *dx**3 / (pore_num * np.pi * pore_length))**(1./2.) 
-    return r
-    
-def get_radius(rt):
-    '''
-    Return matrix of pore radiuses per each cell
-    '''
-    pore_vol = rt.solid._poros
-    pore_num = rt.solid.pore_amount
-    pore_length = rt.solid.pore_length
-    rad_max = rt.solid.radius_max 
-    rad = np.ones(np.shape(pore_vol)) 
-    rad = get_cylinder_radius(pore_vol, pore_num, pore_length, 1)
-    rad[rad>rad_max] = rad_max
-    return rad
-
-def get_thres_radius(rt):
-    si = rt.settings['si_params']['threshold_SI']
-    omega = 10.**si
-    r = (-1) * rt.settings['si_params']['mvol'] *\
-        np.cos(np.pi*rt.settings['si_params']['angle'])*2*\
-        rt.settings['si_params']['iene'] /\
-        rt.settings['si_params']['R'] /\
-        rt.settings['si_params']['T'] / np.log(omega)
-    return r
-
-def get_block_size(distance = 1e-8, crystal_size = 1e-7):
-    return crystal_size+distance
-
-def get_block_amount(free_vol, distance = 1e-8, crystal_size = 1e-7): 
-    v_cp = (crystal_size+distance)**3
-    N = free_vol/v_cp
-    return N
-
-def get_crystal_size(vol_cc, N, dx):
-    s = (vol_cc/N)**(1./3.)
-    return s * dx
-
-def get_distance(crystal_size, block_size):
-    return(block_size - crystal_size)
-    
-def get_porosity2(distance = 1e-8, crystal_size = 1e-7, dx=1e-6):
-    v_cp = ((crystal_size+distance)/dx)**3
-    v_c = (crystal_size/dx)**3
-    p = 1 - v_c/v_cp
-    return p
-#%% SATURATION INDEX
-
-def get_target_SI(rt):
-    rad = rt.solid.pore_radius
-    '''
-    rad_max= rt.solid.radius_max 
-    is_pcs = (rad < rad_max)
-    si = np.zeros(np.shape(rad)) #*rt.settings['si_params']['critical_SI']
-    si[is_pcs] = get_PCS_SI(rt, rt.solid.pore_radius[is_pcs]* rt.dx)
-    '''
-    si = get_PCS_SI(rt, rad* rt.dx)    
-    is_port = rt.solid.vol_ch >0
-    not_critical = rad >= rt.solid.treshold_radius #rt.solid.radius_max 
-    si[np.logical_and(is_port, not_critical)]= 0
-    return si   
-
-
-def get_target_SI2(rt):
-    rad = rt.solid.pore_radius
-    si = get_PCS_SI(rt, rad)    
-    is_port = (rt.solid.vol_ch >0)
-    not_critical = (rad >= rt.solid.threshold_radius) #rt.solid.radius_max 
-    si[np.logical_and(is_port, not_critical)]= 0
-    return si   
-
-def get_sat_ratio_PCS(r, angle=np.pi, mvol=3.69e-5, int_energy=0.094, gas_c=8.314, temp_kelv=298.3):
-    '''
-    Calculates saturation ratio 
-    '''
-    omega = np.exp(-1*mvol*np.cos(angle)* 2 * int_energy / (gas_c * temp_kelv * r ))
-    return omega
-
-def get_PCS_SI(rt, pore_rad):   
-    '''
-    Calculates saturation index 
-    '''
-    si_params = rt.settings['si_params']
-    angle = si_params.get('angle') * np.pi 
-    mvol = si_params.get('mvol') #calcite molar volume
-    int_energy = si_params.get('iene')
-    gas_c = si_params.get('R')
-    temp_kelv = si_params.get('T')
-    
-    omega = get_sat_ratio_PCS(pore_rad, angle, mvol, int_energy, gas_c, temp_kelv )
-    si = np.log10(omega)
-    return si
 #%% PARAMETERS
     
 
@@ -447,13 +284,6 @@ def get_dt(rt):
 def get_sum_csh(rt): 
     return(np.sum(rt.solid.csh))
     
-def boundary_cells(rt):
-    nodes = np.zeros(np.shape(rt.nodetype))
-    nodes[0,:]=1
-    nodes[-1,:]=1
-    nodes[:,0]=1
-    nodes[:,-1]=1
-    return nodes
 
 #%% LISTS OF PARAMETERS
 def init_results(pavg=True, pavg_list=[], points=[], ptype='CSH'):

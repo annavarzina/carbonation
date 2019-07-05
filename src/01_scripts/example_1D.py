@@ -12,15 +12,12 @@ sys.path.append(root_dir)
 sys.path.append(src_dir)
 import matplotlib.pylab as plt
 import numpy as np
+np.set_printoptions(precision=5, threshold=np.inf)
 import time
 import copy
-np.set_printoptions(precision=5, threshold=np.inf)
-
-#%% CUSTOM MODULES
-#sys.path.append('C:\\Users\\mat\\Documents\\Python_Projects\\yantra') # change the path
 import yantra
 import cell_type as ct # change the path to cell_type file
-import func as fn
+import misc_func as fn
 import rt 
 #import phrqc
 #%% PROBLEM DEFINITION
@@ -133,7 +130,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 20
-Ts = 1.0#10.001
+Ts = 0.1001#1.01
 step = 1.0
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))

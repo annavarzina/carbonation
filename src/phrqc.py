@@ -1,15 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from copy import deepcopy
-import yantra
-from yantra._base import Multicomponent 
 from yantra.physics._phrqc_wrapper import  Phrqc
-from yantra.physics.PhrqcReactiveTransport import PhrqcReactiveTransport 
-from yantra.physics.PhrqcReactiveTransport import Solid
-
-import cell_type as ct # change the path to cell_type file
-import func as fn
-
 
 class CarbonationPhrqc(Phrqc):
     def active_nodes(self,c,nodetype):
