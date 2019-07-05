@@ -7,7 +7,9 @@ Sript for both CH and CSH systems
 from __future__ import division  #using floating everywhere
 import sys,os
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_dir)
+sys.path.append(src_dir)
 import matplotlib.pylab as plt
 import numpy as np
 import time
@@ -19,8 +21,8 @@ np.set_printoptions(precision=5, threshold=np.inf)
 import yantra
 import cell_type as ct # change the path to cell_type file
 import func as fn
-import classes as cl
-
+import rt 
+#import phrqc
 #%% PROBLEM DEFINITION
 __doc__= """ 
 Carbonation of cement. 
@@ -86,23 +88,23 @@ domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 
 #%% INITIATE THE SOLVER
 
-rt= cl.MyPhrqcReactiveTransport('MultilevelAdvectionDiffusion',  domain, domain_params, bc_params, solver_params) 
-print(rt.solid.nodetype)
+s= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, domain_params, bc_params, solver_params) 
+print(s.solid.nodetype)
 #fn.set_feq(rt)
 #%% SETTINGS
 
 nn='low_conc_order_2'#'acc10'
 path = root_dir+'\\results\\output\\'
  
-rt.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all active cells or 'interface' 
+s.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all active cells or 'interface' 
                'diffusivity':{'type':'fixed', #'fixed' or 'archie
                               'calcite': 9e-12,
                               'portlandite': 1e-12},
                'si_params': {'N': 20000, #pore density per um3
                              'threshold': 'radius', #radius/porosity or si
                              'threshold_SI': 1.0, 
-                             'threshold_distance':1e-3*dx, #maximum pore radius
-                             'threshold_crystal':0.1*dx,
+                             'threshold_distance':0.001*dx, #maximum pore radius
+                             'threshold_crystal':0.5*dx,
                              'L': 0.2*dx, #pore length
                              'mvol':3.69e-5,
                              'iene': 0.485, # internal energy
@@ -116,11 +118,11 @@ rt.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all
                
                }
 
-fn.apply_settings(rt)
-fn.save_settings(rt.settings, bc_params, solver_params, path, nn)
+fn.apply_settings(s)
+fn.save_settings(s.settings, bc_params, solver_params, path, nn)
 
-rt.solid._prev_vol = copy.deepcopy(rt.solid._vol)
-rt.solid._dvol = rt.solid._vol-rt.solid._prev_vol
+s.solid._prev_vol = copy.deepcopy(s.solid._vol)
+s.solid._dvol = s.solid._vol-s.solid._prev_vol
 
 #%% PARAMETERS
 plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]#[(1,n) for n in np.array([1, 2, 3])] #v
@@ -139,9 +141,9 @@ it=time.time()
 
 #%% RUN SOLVER
 
-while rt.time <=Ts: #itr < nitr: # 
+while s.time <=Ts: #itr < nitr: # 
     if(False):
-        if ( (rt.time <= time_points[j]) and ((rt.time + rt.dt) > time_points[j]) ):  
+        if ( (s.time <= time_points[j]) and ((s.time + s.dt) > time_points[j]) ):  
             print(time_points[j])
             #fn.save_figures_minerals(rt,  max_pqty, time_points[j], path, nn, ptype=m)  
             #save_figures_mols(rt, time_points[j], path, nn, ptype=m) 
@@ -149,19 +151,19 @@ while rt.time <=Ts: #itr < nitr: #
             #save_pickle(rt, phases, time_points[j], path, nn)
             if(j>0):
                 points = [(1,n) for n in np.arange(1,15)]
-                fn.print_points(rt, points, names=['calcite', 'portlandite'])
-                print('SI %s' %rt.phrqc.selected_output()['SI_calcite'][1,:])
-                print('C %s' %rt.fluid.C.c[1,:])
-                print('Ca %s' %rt.fluid.Ca.c[1,:])
+                fn.print_points(s, points, names=['calcite', 'portlandite'])
+                print('SI %s' %s.phrqc.selected_output()['SI_calcite'][1,:])
+                print('C %s' %s.fluid.C.c[1,:])
+                print('Ca %s' %s.fluid.Ca.c[1,:])
             j +=1
         
-    rt.advance()    
-    results = fn.append_results(rt, results)
+    s.advance()    
+    results = fn.append_results(s, results)
     itr += 1
 #%% SIMULATION TIME
 
 simulation_time = time.time()-it
-fn.print_time(simulation_time, rt)
+fn.print_time(simulation_time, s)
             
 #%%  SAVE
 
@@ -171,7 +173,7 @@ fresults  = fn.filter_results(results, path, nn)
 fn.plot_species(results, names=[])#['calcite']
 fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
 fn.plot_points(results, names=['calcite', 'portlandite', 'poros', 'Ca', 'C'])
-fn.plot_fields(rt, names=['calcite', 'Ca', 'poros'],fsize=(15,1))
+fn.plot_fields(s, names=['calcite', 'Ca', 'poros'],fsize=(15,1))
 
 #%% PRINT
 points = [(1,n) for n in np.arange(2,15)]
