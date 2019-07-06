@@ -207,7 +207,7 @@ def get_average_poros(rt):
     '''
     Average poroisty in the domain
     '''
-    poros = np.mean(rt.solid._poros)
+    poros = np.mean(rt.solid.poros)
     return(poros)
     
 def get_average_Archie_D(rt):
@@ -215,7 +215,7 @@ def get_average_Archie_D(rt):
     Avarage effective diffusivity calculated by Archie's formula
     '''
     D0 = rt.fluid.H.D0
-    Dnew = rt.solid._poros * rt.solid._app_tort * D0        
+    Dnew = rt.solid.poros * rt.solid.app_tort * D0        
     return np.mean(Dnew)
 
 def get_delta_portlandite(rt):
@@ -361,8 +361,8 @@ def append_results(rt, results):
             results['C'+' ' + str(p)].append(rt.fluid.C.c[p])
             results['H'+' ' + str(p)].append(rt.fluid.H.c[p])
             results['O'+' ' + str(p)].append(rt.fluid.O.c[p])
-            results['poros'+' ' + str(p)].append(rt.solid._poros[p])
-            results['vol'+' ' + str(p)].append(rt.solid._vol[p])
+            results['poros'+' ' + str(p)].append(rt.solid.poros[p])
+            results['vol'+' ' + str(p)].append(rt.solid.vol[p])
             results['De'+' ' + str(p)].append(rt.fluid.H.De[p])
             results['pH'+' ' + str(p)].append(rt.phrqc.selected_output()['pH'][p])
             results['vol_CH'+' ' + str(p)].append(rt.solid.vol_ch[p])
@@ -687,9 +687,9 @@ def plot_fields(rt, names={}, fsize = (8,4)):
               'H':  rt.fluid.H.c,
               'O':  rt.fluid.O.c,
               'phases': rt.solid.phases,
-              'poros': rt.solid._poros}
+              'poros': rt.solid.poros}
     if rt.ptype == 'CSH':
-        fields.update({'csh':get_csh_conc(rt),
+        fields.update({'csh':rt.get_csh_conc(),
                        'Si':rt.fluid.Si.c}) #'CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH'
         
         

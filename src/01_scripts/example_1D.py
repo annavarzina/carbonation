@@ -85,15 +85,15 @@ domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 
 #%% INITIATE THE SOLVER
 
-s= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, domain_params, bc_params, solver_params) 
-print(s.solid.nodetype)
+carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, domain_params, bc_params, solver_params) 
+print(carb_rt.solid.nodetype)
 #fn.set_feq(rt)
 #%% SETTINGS
 
 nn='low_conc_order_2'#'acc10'
 path = root_dir+'\\results\\output\\'
  
-s.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all active cells or 'interface' 
+carb_rt.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all active cells or 'interface' 
                'diffusivity':{'type':'fixed', #'fixed' or 'archie
                               'calcite': 9e-12,
                               'portlandite': 1e-12},
@@ -111,15 +111,12 @@ s.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all 
                              'angle':1.0, #(angle in degrees / 180)
                              'dx':dx}, # +pore_factor?
                'velocity': False, #True #
-               'pores': 'blocks' # 'cylinders or cubes
+               'pores': 'block' # 'cylinder or block
                
                }
 
-fn.apply_settings(s)
-fn.save_settings(s.settings, bc_params, solver_params, path, nn)
-
-s.solid._prev_vol = copy.deepcopy(s.solid._vol)
-s.solid._dvol = s.solid._vol-s.solid._prev_vol
+fn.apply_settings(carb_rt)
+fn.save_settings(carb_rt.settings, bc_params, solver_params, path, nn)
 
 #%% PARAMETERS
 plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]#[(1,n) for n in np.array([1, 2, 3])] #v
@@ -131,16 +128,16 @@ j = 0
 ni = 100
 nitr = 20
 Ts = 0.1001#1.01
-step = 1.0
+step = 0.1
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
 
 #%% RUN SOLVER
 
-while s.time <=Ts: #itr < nitr: # 
+while carb_rt.time <=Ts: #itr < nitr: # 
     if(False):
-        if ( (s.time <= time_points[j]) and ((s.time + s.dt) > time_points[j]) ):  
+        if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
             #fn.save_figures_minerals(rt,  max_pqty, time_points[j], path, nn, ptype=m)  
             #save_figures_mols(rt, time_points[j], path, nn, ptype=m) 
@@ -148,19 +145,19 @@ while s.time <=Ts: #itr < nitr: #
             #save_pickle(rt, phases, time_points[j], path, nn)
             if(j>0):
                 points = [(1,n) for n in np.arange(1,15)]
-                fn.print_points(s, points, names=['calcite', 'portlandite'])
-                print('SI %s' %s.phrqc.selected_output()['SI_calcite'][1,:])
-                print('C %s' %s.fluid.C.c[1,:])
-                print('Ca %s' %s.fluid.Ca.c[1,:])
+                fn.print_points(carb_rt, points, names=['calcite', 'portlandite'])
+                print('SI %carb_rt' %carb_rt.phrqc.selected_output()['SI_calcite'][1,:])
+                print('C %carb_rt' %carb_rt.fluid.C.c[1,:])
+                print('Ca %carb_rt' %carb_rt.fluid.Ca.c[1,:])
             j +=1
         
-    s.advance()    
-    results = fn.append_results(s, results)
+    carb_rt.advance()    
+    results = fn.append_results(carb_rt, results)
     itr += 1
 #%% SIMULATION TIME
 
 simulation_time = time.time()-it
-fn.print_time(simulation_time, s)
+fn.print_time(simulation_time, carb_rt)
             
 #%%  SAVE
 
@@ -170,7 +167,7 @@ fresults  = fn.filter_results(results, path, nn)
 fn.plot_species(results, names=[])#['calcite']
 fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
 fn.plot_points(results, names=['calcite', 'portlandite', 'poros', 'Ca', 'C'])
-fn.plot_fields(s, names=['calcite', 'Ca', 'poros'],fsize=(15,1))
+fn.plot_fields(carb_rt, names=['calcite', 'Ca', 'poros'],fsize=(15,1))
 
 #%% PRINT
 points = [(1,n) for n in np.arange(2,15)]
