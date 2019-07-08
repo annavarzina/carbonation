@@ -14,7 +14,6 @@ import matplotlib.pylab as plt
 import numpy as np
 np.set_printoptions(precision=5, threshold=np.inf)
 import time
-import copy
 import yantra
 import cell_type as ct # change the path to cell_type file
 import misc_func as fn
@@ -54,7 +53,7 @@ plt.show()
 
 init_porosCH = 0.05
 
-mvol_ratio = 3.69e-5/3.31e-5
+mvol_ratio = 3.69/3.31
 mvolCH = 20
 mvol = [mvolCH, mvolCH*mvol_ratio]
 
@@ -68,8 +67,30 @@ D = 1.0e-09 # default diffusion coefficient in pure liquid
 porosity = fn.get_porosity(domain, pqty, mvol, m)
 app_tort = 1. * porosity ** (1./3.)
 
-#%% PARAMETERS (DOMAIN, BC, SOLVER)
+settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
+            'active': 'interface', # 'all'/'smart'/'interface'
+            'diffusivity':{'type':'fixed', #'fixed' or 'archie'
+                           'D_CC': 9e-12,
+                           'D_CH': 1e-12},
+            'pcs': {'pcs': True, 
+                    'pores': 'block', #'block'/'cylinder'
+                    'int_energy': 0.485, # internal energy
+                    'pore_size': 0.01*dx, # threshold radius or distance/2
+                    'crystal_size': 0.5*dx, # crystal or pore length
+                    'pore_density': 20000, #pore density per um3 - only for cylinder type
+                    #'threshold': 'poresize', #poresize/porosity or si
+                    #'threshold_value': 1.0, 
+                    }, 
+           'velocity': False, 
+           'dx': dx 
+           }
+               
+tfact =  1./6.*2      
 
+nn='low_conc_order_2'#'acc10'
+path = root_dir+'\\results\\output\\'
+
+#%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir +'\\phreeqc_input\\CH_CC_nat.phrq')#'CH_CC-1percent.phrq'
                                      #input_file = 'CH_CC_-2.phrq')
@@ -78,43 +99,12 @@ bc_params={'solution_labels':{'left':100001},
            'bottom':['flux', 0.0],
            'left':['flux', 0.0],
            'right':['flux', 0.0],}
-
-solver_params = fn.set_solver_params(tfact = 1./6.*2)
-
+solver_params = fn.set_solver_params(tfact = tfact)
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 
 #%% INITIATE THE SOLVER
-
 carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, domain_params, bc_params, solver_params) 
-print(carb_rt.solid.nodetype)
-#fn.set_feq(rt)
-#%% SETTINGS
-
-nn='low_conc_order_2'#'acc10'
-path = root_dir+'\\results\\output\\'
- 
-carb_rt.settings = {'precip_mechanism': 'interface',#interface_dissolve_only' for all active cells or 'interface' 
-               'diffusivity':{'type':'fixed', #'fixed' or 'archie
-                              'calcite': 9e-12,
-                              'portlandite': 1e-12},
-               'si_params': {'N': 20000, #pore density per um3
-                             'threshold': 'radius', #radius/porosity or si
-                             'threshold_SI': 1.0, 
-                             'threshold_distance':0.001*dx, #maximum pore radius
-                             'threshold_crystal':0.5*dx,
-                             'L': 0.2*dx, #pore length
-                             'mvol':3.69e-5,
-                             'iene': 0.485, # internal energy
-                             'R': 8.314, # gas constant
-                             'T':298.3, # temperature in kelvin
-                             'm':1,
-                             'angle':1.0, #(angle in degrees / 180)
-                             'dx':dx}, # +pore_factor?
-               'velocity': False, #True #
-               'pores': 'block' # 'cylinder or block
-               
-               }
-
+carb_rt.settings = settings
 fn.apply_settings(carb_rt)
 fn.save_settings(carb_rt.settings, bc_params, solver_params, path, nn)
 
@@ -122,6 +112,7 @@ fn.save_settings(carb_rt.settings, bc_params, solver_params, path, nn)
 plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]#[(1,n) for n in np.array([1, 2, 3])] #v
 pavglist = ['avg_poros', 'avg_D_eff']
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
+
 #%% TIME SETTINGS
 itr = 0 
 j = 0
@@ -134,7 +125,6 @@ time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+s
 it=time.time()
 
 #%% RUN SOLVER
-
 while carb_rt.time <=Ts: #itr < nitr: # 
     if(False):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
@@ -154,15 +144,15 @@ while carb_rt.time <=Ts: #itr < nitr: #
     carb_rt.advance()    
     results = fn.append_results(carb_rt, results)
     itr += 1
+    
 #%% SIMULATION TIME
-
 simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
             
 #%%  SAVE
-
 fresults  = fn.filter_results(results, path, nn)
 #fn.save_obj(fresults, path + str(nn) +'_results')
+
 #%% PLOT 
 fn.plot_species(results, names=[])#['calcite']
 fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])

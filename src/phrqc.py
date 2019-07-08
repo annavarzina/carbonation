@@ -43,11 +43,11 @@ class CarbonationPhrqc(Phrqc):
         #print("!")
         phaseqty = self.flatten_dict(phaseqty)
         modifystr = []
-        pm = 'none'
+        precipitation = 'none'
         #is_boundary = (self.boundcells ==1).flatten(order='C') 
         is_liquid = np.ones(np.shape(self.poros)).flatten(order='C') 
-        if hasattr(self, 'pm'):      
-            pm = self.pm
+        if hasattr(self, 'precipitation'):      
+            precipitation = self.precipitation
             is_liquid = (self.nodetype.flatten(order='C') == -1) 
         if hasattr(self, 'pc'):   
             pass

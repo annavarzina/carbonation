@@ -7,6 +7,7 @@ from yantra.physics.PhrqcReactiveTransport import PhrqcReactiveTransport
 from yantra.physics.PhrqcReactiveTransport import Solid
 
 import cell_type as ct # change the path to cell_type file
+import defaults as df
 import phrqc 
 
 
@@ -37,7 +38,7 @@ class CarbonationRT(PhrqcReactiveTransport):
                                   bc_params,solver_params)
         self.solid=Solid(domain,domain_params,solver_params)
         
-        self.dx = self.fluid.H.dx        
+        self.dx = self.fluid.H.dx  #pcs settings      
         self.ptype = 'CSH' if hasattr(self.fluid, 'Si') else 'CH'
         self.set_volume()
         self.set_porosity()
@@ -82,7 +83,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.fluid.set_attr('ss',ss)
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
         if hasattr(self.phrqc, 'pm'):
-            if (self.phrqc.pm == 'interface'):
+            if (self.phrqc.precipitation == 'interface'):
                 self.phrqc.nodetype = deepcopy(self.solid.nodetype)
         self.update_solid_params() # or after if?
         self.solid.phases = self.update_phases()
@@ -195,8 +196,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.nodetype = self.solid.nodetype
 
     def update_diffusivity(self):
-        D_CC = self.settings['diffusivity']['calcite']
-        D_CH = self.settings['diffusivity']['portlandite']
+        D_CC = self.settings['diffusivity']['D_CC']
+        D_CH = self.settings['diffusivity']['D_CH']
         D0 = self.fluid.Ca.D0  
         is_port = self.solid.portlandite.c >0
         is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
@@ -242,7 +243,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         if (self.ptype == 'CH'):  
             self.solid.vol_ch = self.volume_CH()
             self.solid.vol_cc = self.volume_CC()          
-            if (self.settings['pores']=='cylinder'):
+            if (self.settings['pcs']['pores']=='cylinder'):
+                #TODO check this case
                 if (self.iters<=1):
                     self.solid.threshold_pore_size = self.threshold_pore_size() /self.dx
                     self.solid.radius_max = self.settings['si_params']['radius'] /self.dx # in lb units
@@ -252,11 +254,11 @@ class CarbonationRT(PhrqcReactiveTransport):
                 self.solid.tot_free_vol = self.solid.poros#self.get_pore_volume()
                 self.solid.pore_size = self.pore_size()
                 self.solid.pore_volume_cc = self.pore_volume_CC() 
-            elif(self.settings['pores']=='block'):                
+            elif(self.settings['pcs']['pores']=='block'):                
                 if (self.iters<1):      
-                    self.solid.threshold_crystal = self.settings['si_params']['threshold_crystal'] #default crystal size
-                    self.solid.threshold_distance = self.settings['si_params']['threshold_distance']
-                    self.solid.threshold_pore_size = self.solid.threshold_distance/2
+                    self.solid.threshold_crystal = self.settings['pcs']['crystal_size'] #default crystal size
+                    self.solid.threshold_pore_size = self.settings['pcs']['pore_size']
+                    self.solid.threshold_distance = self.solid.threshold_pore_size*2
                     self.solid.block_size = self.block_size()
                 self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.solid._poros * self.dx**3#self.get_pore_volume(self)
                 self.solid.ncrystals = self.block_amount()                 
@@ -324,7 +326,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         Return matrix of pore radiuses per each cell
         '''
         pore_size = np.ones(np.shape(self.solid.shape)) 
-        if(self.settings['pores'] == 'cylinder'):
+        if(self.settings['pcs']['pores'] == 'cylinder'):
             pore_size = self.get_cylinder_radius(self.solid._poros, 
                                                  self.solid.pore_amount, 
                                                  self.solid.pore_length, 
@@ -335,13 +337,13 @@ class CarbonationRT(PhrqcReactiveTransport):
         return pore_size
     
     def threshold_pore_size(self):
-        si = self.settings['si_params']['threshold_SI']
+        si = self.settings['pcs']['threshold_SI']
         omega = 10.**si
         ps = (-1) * self.settings['si_params']['mvol'] *\
             np.cos(np.pi*self.settings['si_params']['angle'])*2*\
-            self.settings['si_params']['iene'] /\
-            self.settings['si_params']['R'] /\
-            self.settings['si_params']['T'] / np.log(omega)
+            self.settings['pcs']['iene'] /\
+            self.settings['pcs']['R'] /\
+            self.settings['pcs']['T'] / np.log(omega)
         return ps
     
     def block_size(self):
@@ -374,24 +376,24 @@ class CarbonationRT(PhrqcReactiveTransport):
         return si   
     
     @staticmethod
-    def saturation_ratio(r, angle=np.pi, mvol=3.69e-5, int_energy=0.094, gas_c=8.314, temp_kelv=298.3):
+    def saturation_ratio(r, int_energy=0.094, angle=np.pi, mvol=3.69e-5, gas_c=8.314, temp_kelv=298.3):
         '''
         Saturation ratio for pore-size controlled solubility
         '''
         omega = np.exp(-1*mvol*np.cos(angle)* 2 * int_energy / (gas_c * temp_kelv * r ))
         return omega
     
-    def saturation_index(self, radius):   
+    def saturation_index(self, size):   
         '''
         Saturation index 
         '''
-        params = self.settings['si_params']
-        omega = self.saturation_ratio(radius, 
-                                      params.get('angle') * np.pi, 
-                                      params.get('mvol'), 
-                                      params.get('iene'), 
-                                      params.get('R'), 
-                                      params.get('T') )
+        params = self.settings['pcs']
+        omega = self.saturation_ratio(size, 
+                                      params.get('int_energy'), 
+                                      df.ANGLE, 
+                                      df.MVOL_CC, 
+                                      df.GAS_CONSTANT, 
+                                      df.TEMPERATURE )
         si = np.log10(omega)
         return si
     #%% PROPERTIES

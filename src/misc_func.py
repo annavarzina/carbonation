@@ -394,22 +394,20 @@ def filter_results(results, path, name, length = 1e+4):
 
 #%% SETTINGS
 def apply_settings(rt):
-    if(rt.settings['precip_mechanism'] == 'interface'):
-        #wait = input("Check precipitation mechanism parameters for interface type. PRESS ENTER TO CONTINUE.")
+    if(rt.settings['active'] == 'all'):
+        rt.phrqc.phrqc_flags['smart_run'] = False
+        rt.phrqc.phrqc_flags['only_interface'] = False
+        rt.phrqc.precipitation = 'interface'
+        rt.phrqc.nodetype = deepcopy(rt.nodetype)
+    elif(rt.settings['active'] == 'interface'):        
         rt.phrqc.phrqc_flags['smart_run'] = False
         rt.phrqc.phrqc_flags['only_interface'] = True
-    elif(rt.settings['precip_mechanism'] == 'interface_dissolve_only'):
-        rt.phrqc.phrqc_flags['smart_run'] = True
-        rt.phrqc.phrqc_flags['only_interface'] = False
-        rt.phrqc.pm = 'interface'
-        rt.phrqc.nodetype = deepcopy(rt.nodetype)
-    elif(rt.settings['precip_mechanism'] == 'none'):
+    elif(rt.settings['active'] == 'smart'):
         rt.phrqc.phrqc_flags['smart_run'] = True
         rt.phrqc.phrqc_flags['only_interface'] = False
     else:
-        print("Wrong precipitation mechanism chosen")
         sys.exit()
-        
+
         
 def save_settings(settings, bc_params, solver_params, path, name):
     with open(path + name +'_settings.txt', 'w') as file:
