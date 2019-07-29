@@ -76,7 +76,36 @@ class CarbonationPhrqc(Phrqc):
                                 modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
                                 modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
             else:
-                pass          
+                pass  
+        elif self.precipitation == 'all':    
+            si = self._target_SI.flatten(order='C')      
+            for cell in range(self.startcell,self.stopcell+1,1):
+                modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
+                for key in phaseqty.keys():
+                    modifystr.append("\t -component %s" %(key))
+                    modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
+                    if key == 'portlandite':   
+                        modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                    if (key == 'calcite'):
+                        modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
+                        modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
+        elif self.precipitation == 'mineral':
+            is_mineral = (self.init_port>0).flatten(order='C')  
+            si = self._target_SI.flatten(order='C')      
+            for cell in range(self.startcell,self.stopcell+1,1):
+                modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
+                for key in phaseqty.keys():
+                    modifystr.append("\t -component %s" %(key))
+                    modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
+                    if key == 'portlandite':   
+                        modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                    if (key == 'calcite'):
+                        if (is_mineral[cell-1]): 
+                            modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
+                            modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))                             
+                        else:
+                            #modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))     
+                            modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
                         
         modifystr.append("end") 
         modifystr ='\n'.join(modifystr)

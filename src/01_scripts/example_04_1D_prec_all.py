@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Sript for both CH and CSH systems
+Example with precipitation everywhere
 '''
 
 #%% PYTHON MODULES
@@ -67,7 +67,7 @@ D = 1.0e-09 # default diffusion coefficient in pure liquid
 porosity = fn.get_porosity(domain, pqty, mvol, m)
 app_tort = 1. * porosity ** (1./3.)
 
-settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
+settings = {'precipitation': 'all', # 'interface'/'all'/'mineral' nodes
             'active': 'interface', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'fixed' or 'archie'
                            'D_CC': 9e-12,
@@ -119,7 +119,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 20
-Ts = 0.11#1.001#1.01
+Ts = 1.11#1.001#1.01
 step = 0.1
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))

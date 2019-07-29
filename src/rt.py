@@ -49,7 +49,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.phrqc.is_calc = self.solid.calcite.c>0
         self.phrqc._target_SI = np.zeros(self.solid.shape)   
         self.phrqc.active = 'all'
-        self.phrqc.precipitation = 'interface'
+        self.phrqc.precipitation = 'all'
         self.phrqc.nodetype = deepcopy(self.nodetype)
         
         if self.solid.nphases >0:
@@ -90,7 +90,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
         self.update_solid_params() # or after if?
         self.solid.phases = self.update_phases()
-        self.update_nodetype()
+        if(self.phrqc.precipitation == 'interface'):
+            self.update_nodetype()
     
     #%%
     def set_volume(self):
@@ -172,10 +173,9 @@ class CarbonationRT(PhrqcReactiveTransport):
                 #is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc
                 is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(prev_nodetype==-1)
             not_critical = np.logical_not(is_critical)
+            is_interface = (not_critical) & (is_port|(prev_nodetype==-2)| (prev_nodetype==-5))
             self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
-                ct.Type.INTERFACE * np.logical_and(is_port, not_critical) + \
-                ct.Type.INTERFACE * np.logical_and((prev_nodetype==-2), not_critical) + \
-                ct.Type.INTERFACE * np.logical_and((prev_nodetype==-5), not_critical) + \
+                ct.Type.INTERFACE * is_interface + \
                 ct.Type.MULTILEVEL * is_critical +\
                 ct.Type.SOLID * is_solid #ct.Type.INTERFACE * ((is_calc) &(~is_critical)) + 
         if self.ptype == 'CSH':
