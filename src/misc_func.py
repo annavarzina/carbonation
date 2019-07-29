@@ -5,6 +5,7 @@ Miscellaneous functions for the carbonation solver
 import numpy as np
 from copy import deepcopy
 import sys    
+import os
 import matplotlib.pylab as plt
 
 import pickle
@@ -394,10 +395,11 @@ def filter_results(results, path, name, length = 1e+4):
 
 #%% SETTINGS
 def apply_settings(rt):
+    rt.phrqc.active = rt.settings['active']
+    rt.phrqc.precipitation = rt.settings['precipitation']
     if(rt.settings['active'] == 'all'):
         rt.phrqc.phrqc_flags['smart_run'] = False
         rt.phrqc.phrqc_flags['only_interface'] = False
-        rt.phrqc.precipitation = 'interface'
         rt.phrqc.nodetype = deepcopy(rt.nodetype)
     elif(rt.settings['active'] == 'interface'):        
         rt.phrqc.phrqc_flags['smart_run'] = False
@@ -410,14 +412,20 @@ def apply_settings(rt):
 
         
 def save_settings(settings, bc_params, solver_params, path, name):
-    with open(path + name +'_settings.txt', 'w') as file:
-        file.write(json.dumps(settings))
-        file.write('\n\n')
-        file.write(json.dumps(bc_params))
-        file.write('\n\n')
-        file.write(json.dumps(solver_params))
-    file.close()
-        
+    def write_txt(settings, bc_params, solver_params, path, name):
+        with open(path + name +'_settings.txt', 'w') as file:
+            file.write(json.dumps(settings))
+            file.write('\n\n')
+            file.write(json.dumps(bc_params))
+            file.write('\n\n')
+            file.write(json.dumps(solver_params))
+        file.close()
+    try:
+        write_txt(settings, bc_params, solver_params, path, name)
+        #os.mkdir(dirName)   
+    except IOError:
+        os.mkdir(path)
+        write_txt(settings, bc_params, solver_params, path, name)
 #%% PICKLE
 
 def save_obj(obj, name ):

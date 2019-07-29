@@ -47,7 +47,10 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.phrqc.boundcells = self.set_boundary_cells()
         self.phrqc.init_port = self.solid.portlandite.c>0
         self.phrqc.is_calc = self.solid.calcite.c>0
-        self.phrqc._target_SI = np.zeros(self.solid.shape)        
+        self.phrqc._target_SI = np.zeros(self.solid.shape)   
+        self.phrqc.active = 'all'
+        self.phrqc.precipitation = 'interface'
+        self.phrqc.nodetype = deepcopy(self.nodetype)
         
         if self.solid.nphases >0:
             phaseqty = self.solid.phaseqty_for_phrqc()
@@ -72,6 +75,9 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.phrqc.poros=deepcopy(self.solid.poros)        
         self.fluid.call('_set_relaxation_params')  
         
+        if(self.phrqc.precipitation == 'interface' and self.phrqc.active != 'interface'):
+            self.phrqc.nodetype = deepcopy(self.nodetype)   
+        
         c=deepcopy( self.fluid.get_attr('c'))
         phaseqty=self.solid.phaseqty_for_phrqc()		
         phase_list = deepcopy(self.solid.diffusive_phase_list)
@@ -82,9 +88,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         pqty=self.solid.update(self.phrqc.dphases)            
         self.fluid.set_attr('ss',ss)
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
-        if hasattr(self.phrqc, 'pm'):
-            if (self.phrqc.precipitation == 'interface'):
-                self.phrqc.nodetype = deepcopy(self.solid.nodetype)
         self.update_solid_params() # or after if?
         self.solid.phases = self.update_phases()
         self.update_nodetype()
@@ -167,10 +170,12 @@ class CarbonationRT(PhrqcReactiveTransport):
             if(self.iters>1):
                 is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc
                 #is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc
-                is_liquid =  (~is_critical)&(~is_port)&(~is_solid)
+                is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(prev_nodetype==-1)
             not_critical = np.logical_not(is_critical)
             self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
                 ct.Type.INTERFACE * np.logical_and(is_port, not_critical) + \
+                ct.Type.INTERFACE * np.logical_and((prev_nodetype==-2), not_critical) + \
+                ct.Type.INTERFACE * np.logical_and((prev_nodetype==-5), not_critical) + \
                 ct.Type.MULTILEVEL * is_critical +\
                 ct.Type.SOLID * is_solid #ct.Type.INTERFACE * ((is_calc) &(~is_critical)) + 
         if self.ptype == 'CSH':

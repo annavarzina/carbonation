@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-Sript for both CH and CSH systems
+Example 2: 
+    All cells are active
 '''
 
 #%% PYTHON MODULES
@@ -68,7 +69,7 @@ porosity = fn.get_porosity(domain, pqty, mvol, m)
 app_tort = 1. * porosity ** (1./3.)
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'active': 'interface', # 'all'/'smart'/'interface'
+            'active': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'fixed' or 'archie'
                            'D_CC': 9e-12,
                            'D_CH': 1e-12},
@@ -82,12 +83,13 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                     #'threshold_value': 1.0, 
                     }, 
            'velocity': False, 
+           'bc': 'const',
            'dx': dx 
            }
                
-tfact =  1./6.*2      
+tfact =  1./6.     
 
-nn='low_conc_order_2'#'acc10'
+nn='example_active_2'#'acc10'
 path = root_dir+'\\results\\output\\'
 
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
@@ -118,7 +120,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 20
-Ts = 0.1001#1.01
+Ts = 1.001#1.01
 step = 0.1
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))

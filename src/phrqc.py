@@ -43,26 +43,40 @@ class CarbonationPhrqc(Phrqc):
         #print("!")
         phaseqty = self.flatten_dict(phaseqty)
         modifystr = []
-        precipitation = 'none'
         #is_boundary = (self.boundcells ==1).flatten(order='C') 
         is_liquid = np.ones(np.shape(self.poros)).flatten(order='C') 
-        if hasattr(self, 'precipitation'):      
-            precipitation = self.precipitation
-            is_liquid = (self.nodetype.flatten(order='C') == -1) 
-        if hasattr(self, 'pc'):   
-            pass
-        else:
-            si = self._target_SI.flatten(order='C')      
-            for cell in range(self.startcell,self.stopcell+1,1):
-                modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
-                for key in phaseqty.keys():
-                    modifystr.append("\t -component %s" %(key))
-                    modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
-                    if key == 'portlandite':   
-                        modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
-                    if (key == 'calcite'):
-                        modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
-                        modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
+        if self.precipitation == 'interface':    
+            if self.active == 'interface':  
+                si = self._target_SI.flatten(order='C')      
+                for cell in range(self.startcell,self.stopcell+1,1):
+                    modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
+                    for key in phaseqty.keys():
+                        modifystr.append("\t -component %s" %(key))
+                        modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
+                        if key == 'portlandite':   
+                            modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                        if (key == 'calcite'):
+                            modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
+                            modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
+            elif self.active == 'all' or 'smart':  
+                is_liquid = (self.nodetype.flatten(order='C') == -1)   
+                si = self._target_SI.flatten(order='C')      
+                for cell in range(self.startcell,self.stopcell+1,1):
+                    modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
+                    for key in phaseqty.keys():
+                        modifystr.append("\t -component %s" %(key))
+                        modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
+                        if key == 'portlandite':   
+                            modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                        if (key == 'calcite'):
+                            if (is_liquid[cell-1]):                              
+                                #modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))     
+                                modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                            else:
+                                modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
+                                modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
+            else:
+                pass          
                         
         modifystr.append("end") 
         modifystr ='\n'.join(modifystr)

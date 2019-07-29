@@ -41,8 +41,7 @@ class TestSum(unittest.TestCase):
 
         mvol_ratio = 3.69e-5/3.31e-5
         mvolCH = 20
-        mvol = [mvolCH, mvolCH*mvol_ratio]
-        
+        mvol = [mvolCH, mvolCH*mvol_ratio]        
         mvol = fn.set_mvols(mvol, ptype = m) #m3/mol
         #max_pqty = fn.get_max_pqty(mvol) #mol/m3
         init_conc = fn.set_init_pqty(mvol, init_porosCH)
@@ -81,6 +80,7 @@ class TestSum(unittest.TestCase):
                             #'threshold_value': 1.0, 
                             }, 
                    'velocity': False, 
+                   #'bc': 'const',
                    'dx': dx 
                    }    
             
