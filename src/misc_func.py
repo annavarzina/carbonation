@@ -397,6 +397,7 @@ def filter_results(results, path, name, length = 1e+4):
 def apply_settings(rt):
     rt.phrqc.active = rt.settings['active']
     rt.phrqc.precipitation = rt.settings['precipitation']
+    rt.phrqc.pcs = rt.settings['pcs']['pcs']
     if(rt.settings['active'] == 'all'):
         rt.phrqc.phrqc_flags['smart_run'] = False
         rt.phrqc.phrqc_flags['only_interface'] = False

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import numpy as np
 from copy import deepcopy
 import yantra
@@ -50,6 +51,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.phrqc._target_SI = np.zeros(self.solid.shape)   
         self.phrqc.active = 'all'
         self.phrqc.precipitation = 'all'
+        self.phrqc.pcs = False
         self.phrqc.nodetype = deepcopy(self.nodetype)
         
         if self.solid.nphases >0:
@@ -104,6 +106,8 @@ class CarbonationRT(PhrqcReactiveTransport):
     def set_porosity(self):        
         self.solid.poros=1.- self.solid.vol/self.solid.voxel_vol 
         self.solid.app_tort = 1. * self.solid.poros ** (1./3.)
+        if np.any(self.solid.poros<=1e-10):
+            sys.exit('Negative or zero porosity')
         
     def set_boundary_cells(self):
         nodes = np.zeros(np.shape(self.nodetype))
@@ -251,12 +255,10 @@ class CarbonationRT(PhrqcReactiveTransport):
             if (self.settings['pcs']['pores']=='cylinder'):
                 #TODO check this case
                 if (self.iters<=1):
-                    self.solid.threshold_pore_size = self.threshold_pore_size() /self.dx
-                    self.solid.radius_max = self.settings['si_params']['radius'] /self.dx # in lb units
-                    self.solid.pore_length = self.settings['si_params']['L'] /self.dx # in lb units 
+                    self.solid.threshold_pore_size = self.settings['pcs']['crystal_size']
+                    self.solid.pore_length = self.settings['pcs']['crystal_size']  
                 self.solid.pore_amount = self.pore_amount()  
-                self.solid.free_vol = self.free_volume()  
-                self.solid.tot_free_vol = self.solid.poros#self.get_pore_volume()
+                self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.free_volume()  
                 self.solid.pore_size = self.pore_size()
                 self.solid.pore_volume_cc = self.pore_volume_CC() 
             elif(self.settings['pcs']['pores']=='block'):                
@@ -295,15 +297,15 @@ class CarbonationRT(PhrqcReactiveTransport):
 
     def pore_volume_CC(self):
         v = 0
-        if(self.settings['pores'] == 'cylinder'):
-            v = self.solid.pore_amount * np.pi * self.solid.pore_radius**2 * \
+        if(self.settings['pcs']['pores'] == 'cylinder'):
+            v = self.solid.pore_amount * np.pi * self.solid.pore_size**2 * \
                 self.solid.pore_length #*2
         else:
             v = self.free_volume()
         return v
        
     def free_volume(self):
-        v = self.solid._voxel_vol - self.solid.vol_ch - self.solid.vol_cc
+        v = self.solid.voxel_vol - self.solid.vol_ch
         return v
     #%% PORE PROPERTIES
     
@@ -311,8 +313,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         '''
         Return matrix of pore amounts per each cell
         '''  
-        cc = self.solid.vol_cc   
-        n = self.settings['si_params']['N'] * cc #* np.ones(np.shape(pore_vol))
+        vol = self.free_volume()
+        n = self.settings['pcs']['pore_density'] * vol #* np.ones(np.shape(pore_vol))
         n[n<1] = 1
         return n   
     
@@ -332,11 +334,11 @@ class CarbonationRT(PhrqcReactiveTransport):
         '''
         pore_size = np.ones(np.shape(self.solid.shape)) 
         if(self.settings['pcs']['pores'] == 'cylinder'):
-            pore_size = self.get_cylinder_radius(self.solid._poros, 
-                                                 self.solid.pore_amount, 
+            pore_size = self.get_cylinder_radius(self.solid.poros, 
+                                                 self.solid.pore_amount, #self.settings['pcs']['pore_density']
                                                  self.solid.pore_length, 
-                                                 1)
-            pore_size[pore_size>self.solid.radius_max ] = self.solid.radius_max 
+                                                 self.dx)
+            #pore_size[pore_size>self.solid.threshold_pore_size ] = self.solid.threshold_pore_size
         else:
             pore_size=self.solid.distance/2.
         return pore_size
