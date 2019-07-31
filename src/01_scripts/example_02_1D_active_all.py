@@ -51,6 +51,18 @@ plt.figure(figsize=(5,5))
 plt.imshow(domain.nodetype) 
 plt.show()
 #%%  VALUES
+nn='example_02'#'acc10'
+path = root_dir+'\\results\\output\\'
+
+phrqc_input = {'c_bc':{'type':'conc', 'value': 0.02777}, #3.05E-02, 3.74E-02, 4.30E-02
+               'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
+               'c_liq':{'type':'eq', 'value': 'calcite'},
+               'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
+               'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
+phrqc = fn.set_phrqc_input(phrqc_input)            
+fn.save_phrqc_input(phrqc,root_dir, nn)   
+
+tfact =  1./6.
 
 init_porosCH = 0.05
 
@@ -79,37 +91,25 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                     'pore_size': 0.01*dx, # threshold radius or distance/2
                     'crystal_size': 0.5*dx, # crystal or pore length
                     'pore_density': 20000, #pore density per um3 - only for cylinder type
-                    #'threshold': 'poresize', #poresize/porosity or si
-                    #'threshold_value': 1.0, 
                     }, 
            'velocity': False, 
-           'bc': 'const',
+           'bc': phrqc_input['c_bc'],
            'dx': dx 
            }
-               
-tfact =  1./6.     
-
-nn='example_active_2'#'acc10'
-path = root_dir+'\\results\\output\\'
 
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
-                                     input_file = root_dir +'\\phreeqc_input\\CH_CC_nat.phrq')#'CH_CC-1percent.phrq'
+                                     input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
                                      #input_file = 'CH_CC_-2.phrq')
-bc_params={'solution_labels':{'left':100001}, 
-           'top':['flux', 0.0],
-           'bottom':['flux', 0.0],
-           'left':['flux', 0.0],
-           'right':['flux', 0.0],}
+bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
 solver_params = fn.set_solver_params(tfact = tfact)
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
+fn.save_settings(settings, bc_params, solver_params, path, nn)
 
 #%% INITIATE THE SOLVER
-carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, domain_params, bc_params, solver_params) 
-carb_rt.settings = settings
-fn.apply_settings(carb_rt)
-fn.save_settings(carb_rt.settings, bc_params, solver_params, path, nn)
-
+carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, 
+                          domain_params, bc_params, solver_params,
+                          settings) 
 #%% PARAMETERS
 plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]#[(1,n) for n in np.array([1, 2, 3])] #v
 pavglist = ['avg_poros', 'avg_D_eff']
@@ -122,7 +122,6 @@ ni = 100
 nitr = 20
 Ts = 1.001#1.01
 step = 0.1
-#time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
 

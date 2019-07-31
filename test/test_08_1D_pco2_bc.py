@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-Test 5
+Test the case with pores treated as blocks
+CO2 partial pressure is fixed at the boundary
 '''
 #python -m unittest discover -s test run all tests
 from __future__ import division  #using floating everywhere
@@ -39,18 +40,18 @@ class TestSum(unittest.TestCase):
         domain.nodetype[:,-1] = ct.Type.SOLID
         
         #%%
-        nn='example_05'
+        nn='example_08'
         #path = root_dir+'\\results\\output\\'
         
-        phrqc_input = {'c_bc':{'type':'conc', 'value': 0.02777}, #3.05E-02, 3.74E-02, 4.30E-02
+        phrqc_input = {'c_bc':{'type':'pco2', 'value': 1.0}, 
                        'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
                        'c_liq':{'type':'eq', 'value': 'calcite'},
                        'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-                       'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
+                       'ca_liq':{'type':'eq', 'value': 'calcite'}}
         phrqc = fn.set_phrqc_input(phrqc_input)            
         fn.save_phrqc_input(phrqc,root_dir, nn)   
         
-        tfact =  1./6.*2
+        tfact =  1./6.
         init_porosCH = 0.05
         
         mvol_ratio = 3.69/3.31
@@ -67,23 +68,25 @@ class TestSum(unittest.TestCase):
         porosity = fn.get_porosity(domain, pqty, mvol, m)
         app_tort = 1. * porosity ** (1./3.)
         
-        settings = {'precipitation': 'mineral', # 'interface'/'all'/'mineral' nodes
+        settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                     'active': 'all', # 'all'/'smart'/'interface'
                     'diffusivity':{'type':'fixed', #'fixed' or 'archie'
-                                   'D_CC': 9e-12,
-                                   'D_CH': 1e-12},
+                                   'D_CC': 5e-11,
+                                   'D_CH': 1e-11},
                     'pcs': {'pcs': True, 
                             'pores': 'block', #'block'/'cylinder'
                             'int_energy': 0.485, # internal energy
-                            'pore_size': 0.01*dx, # threshold radius or distance/2
+                            'pore_size': 0.005*dx, # threshold radius or distance/2
                             'crystal_size': 0.5*dx, # crystal or pore length
                             'pore_density': 20000, #pore density per um3 - only for cylinder type
+                            #'threshold': 'poresize', #poresize/porosity or si
+                            #'threshold_value': 1.0, 
                             }, 
-                   'bc': phrqc_input['c_bc'],
                    'velocity': False, 
+                   'bc': phrqc_input['c_bc'],
                    'dx': dx 
                    }
-         
+               
         domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                              input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')#'CH_CC-nat.phrq'
                                              #input_file = 'CH_CC_-2.phrq')

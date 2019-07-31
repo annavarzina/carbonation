@@ -13,7 +13,7 @@ import phrqc
 
 
 class CarbonationRT(PhrqcReactiveTransport):
-    def __init__(self,eqn,domain,domain_params,bc_params,solver_params):
+    def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):
         '''
         Reactive transport class for carbonation
         A Lattice Boltzmann method based reactive transport model \
@@ -37,28 +37,15 @@ class CarbonationRT(PhrqcReactiveTransport):
                 bc_params[comp][name]=['c',bc[name][comp]]                
         self.fluid=Multicomponent(eqn,components,domain,domain_params,
                                   bc_params,solver_params)
-        self.solid=Solid(domain,domain_params,solver_params)
-        
+        self.solid=Solid(domain,domain_params,solver_params)        
         self.dx = self.fluid.H.dx  #pcs settings      
         self.ptype = 'CSH' if hasattr(self.fluid, 'Si') else 'CH'
         self.set_volume()
-        self.set_porosity()
-        
-        self.nodetype = deepcopy(domain.nodetype)         
-        self.phrqc.boundcells = self.set_boundary_cells()
-        self.phrqc.init_port = self.solid.portlandite.c>0
-        self.phrqc.is_calc = self.solid.calcite.c>0
-        self.phrqc._target_SI = np.zeros(self.solid.shape)   
-        self.phrqc.active = 'all'
-        self.phrqc.precipitation = 'all'
-        self.phrqc.pcs = False
-        self.phrqc.nodetype = deepcopy(self.nodetype)
-        
-        if self.solid.nphases >0:
-            phaseqty = self.solid.phaseqty_for_phrqc()
-            self.phrqc.modify_solid_phases(phaseqty)       
-        
-        self.set_bc()
+        self.set_porosity()        
+        self.nodetype = deepcopy(domain.nodetype)  
+        self.apply_settings(settings)      
+        self.set_phrqc()        
+        self.set_bc(settings)
         self.solid.phases = self.update_phases()
         self.update_nodetype()
         
@@ -78,7 +65,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.fluid.call('_set_relaxation_params')  
         
         if(self.phrqc.precipitation == 'interface' and self.phrqc.active != 'interface'):
-            self.phrqc.nodetype = deepcopy(self.nodetype)   
+            self.phrqc.nodetype = deepcopy(self.nodetype) 
         
         c=deepcopy( self.fluid.get_attr('c'))
         phaseqty=self.solid.phaseqty_for_phrqc()		
@@ -95,7 +82,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         if(self.phrqc.precipitation == 'interface'):
             self.update_nodetype()
     
-    #%%
+    #%% SETTINGS
     def set_volume(self):
         self.solid.vol = np.zeros(self.solid.shape)
         phase_list = deepcopy(self.solid.diffusive_phase_list)
@@ -117,16 +104,56 @@ class CarbonationRT(PhrqcReactiveTransport):
         nodes[:,-1] = ct.Type.SOLID
         return nodes        
      
-    def set_bc(self):
+    def set_bc(self, settings):
         ptype = self.ptype
-        for key in self.phrqc.boundary_solution_labels:
+        for key in self.phrqc.boundary_solution_labels:  
             self.fluid.Ca.bc[key] = ['flux', 0.0]
-            self.fluid.Ca._bc[key+'bc'] = 'flux'
+            self.fluid.Ca._bc[key+'bc'] = 'flux'            
+            if (settings['bc']['type'] == 'pco2'):                
+                self.fluid.C.bc[key] = ['flux', 0.0]
+                self.fluid.C._bc[key+'bc'] = 'flux'
+                self.fluid.H.bc[key] = ['flux', 0.0]
+                self.fluid.H._bc[key+'bc'] = 'flux'
+                self.fluid.O.bc[key] = ['flux', 0.0]
+                self.fluid.O._bc[key+'bc'] = 'flux'
             if(ptype == 'CSH'):
                 self.fluid.Si.bc[key] = ['flux', 0.0]
                 self.fluid.Si._bc[key+'bc'] = 'flux'
+    
+    def set_phrqc(self):
+        self.phrqc.boundcells = self.set_boundary_cells()
+        self.phrqc.init_port = self.solid.portlandite.c>0
+        self.phrqc.is_calc = self.solid.calcite.c>0
+        self.phrqc._target_SI = np.zeros(self.solid.shape)   
+        #self.phrqc.active = 'all'
+        #self.phrqc.precipitation = 'all'
+        #self.phrqc.pcs = False
+        self.phrqc.nodetype = deepcopy(self.nodetype) 
+        if self.solid.nphases >0:
+            phaseqty = self.solid.phaseqty_for_phrqc()
+            self.phrqc.modify_solid_phases(phaseqty) 
+        
+    def apply_settings(self, settings):
+        self.settings = settings
+        self.phrqc.pinput = settings['bc']
+        
+        self.phrqc.active = settings['active']
+        self.phrqc.precipitation = settings['precipitation']
+        self.phrqc.pcs = settings['pcs']['pcs']
+        if(settings['active'] == 'all'):
+            self.phrqc.phrqc_flags['smart_run'] = False
+            self.phrqc.phrqc_flags['only_interface'] = False
+            self.phrqc.nodetype = deepcopy(self.nodetype)
+        elif(settings['active'] == 'interface'):        
+            self.phrqc.phrqc_flags['smart_run'] = False
+            self.phrqc.phrqc_flags['only_interface'] = True
+        elif(settings['active'] == 'smart'):
+            self.phrqc.phrqc_flags['smart_run'] = True
+            self.phrqc.phrqc_flags['only_interface'] = False
+        else:
+            sys.exit()
                 
-    #%%        
+    #%% UPDATES
     def update_solid_params(self):
         '''
         Calculates porosity, apparent tortuosity,

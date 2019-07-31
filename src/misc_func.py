@@ -164,6 +164,14 @@ def set_solver_params(tfact = 1./6.*2):
     sp['tfact']= tfact
     return sp
 
+def set_bc_params(bc_slabels):
+    bcp = {'solution_labels':bc_slabels, 
+           'top':['flux', 0.0],
+           'bottom':['flux', 0.0],
+           'left':['flux', 0.0],
+           'right':['flux', 0.0],}
+    return bcp
+
 def set_phrqc_input(p, ptype ='CH'):
     '''
     Example:
@@ -250,41 +258,6 @@ def set_phrqc_solid():
     phrqc_input.append('SOLUTION\t100005')
     phrqc_input.append('\t-water\t1\n')
     return phrqc_input
-
-def phrqc_string(pco2, ca):
-    n = ca.size
-    phrqc_input = []    
-    
-    for i in np.arange(0, n):
-        phrqc_input.append('solution\t' + str(i+1))
-        phrqc_input.append('\t-units\tmol/kgw')
-        phrqc_input.append('\t-water\t1')
-        phrqc_input.append('\tpH\t7\tcharge')
-        phrqc_input.append('\tC\t1\tCO2(g)\t-' + str(pco2) )
-        phrqc_input.append('\tCa\t' + str(ca[i]) + '\n')
-        
-    
-    phrqc_input.append('SELECTED_OUTPUT')
-    phrqc_input.append('\t-reset false')
-    phrqc_input.append('\t-time false')
-    phrqc_input.append('\t-high_precision true')
-    phrqc_input.append('\t-solution false')
-    phrqc_input.append('\t-pH false')
-    phrqc_input.append('\t-pe false')
-    phrqc_input.append('\t-charge_balance false')
-    phrqc_input.append('\t-alkalinity false')
-    phrqc_input.append('\t-ionic_strength false')
-    phrqc_input.append('\t-percent_error false')
-    
-    phrqc_input.append('USER_PUNCH')
-    phrqc_input.append('\t-headings\tC\tCa')
-    phrqc_input.append('\t-start')
-    phrqc_input.append('\t10\tpunch\ttot("C")')
-    phrqc_input.append('\t20\tpunch\ttot("Ca")')
-    phrqc_input.append('\t30\tpunch')
-    phrqc_input.append('\t-end')
-    phrqc_input.append('END')
-    return '\n'.join(phrqc_input)
 
 def save_phrqc_input(phrqc,root_dir, name):
     with open(root_dir +'\\phreeqc_input\\' + name + '.phrq', 'w') as f:
@@ -516,23 +489,6 @@ def filter_results(results, path, name, length = 1e+4):
     return filtered_results
 
 #%% SETTINGS
-def apply_settings(rt):
-    rt.phrqc.active = rt.settings['active']
-    rt.phrqc.precipitation = rt.settings['precipitation']
-    rt.phrqc.pcs = rt.settings['pcs']['pcs']
-    if(rt.settings['active'] == 'all'):
-        rt.phrqc.phrqc_flags['smart_run'] = False
-        rt.phrqc.phrqc_flags['only_interface'] = False
-        rt.phrqc.nodetype = deepcopy(rt.nodetype)
-    elif(rt.settings['active'] == 'interface'):        
-        rt.phrqc.phrqc_flags['smart_run'] = False
-        rt.phrqc.phrqc_flags['only_interface'] = True
-    elif(rt.settings['active'] == 'smart'):
-        rt.phrqc.phrqc_flags['smart_run'] = True
-        rt.phrqc.phrqc_flags['only_interface'] = False
-    else:
-        sys.exit()
-
         
 def save_settings(settings, bc_params, solver_params, path, name):
     def write_txt(settings, bc_params, solver_params, path, name):
@@ -652,8 +608,8 @@ def print_points(rt, points, names=[]):
               'radius':rt.solid.pore_radius,
               'pore_amount':rt.solid.pore_amount}
     if rt.ptype == 'CSH':
-        fields.update({'csh':get_csh_conc(rt),
-                       'Si':rt.fluid.Si.c}) #'CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH'
+        pass
+        #fields.update({'csh':get_csh_conc(rt),'Si':rt.fluid.Si.c}) #'CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH'
 
     if not names:
         names = ['portlandite', 'calcite', 'Ca', 'C', 'H', 'phases', 'poros',
@@ -875,7 +831,8 @@ def save_figures_minerals(rt, max_pqty, t, path, name, ptype = 'CSH', fsize = (1
     
     
     if (ptype == 'CSH'):
-        csh = get_csh_conc(rt)
+        #csh = get_csh_conc(rt)
+        csh = get_sum_csh(rt)
         m = np.sum(max_pqty[2:6])
         
         f = plt.figure(figsize=fsize)
@@ -987,7 +944,7 @@ def append_params(results, rt, D):
         results['delta_cc'].append(0)
         
     if (ptype == 'CSH'):
-        results['csh'].append(get_csh_conc(rt))
+        results['csh'].append(get_sum_csh(rt))#(get_csh_conc(rt))
         
     return(results)
     

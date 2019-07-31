@@ -1,0 +1,33 @@
+#boundary_solution
+SOLUTION	100001
+	-units	mol/kgw
+	-water	1
+	pH	7	charge
+	C	0.02777
+
+#solution_liquid
+SOLUTION	100002
+	-units	mol/kgw
+	-water	1
+	pH	7	charge
+	C	1	calcite
+	Ca	1	calcite
+EQUILIBRIUM_PHASES	100002
+portlandite	0	0
+calcite	0	0
+
+#solution_multilevel
+SOLUTION	100003
+	-units	mol/kgw
+	-water	1
+	pH	7	charge
+	C	1	calcite
+	Ca	1	portlandite
+EQUILIBRIUM_PHASES	100003
+portlandite	0	1
+calcite	0	0
+
+#solution_solid
+SOLUTION	100005
+	-water	1
+
