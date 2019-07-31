@@ -52,8 +52,6 @@ class CarbonationRT(PhrqcReactiveTransport):
     
     def advance(self):
         self.update_target_SI()
-        if(self.settings['velocity']):
-            self.update_velocity()
         if(self.settings['diffusivity']['type']=='fixed'): 
             self.update_diffusivity()
         self.fluid.call('advance')
@@ -77,7 +75,9 @@ class CarbonationRT(PhrqcReactiveTransport):
         pqty=self.solid.update(self.phrqc.dphases)            
         self.fluid.set_attr('ss',ss)
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
-        self.update_solid_params() # or after if?
+        self.update_solid_params() # or after if?        
+        if(self.settings['velocity']):
+            self.update_velocity()
         self.solid.phases = self.update_phases()
         if(self.phrqc.precipitation == 'interface'):
             self.update_nodetype()
@@ -162,7 +162,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.prev_vol = deepcopy(self.solid.vol)
         self.set_volume()
         self.set_porosity()
-        self.solid.dvol = self.solid.vol-self.solid.prev_vol
+        if(self.settings['velocity'] == True):
+            self.solid.dvol = self.solid.vol-self.solid.prev_vol
         
     def update_phases(self, thres = 1.0e-3):
         ch = self.solid.portlandite.c * self.solid.portlandite.mvol
@@ -264,7 +265,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             np.roll(not_solid, shift = -1, axis= 1).astype(int) +\
             np.roll(not_solid, shift = 1, axis= 0).astype(int) +\
             np.roll(not_solid, shift = -1, axis= 0).astype(int)
-        self.fluid.u = self.solid._dvol/(neighbors + 1*(neighbors==0))*not_solid/self.solid.poros    
+        self.fluid.u = self.solid.dvol/(neighbors + 1*(neighbors==0))*not_solid*self.solid.poros    
         ux = (np.roll(self.fluid.u,1,1) - np.roll(self.fluid.u,-1,1))* \
             not_solid
         uy = (np.roll(self.fluid.u,1,0) - np.roll(self.fluid.u,-1,0))* \
