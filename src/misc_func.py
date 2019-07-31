@@ -164,10 +164,132 @@ def set_solver_params(tfact = 1./6.*2):
     sp['tfact']= tfact
     return sp
 
+def set_phrqc_input(p, ptype ='CH'):
+    '''
+    Example:
+    p = {'c_bc':{'type':'conc', 'value': 0.01}, 
+         'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
+         'c_liq':{'type':'eq', 'value': 'calcite'},
+         'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
+         'ca_liq':{'type':'eq', 'value': 'calcite'} }
+    '''
+    phrqc_input = [] 
+    phrqc_input += set_phrqc_bc(p['c_bc'])
+    phrqc_input += set_phrqc_liquid(p['c_liq'], p['ca_liq'])
+    phrqc_input += set_phrqc_mlvl(p['c_mlvl'], p['ca_mlvl'])    
+    if(ptype=='CSH'):
+        pass 
+        #TODO CSH cells
+    phrqc_input += set_phrqc_solid()
+    return phrqc_input
+    
+def set_phrqc_bc(c ):
+    phrqc_input = [] 
+    phrqc_input.append('#boundary_solution')    
+    phrqc_input.append('SOLUTION\t100001')
+    phrqc_input.append('\t-units\tmol/kgw')
+    phrqc_input.append('\t-water\t1')
+    phrqc_input.append('\tpH\t7\tcharge')
+    if(c['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(c['value']) + '\n')
+    elif(c['type'] == 'pco2'):
+        phrqc_input.append('\tC\t1\tCO2(g)\t-' + str(c['value']) + '\n')
+    return phrqc_input
+    
+def set_phrqc_liquid(c, ca):
+    phrqc_input = [] 
+    phrqc_input.append('#solution_liquid')    
+    phrqc_input.append('SOLUTION\t100002')
+    phrqc_input.append('\t-units\tmol/kgw')
+    phrqc_input.append('\t-water\t1')
+    phrqc_input.append('\tpH\t7\tcharge')
+    if(c['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(c['value']))
+    elif(c['type'] == 'eq'):
+        phrqc_input.append('\tC\t1\t' + str(c['value']))
+    else:
+        pass        
+    if(ca['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(ca['value']))
+    elif(ca['type'] == 'eq'):
+        phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+    else:
+        pass        
+    phrqc_input.append('EQUILIBRIUM_PHASES\t100002')
+    phrqc_input.append('portlandite\t0\t0')
+    phrqc_input.append('calcite\t0\t0\n')
+    return phrqc_input
 
+def set_phrqc_mlvl(c, ca):
+    phrqc_input = [] 
+    phrqc_input.append('#solution_multilevel')    
+    phrqc_input.append('SOLUTION\t100003')
+    phrqc_input.append('\t-units\tmol/kgw')
+    phrqc_input.append('\t-water\t1')
+    phrqc_input.append('\tpH\t7\tcharge')
+    if(c['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(c['value']))
+    elif(c['type'] == 'eq'):
+        phrqc_input.append('\tC\t1\t' + str(c['value']))
+    else:
+        pass              
+    if(ca['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(ca['value']))
+    elif(ca['type'] == 'eq'):
+        phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+    else:
+        pass        
+    phrqc_input.append('EQUILIBRIUM_PHASES\t100003')
+    phrqc_input.append('portlandite\t0\t1')
+    phrqc_input.append('calcite\t0\t0\n')
+    return phrqc_input
 
+def set_phrqc_solid():
+    phrqc_input = [] 
+    phrqc_input.append('#solution_solid')    
+    phrqc_input.append('SOLUTION\t100005')
+    phrqc_input.append('\t-water\t1\n')
+    return phrqc_input
 
+def phrqc_string(pco2, ca):
+    n = ca.size
+    phrqc_input = []    
+    
+    for i in np.arange(0, n):
+        phrqc_input.append('solution\t' + str(i+1))
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\t-water\t1')
+        phrqc_input.append('\tpH\t7\tcharge')
+        phrqc_input.append('\tC\t1\tCO2(g)\t-' + str(pco2) )
+        phrqc_input.append('\tCa\t' + str(ca[i]) + '\n')
+        
+    
+    phrqc_input.append('SELECTED_OUTPUT')
+    phrqc_input.append('\t-reset false')
+    phrqc_input.append('\t-time false')
+    phrqc_input.append('\t-high_precision true')
+    phrqc_input.append('\t-solution false')
+    phrqc_input.append('\t-pH false')
+    phrqc_input.append('\t-pe false')
+    phrqc_input.append('\t-charge_balance false')
+    phrqc_input.append('\t-alkalinity false')
+    phrqc_input.append('\t-ionic_strength false')
+    phrqc_input.append('\t-percent_error false')
+    
+    phrqc_input.append('USER_PUNCH')
+    phrqc_input.append('\t-headings\tC\tCa')
+    phrqc_input.append('\t-start')
+    phrqc_input.append('\t10\tpunch\ttot("C")')
+    phrqc_input.append('\t20\tpunch\ttot("Ca")')
+    phrqc_input.append('\t30\tpunch')
+    phrqc_input.append('\t-end')
+    phrqc_input.append('END')
+    return '\n'.join(phrqc_input)
 
+def save_phrqc_input(phrqc,root_dir, name):
+    with open(root_dir +'\\phreeqc_input\\' + name + '.phrq', 'w') as f:
+        for item in phrqc:
+            f.write("%s\n" % item)
 #%% PARAMETERS
     
 

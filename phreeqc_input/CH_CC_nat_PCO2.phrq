@@ -1,14 +1,15 @@
 # Porlandite and Calcite system (Ca, C)
 
+
 #boundary_solution
 SOLUTION 100001
 -units mol/kgw # mmol/kgw #
 -water 1 #kg
 pH 7 charge
-C 0.02777 #mol/kgw water
+C 1 CO2(g) -3.41 #mol/kgw water
 
 #EQUILIBRIUM_PHASES 100001
-#CO2(g) -2
+CO2(g) -3.41
 #----------------
 
 
@@ -17,7 +18,7 @@ SOLUTION 100002
 units mol/kgw 
 -water 1 
 pH 7 charge 
-C 1 calcite#0.02777
+C 1 calcite
 Ca 1 calcite
 
 EQUILIBRIUM_PHASES 100002
@@ -44,3 +45,6 @@ calcite 0 0
 #solution_solid
 SOLUTION 100005
 -water 1
+
+
+

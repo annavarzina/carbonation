@@ -1,2 +1,7 @@
 results/
 *.pyc
+*.pqo
+*.log
+*.sel
+*.inp
+phreeqc_input/bc.phrq
