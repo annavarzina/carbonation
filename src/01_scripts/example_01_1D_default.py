@@ -61,7 +61,7 @@ phrqc_input = {'c_bc':{'type':'conc', 'value': 0.02777}, #3.05E-02, 3.74E-02, 4.
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6./1
+tfact =  1./6.
 init_porosCH = 0.05
 
 mvol_ratio = 3.69/3.31
@@ -89,8 +89,6 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                     'pore_size': 0.01*dx, # threshold radius or distance/2
                     'crystal_size': 0.5*dx, # crystal or pore length
                     'pore_density': 20000, #pore density per um3 - only for cylinder type
-                    #'threshold': 'poresize', #poresize/porosity or si
-                    #'threshold_value': 1.0, 
                     }, 
            'velocity': False, 
            'bc': phrqc_input['c_bc'],
@@ -99,8 +97,8 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
-                                     input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')#'CH_CC-nat.phrq'
-                                     #input_file = 'CH_CC_-2.phrq')
+                                     input_file = root_dir + \
+                                     '\\phreeqc_input\\' + nn + '.phrq')#'CH_CC-nat.phrq'
 bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
 solver_params = fn.set_solver_params(tfact = tfact)
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
@@ -112,10 +110,13 @@ carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain,
                           settings) 
 
 #%% PARAMETERS
-#plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]#[(1,n) for n in np.array([1, 2, 3])] #v
-plist =  [(1,0), (1,1), (1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8)]#[(1,n) for n in np.array([1, 2, 3])] #v
-#plist =  [(1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10), (1,11), (1,12)]
-pavglist = ['avg_poros', 'avg_D_eff']
+
+#plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
+plist =  [(1,n) for n in np.arange([0, l])]
+pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation',
+            'dissolution', 'portlandite_cells', 'calcite_cells'] 
+#'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
+#'calcite_cells', 'active_cells','dt', 'pH', 'avg_poros',  'avg_D_eff', 'sum_vol'
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
@@ -123,16 +124,18 @@ itr = 0
 j = 0
 ni = 100
 nitr = 20
-Ts = 1.11#1.001#1.01
-step = 0.1
+Ts = 10.001#1.001#1.01
+step = 1.0
 #time_points = np.arange(0, Ts+step, step)
-time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
+time_points = np.concatenate((np.arange(0, step, step/10.), 
+                              np.arange(step, Ts+step, step)))
 it=time.time()
 
 #%% RUN SOLVER
 while carb_rt.time <=Ts: #itr < nitr: # 
     if(False):
-        if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
+        if ( (carb_rt.time <= time_points[j]) and \
+            ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
             #fn.save_figures_minerals(rt,  max_pqty, time_points[j], path, nn, ptype=m)  
             #save_figures_mols(rt, time_points[j], path, nn, ptype=m) 

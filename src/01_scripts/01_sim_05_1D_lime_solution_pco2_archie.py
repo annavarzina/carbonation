@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-Sript for the case without PCS
+Example with precipitation everywhere
+Fixed PCO2 at the boundary
 '''
 
 #%% PYTHON MODULES
@@ -40,7 +41,7 @@ domain = yantra.Domain2D(corner=(0, 0),
                          lengths=(lx, ly), 
                          dx=dx, 
                          grid_type='nodal')
-domain.nodetype[:, 5:l] = ct.Type.MULTILEVEL
+domain.nodetype[:, 1:l] = ct.Type.MULTILEVEL
 
 domain.nodetype[0,:] = ct.Type.SOLID
 domain.nodetype[-1,:] = ct.Type.SOLID
@@ -50,19 +51,19 @@ plt.figure(figsize=(5,5))
 plt.imshow(domain.nodetype) 
 plt.show()
 #%%  VALUES
-nn='example_06'#'acc10'
+nn='01_sim_05_2'
 path = root_dir+'\\results\\output\\'
 
-phrqc_input = {'c_bc':{'type':'conc', 'value': 0.02777}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 2.0}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
                'c_liq':{'type':'eq', 'value': 'calcite'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'eq', 'value': 'calcite'}}
+               'ca_liq':{'type':'eq', 'value': 'calcite'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6.
-init_porosCH = 0.05
+tfact =  1./6./1
+init_porosCH = 0.03
 
 mvol_ratio = 3.69/3.31
 mvolCH = 20
@@ -80,10 +81,10 @@ app_tort = 1. * porosity ** (1./3.)
 
 settings = {'precipitation': 'all', # 'interface'/'all'/'mineral' nodes
             'active': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'fixed', #'fixed' or 'archie'
+            'diffusivity':{'type':'archie', #'fixed' or 'archie'
                            'D_CC': 3e-12,
                            'D_CH': 1e-12},
-            'pcs': {'pcs': False, 
+            'pcs': {'pcs': True, 
                     'pores': 'block', #'block'/'cylinder'
                     'int_energy': 0.485, # internal energy
                     'pore_size': 0.01*dx, # threshold radius or distance/2
@@ -94,7 +95,7 @@ settings = {'precipitation': 'all', # 'interface'/'all'/'mineral' nodes
            'bc': phrqc_input['c_bc'],
            'dx': dx 
            }
-
+            
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
@@ -109,8 +110,8 @@ carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain,
                           settings) 
 
 #%% PARAMETERS
-#plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
-plist =  [(1,n) for n in np.arange(0, l)]
+plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
+#plist =  [(1,n) for n in np.arange(0, l)]
 pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation',
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 #'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
@@ -122,21 +123,22 @@ itr = 0
 j = 0
 ni = 100
 nitr = 20
-Ts = 10.001#1.001#1.01
+Ts = 20.001#1.001#1.01
 step = 1.0
+#time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
 
 #%% RUN SOLVER
 while carb_rt.time <=Ts: #itr < nitr: # 
-    if(False):
+    if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
-            fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path+'fig\\', nn, ptype=m)  
-            fn.save_figures_mols(carb_rt, time_points[j], path+'fig\\', nn, ptype=m, cC = 0.05, cCa = 0.05) 
+            fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path +'fig\\', nn, ptype=m)  
+            fn.save_figures_mols(carb_rt, time_points[j], path +'fig\\', nn, ptype=m, cC = 0.03, cCa = 0.05) 
             #fn.save_vti(rt,  time_points[j], path, nn, m)
             #fn.save_pickle(rt,  time_points[j], path, nn)
-            if(j>0):
+            if(False):
                 points = [(1,n) for n in np.arange(1,15)]
                 fn.print_points(carb_rt, points, names=['calcite', 'portlandite'])
                 print('SI %carb_rt' %carb_rt.phrqc.selected_output()['SI_calcite'][1,:])

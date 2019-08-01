@@ -296,7 +296,7 @@ def get_sum_mineral_volume(rt):
     '''
     Total mineral volume
     '''
-    vol = np.sum(rt.solid._vol)
+    vol = np.sum(rt.solid.vol)
     return(vol)
     
 def get_average_poros(rt):
@@ -516,8 +516,8 @@ def load_obj(name ):
     with open(name + '.pkl', 'rb') as f:
         return pickle.load(f)
     
-def save_pickle(rt, phases, t, path, name):
-    save_obj(phases, path + str(name) +'_nodetype_' + str(t))  
+def save_pickle(rt, t, path, name):
+    save_obj(rt.phases, path + str(name) +'_nodetype_' + str(t))  
     save_obj(rt.solid._poros, path + str(name) +'_porosity_' + str(t)) 
 
 #%% VTI & VTS
@@ -814,7 +814,7 @@ def save_figures_minerals(rt, max_pqty, t, path, name, ptype = 'CSH', fsize = (1
     plt.close(f)   
     
     f = plt.figure(figsize=fsize)
-    plt.imshow(rt.solid._poros[1:ny,1:nx], vmin = 0, vmax = 1) 
+    plt.imshow(rt.solid.poros[1:ny,1:nx], vmin = 0, vmax = 1) 
     plt.title('Porosity' + ' time='+ str(t) )
     plt.colorbar()        
     fname = path + name +'_porosity_' + str(t) + '.png'
