@@ -43,11 +43,11 @@ class CarbonationPhrqc(Phrqc):
                     for key in phaseqty.keys():
                         modifystr.append("\t -component %s" %(key))
                         modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
-                        modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
         else:
             is_boundary = (self.boundcells ==1).flatten(order='C') 
             is_liquid = (self.nodetype.flatten(order='C') == -1) 
-            is_mineral = (self.init_port>0).flatten(order='C')   
+            is_mineral = (self.init_port>0).flatten(order='C')  
             si = self._target_SI.flatten(order='C')  
             for cell in range(self.startcell,self.stopcell+1,1):
                 modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)                  
@@ -55,39 +55,44 @@ class CarbonationPhrqc(Phrqc):
                     modifystr.append("\t -component %s" %(key))
                     modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
                     if key == 'portlandite':   
-                        modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
                     if (key == 'calcite'):
                         if(is_boundary[cell-1]):  
                             self.modify_bc(modifystr)
                         else:
                             if (self.pcs == False):
-                                modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
+                                modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))
                             elif(self.pcs == True and self.precipitation == 'interface' and self.active == 'interface'):
                                 modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
-                                modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
+                                modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))
                             elif(self.pcs == True and self.precipitation == 'interface' and self.active != 'interface'):                            
                                 if (is_liquid[cell-1]):                                   
-                                    modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+                                    modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
                                 else:
                                     modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
-                                    modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))
+                                    modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))
                             elif(self.pcs == True and self.precipitation == 'all'):
                                 modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
-                                modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))                
+                                modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))                
                             elif(self.pcs == True and self.precipitation == 'mineral'): 
                                 if (is_mineral[cell-1]): 
                                     modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
-                                    modifystr.append("\t\t%s\t%.20e" %('-precipitate_only', 1))                             
+                                    modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))                             
                                 else:   
-                                    modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
-            else: 
-                pass                    
+                                    modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+                            else: 
+                                pass  
+                            if (self.ppt == True):
+                                if (phaseqty['portlandite'][cell-1]<=0):
+                                    modifystr.append("\t -component\tCO2(g)") 
+                                    modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
         modifystr.append("end") 
         modifystr ='\n'.join(modifystr)
+        #print(modifystr)
         self.IPhreeqc.RunString(modifystr)
         
     def modify_bc(self, modifystr):
-        modifystr.append("\t\t%s\t%.20e" %('-dissolve_only', 1))
+        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
         if(self.pinput['type']=='pco2'):
             modifystr.append("\t -component\tCO2(g)") 
-            modifystr.append("\tsi\t-%.20e" %self.pinput['value'])
+            modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])

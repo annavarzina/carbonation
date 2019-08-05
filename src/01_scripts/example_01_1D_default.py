@@ -64,7 +64,7 @@ fn.save_phrqc_input(phrqc,root_dir, nn)
 tfact =  1./6.
 init_porosCH = 0.05
 
-mvol_ratio = 3.69/3.31
+mvol_ratio = 369./331.
 mvolCH = 20
 mvol = [mvolCH, mvolCH*mvol_ratio]
 
@@ -112,7 +112,7 @@ carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain,
 #%% PARAMETERS
 
 #plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
-plist =  [(1,n) for n in np.arange([0, l])]
+plist =  [(1,n) for n in np.arange(0, l)]
 pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation',
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 #'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
@@ -124,7 +124,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 20
-Ts = 10.001#1.001#1.01
+Ts = 1.001#1.001#1.01
 step = 1.0
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), 
@@ -156,7 +156,7 @@ while carb_rt.time <=Ts: #itr < nitr: #
 #%% SIMULATION TIME
 simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
-            
+'''   
 #%%  SAVE
 fresults  = fn.filter_results(results, path, nn)
 #fn.save_obj(fresults, path + str(nn) +'_results')
@@ -170,3 +170,4 @@ fn.plot_fields(carb_rt, names=['calcite', 'Ca', 'poros'],fsize=(15,1))
 #%% PRINT
 points = [(1,n) for n in np.arange(2,15)]
 #fn.print_points(rt, points)
+'''

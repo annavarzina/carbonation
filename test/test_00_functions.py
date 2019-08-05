@@ -20,5 +20,20 @@ class TestSum(unittest.TestCase):
         self.assertEqual(fn.set_mvols(ptype = 'CH'), [33.10e-3, 36.90e-3])
         self.assertEqual(fn.set_mvols(ptype = 'CSH'), [33.10e-3, 36.90e-3,
                          55.30e-3, 47.95e-3, 75.63e-3, 80.58e-3])
+    
+    def test_max_pqty(self):
+        self.assertEqual(fn.get_max_pqty([2]), [0.5])
+        self.assertEqual(fn.get_max_pqty([1,2]), [1,0.5])        
+        
+    def test_init_pqty(self):  
+        self.assertEqual(fn.set_init_pqty([1]), [0.9, 0.0])
+        self.assertEqual(fn.set_init_pqty([1, 2], porosCH = 0.2), [0.8, 0.0])
+        
+    def test_results_dict(self):
+        res= fn.init_results()
+        self.assertEqual(res['calcite'],[])
+        self.assertTrue('sum_vol' in res.keys())
+        self.assertFalse('pointparamslist' in res.keys())
+        
 if __name__ == '__main__':
     unittest.main()

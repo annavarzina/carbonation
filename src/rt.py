@@ -152,6 +152,10 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.phrqc.phrqc_flags['only_interface'] = False
         else:
             sys.exit()
+        if ('pco2' in settings) and (settings['bc']['type']=='pco2'):            
+            self.phrqc.ppt = settings['pco2']
+        else:         
+            self.phrqc.ppt = False
                 
     #%% UPDATES
     def update_solid_params(self):
