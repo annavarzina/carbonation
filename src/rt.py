@@ -72,6 +72,8 @@ class CarbonationRT(PhrqcReactiveTransport):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])
         self.phrqc.modify_solid_phases(phaseqty) 		
         ss=self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
+        #TODO check why Ca leaks at boundary
+        ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
         pqty=self.solid.update(self.phrqc.dphases)            
         self.fluid.set_attr('ss',ss)
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)

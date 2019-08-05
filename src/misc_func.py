@@ -791,6 +791,12 @@ def plot_fields(rt, names={}, fsize = (8,4)):
     
 
 #%% SAVE FIGURES
+def  make_output_dir(path):
+    try:
+        os.mkdir(path)
+    except WindowsError:
+        pass
+    
 def save_figures_minerals(rt, max_pqty, t, path, name, ptype = 'CSH', fsize = (12,8)): #time_points[j]
     
 
