@@ -55,6 +55,7 @@ plt.imshow(domain.nodetype)
 plt.show()
 #%%  VALUES
 nn='02_pco2_0'
+fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
 path = root_dir+'\\results\\output\\simulations\\' + nn + '\\'
 fn.make_output_dir(path)
 

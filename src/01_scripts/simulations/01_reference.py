@@ -55,6 +55,7 @@ plt.imshow(domain.nodetype)
 plt.show()
 #%%  VALUES
 nn='01_reference'
+#fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
 path = root_dir+'\\results\\output\\simulations\\' + nn + '\\'
 fn.make_output_dir(path)
 
@@ -167,6 +168,7 @@ np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
 np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
 np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
+#np.save(path + 'poros', carb_rt.fluid.Ca.poros)
 #%% PLOT 
 '''
 fn.plot_species(results, names=[])#['calcite']
