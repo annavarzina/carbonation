@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Compare the results for different PCO2
+Compare the results for different IE
 '''
 #%% MODULES
 from __future__ import division  #using floating everywhere
@@ -16,14 +16,13 @@ import misc_func as fn
 import func as cf
 #%% SETTINGS
 Ts =100.
-fname = 'pco2'
+fname = 'init_ch'
 fpath = root_dir+'\\results\\output\\simulations\\compare\\'
 fn.make_output_dir(fpath)
-names = np.array([ '02_pco2_0', '02_pco2_1', 
-                  '02_pco2_2', '02_pco2_3', '01_reference'])
+names = np.array([ '03_poros_05', '01_reference', '03_poros_005'])
 
-label = np.array(['100%','10%', '1%', '0.1%', '0.03%'])
-linetype = np.array(['-', '--', '-.', ':', '-'])
+label = np.array(['ch 0.5','ch 0.25', 'ch 0.05'])
+linetype = np.array(['-', '--', '-.'])
 
 results = {}
 for nn in names:
@@ -101,7 +100,7 @@ for i in range(0, len(names)):
 plt.figure(figsize=(8,4))
 plt.plot(label, pt)
 plt.title('Porosity at time %s' %t1)
-plt.xlabel('CO2')
+plt.xlabel('IE')
 plt.ylabel('Porosity')
 plt.savefig(fpath + fname + '_poros_profile')
 plt.show
@@ -134,6 +133,22 @@ plt.ylabel('Rate (mol/s)')
 plt.legend()
 plt.savefig(fpath + fname + '_CC_rate')
 plt.show
+#%%
+pt = []
+#dt = results[names[1]]['time'][2] - results[names[1]]['time'][1] 
+#t1 = 30
+for i in range(0, len(names)): 
+    nn = names[i]
+    p = cf.get_val_at_time(results[nn], 'poros (1, 1)', t1, dt)
+    pt.append(p)
+plt.figure(figsize=(8,4))
+plt.plot(label, pt)
+plt.title('Porosity in a single point at time %s' %t1)
+plt.xlabel('Initial porosity')
+plt.ylabel('Porosity')
+plt.savefig(fpath + fname + '_poros_11')
+plt.show
+
 
 #%% POROSITY, DE, PH IN CALCITE
 #print(np.sort(results[names[1]].keys()))
@@ -142,18 +157,18 @@ text3 = ''
 for i in range(0, len(names)): 
     text3 += ' \nPorosity in a node (1,1) ' + \
              str(results[names[i]]['poros (1, 1)'][10000]) + \
-             '. for ' + label[i] + ' CO2'
+             '. for ' + label[i] + ' '+ fname
 text4 = ''
 for i in range(0, len(names)): 
     text4 += ' \npH in a node (1,1) ' + \
              str(results[names[i]]['pH (1, 1)'][10000]) + \
-             '. for ' + label[i] + ' CO2'
+             '. for ' + label[i] + ' '+fname
 text5 = ''
 for i in range(0, len(names)): 
     text5 += ' \nDe in a node (1,1) ' + \
              str(results[names[i]]['De (1, 1)'][10000]) + \
-             '. for ' + label[i] + ' CO2'
-
+             '. for ' + label[i] + ' '+fname
+             
 #%% SI
 si = {}
 for i in range(0, len(names)): 
@@ -165,13 +180,13 @@ text6 = ''
 for i in range(0, len(names)):   
     text6 += ' \nSI in a node (1,1) ' + \
              str(si[names[i]][(1,1)]) + \
-             '. for ' + label[i] + ' CO2'
+             '. for ' + label[i] + ' '+fname
    
 text7 = ''
 for i in range(0, len(names)):   
     text7 += ' \nSI in a node (1,10) ' + \
              str(si[names[i]][(1,10)]) + \
-             '. for ' + label[i] + ' CO2' 
+             '. for ' + label[i] + ' '+fname
              
 #%% SAVE TXT
 text = ''

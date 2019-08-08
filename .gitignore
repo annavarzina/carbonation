@@ -4,4 +4,5 @@ results/
 *.log
 *.sel
 *.inp
+*.phrq
 phreeqc_input/bc.phrq
