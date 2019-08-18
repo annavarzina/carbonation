@@ -54,7 +54,7 @@ plt.figure(figsize=(5,5))
 plt.imshow(domain.nodetype) 
 plt.show()
 #%%  VALUES
-nn='05_mvol_10'
+nn='05_mvol_2'
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
 path = root_dir+'\\results\\output\\simulations\\' + nn + '\\'
 fn.make_output_dir(path)
@@ -71,7 +71,7 @@ tfact =  1./6.
 init_porosCH = 0.25
 
 mvol_ratio = 3.69/3.31
-mvolCH = 0.331*10
+mvolCH = 0.331*2
 mvol = [mvolCH, mvolCH*mvol_ratio]
 
 mvol = fn.set_mvols(mvol, ptype = m) #m3/mol
