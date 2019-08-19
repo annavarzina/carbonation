@@ -54,7 +54,8 @@ plt.figure(figsize=(5,5))
 plt.imshow(domain.nodetype) 
 plt.show()
 #%%  VALUES
-nn='05_mvol_2'
+scale = 1
+nn='05_mvol_' + str(scale)
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
 path = root_dir+'\\results\\output\\simulations\\' + nn + '\\'
 fn.make_output_dir(path)
@@ -71,7 +72,7 @@ tfact =  1./6.
 init_porosCH = 0.25
 
 mvol_ratio = 3.69/3.31
-mvolCH = 0.331*2
+mvolCH = 0.0331*scale
 mvol = [mvolCH, mvolCH*mvol_ratio]
 
 mvol = fn.set_mvols(mvol, ptype = m) #m3/mol
@@ -128,14 +129,17 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 100.001#1.001#1.01
-step = 1.0
+Ts = 1000/scale + 0.001#1.001#1.01 +
+step = int(Ts/10)
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
 
+N = Ts/carb_rt.dt
+N_res = 1e+4
+S = max(1,int(N/N_res))
 #%% RUN SOLVER
-while  carb_rt.time <=Ts: #itr <= nitr: #
+while carb_rt.time <=Ts: itr <= nitr: #
     if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
@@ -152,7 +156,7 @@ while  carb_rt.time <=Ts: #itr <= nitr: #
             j +=1
         
     carb_rt.advance()    
-    results = fn.append_results(carb_rt, results)
+    results = fn.append_results(carb_rt, results, step=S)
     itr += 1
     
 #%% SIMULATION TIME

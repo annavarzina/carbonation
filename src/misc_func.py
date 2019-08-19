@@ -416,63 +416,64 @@ def init_results(pavg=True, pavg_list=[], points=[], ptype='CSH'):
     results['time'] = []   
     return results
 
-def append_results(rt, results):
-    ptype = rt.ptype
-    results['time'].append(rt.time)
-    for num, phase in enumerate(rt.solid.diffusive_phase_list, start=1):
-        results[phase].append(np.sum(rt.solid._diffusive_phaseqty[num-1]))        
-    for num, comp in enumerate(rt.fluid.components, start=1):
-        results[comp].append(np.sum(getattr(rt.fluid, comp)._c*getattr(rt.fluid, comp).poros))        
-    if (ptype == 'CSH'):
-        results['csh'].append(get_sum_csh(rt))
-    # average
-    favgall = {'avg_aperture': get_average_aperture,
-            'sum_vol':get_sum_mineral_volume,
-            'avg_D_eff':get_average_Archie_D,
-            'avg_poros':get_average_poros,
-            'precipitation':get_precipitation,
-            'dissolution':get_dissolution,
-            'calcite_cells':get_calcite_cells,
-            'portlandite_cells':get_portlandite_cells,
-            'active_cells':get_active,
-            'dt':get_dt,
-            'pH':get_average_pH,
-            'delta_ch': get_delta_portlandite,
-            'delta_cc': get_delta_calcite}
-    favg = {k: favgall[k] for k in results['pavg_list']}
-    for key, value in favg.iteritems():
-        if key in ['delta_ch', 'delta_cc']:
-            if (rt.iters ==0): 
-                results[key].append(0) 
+def append_results(rt, results, step = 1e+2):
+    if (rt.iters%step == 0):
+        ptype = rt.ptype
+        results['time'].append(rt.time)
+        for num, phase in enumerate(rt.solid.diffusive_phase_list, start=1):
+            results[phase].append(np.sum(rt.solid._diffusive_phaseqty[num-1]))        
+        for num, comp in enumerate(rt.fluid.components, start=1):
+            results[comp].append(np.sum(getattr(rt.fluid, comp)._c*getattr(rt.fluid, comp).poros))        
+        if (ptype == 'CSH'):
+            results['csh'].append(get_sum_csh(rt))
+        # average
+        favgall = {'avg_aperture': get_average_aperture,
+                'sum_vol':get_sum_mineral_volume,
+                'avg_D_eff':get_average_Archie_D,
+                'avg_poros':get_average_poros,
+                'precipitation':get_precipitation,
+                'dissolution':get_dissolution,
+                'calcite_cells':get_calcite_cells,
+                'portlandite_cells':get_portlandite_cells,
+                'active_cells':get_active,
+                'dt':get_dt,
+                'pH':get_average_pH,
+                'delta_ch': get_delta_portlandite,
+                'delta_cc': get_delta_calcite}
+        favg = {k: favgall[k] for k in results['pavg_list']}
+        for key, value in favg.iteritems():
+            if key in ['delta_ch', 'delta_cc']:
+                if (rt.iters ==0): 
+                    results[key].append(0) 
+                else:
+                    results[key].append(value(rt))
             else:
-                results[key].append(value(rt))
-        else:
-            results[key].append(value(rt)) 
-    # points
-    if results['points']: # points
-        for p in results['points']:
-            results['portlandite'+' ' + str(p)].append(rt.solid.portlandite.c[p])
-            results['calcite'+' ' + str(p)].append(rt.solid.calcite.c[p])
-            results['Ca'+' ' + str(p)].append(rt.fluid.Ca.c[p])
-            results['C'+' ' + str(p)].append(rt.fluid.C.c[p])
-            results['H'+' ' + str(p)].append(rt.fluid.H.c[p])
-            results['O'+' ' + str(p)].append(rt.fluid.O.c[p])
-            results['poros'+' ' + str(p)].append(rt.solid.poros[p])
-            results['vol'+' ' + str(p)].append(rt.solid.vol[p])
-            results['De'+' ' + str(p)].append(rt.fluid.H.De[p])
-            results['pH'+' ' + str(p)].append(rt.phrqc.selected_output()['pH'][p])
-            results['vol_CH'+' ' + str(p)].append(rt.solid.vol_ch[p])
-            results['vol_CC'+' ' + str(p)].append(rt.solid.vol_cc[p])
-        
-        if( ptype=='CSH'):
-            results['Si'+' ' + str(p)].append(rt.fluid.Si.c[p])
-            results['CSHQ_TobD'+' ' + str(p)].append(rt.solid.CSHQ_TobD.c[p])
-            results['CSHQ_JenD'+' ' + str(p)].append(rt.solid.CSHQ_JenD.c[p])
-            results['CSHQ_TobH'+' ' + str(p)].append(rt.solid.CSHQ_TobH.c[p])
-            results['CSHQ_JenH'+' ' + str(p)].append(rt.solid.CSHQ_JenH.c[p])
-            results['csh'+' ' + str(p)].append(rt.solid.csh[p])
-            results['vol_CSH'+' ' + str(p)].append(rt.solid.vol_csh[p])
+                results[key].append(value(rt)) 
+        # points
+        if results['points']: # points
+            for p in results['points']:
+                results['portlandite'+' ' + str(p)].append(rt.solid.portlandite.c[p])
+                results['calcite'+' ' + str(p)].append(rt.solid.calcite.c[p])
+                results['Ca'+' ' + str(p)].append(rt.fluid.Ca.c[p])
+                results['C'+' ' + str(p)].append(rt.fluid.C.c[p])
+                results['H'+' ' + str(p)].append(rt.fluid.H.c[p])
+                results['O'+' ' + str(p)].append(rt.fluid.O.c[p])
+                results['poros'+' ' + str(p)].append(rt.solid.poros[p])
+                results['vol'+' ' + str(p)].append(rt.solid.vol[p])
+                results['De'+' ' + str(p)].append(rt.fluid.H.De[p])
+                results['pH'+' ' + str(p)].append(rt.phrqc.selected_output()['pH'][p])
+                results['vol_CH'+' ' + str(p)].append(rt.solid.vol_ch[p])
+                results['vol_CC'+' ' + str(p)].append(rt.solid.vol_cc[p])
             
+            if( ptype=='CSH'):
+                results['Si'+' ' + str(p)].append(rt.fluid.Si.c[p])
+                results['CSHQ_TobD'+' ' + str(p)].append(rt.solid.CSHQ_TobD.c[p])
+                results['CSHQ_JenD'+' ' + str(p)].append(rt.solid.CSHQ_JenD.c[p])
+                results['CSHQ_TobH'+' ' + str(p)].append(rt.solid.CSHQ_TobH.c[p])
+                results['CSHQ_JenH'+' ' + str(p)].append(rt.solid.CSHQ_JenH.c[p])
+                results['csh'+' ' + str(p)].append(rt.solid.csh[p])
+                results['vol_CSH'+' ' + str(p)].append(rt.solid.vol_csh[p])
+                
     return(results)
 
 

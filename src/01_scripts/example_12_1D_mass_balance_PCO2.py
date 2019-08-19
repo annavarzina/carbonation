@@ -129,11 +129,14 @@ step = 0.1
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
 
+N = Ts/carb_rt.dt
+N_res = 1e+4
+S = max(1,int(N/N_res))
 #%% RUN SOLVER
 while itr < nitr: # carb_rt.time <=Ts: #
     carb_rt.advance()    
     mass.add_mass(carb_rt)
-    results = fn.append_results(carb_rt, results)
+    results = fn.append_results(carb_rt, results, step=S)
     itr += 1
     
 #%% SIMULATION TIME
