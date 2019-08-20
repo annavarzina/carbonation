@@ -129,7 +129,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 1000/scale + 0.001#1.001#1.01 +
+Ts = 1000./scale + 0.001#1.001#1.01 +
 step = int(Ts/10)
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
@@ -139,8 +139,8 @@ N = Ts/carb_rt.dt
 N_res = 1e+4
 S = max(1,int(N/N_res))
 #%% RUN SOLVER
-while carb_rt.time <=Ts: itr <= nitr: #
-    if(True):
+while carb_rt.time <=Ts: #itr <= nitr: #
+    if(False):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
             fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path, nn, ptype=m)  

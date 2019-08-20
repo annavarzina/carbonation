@@ -15,14 +15,17 @@ np.set_printoptions(precision=5, threshold=np.inf)
 import misc_func as fn
 import func as cf
 #%% SETTINGS
-Ts =100.
+Ts =1000.
 fname = 'mvol'
 fpath = root_dir+'\\results\\output\\simulations\\compare\\'
 fn.make_output_dir(fpath)
-names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
-
-label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
-linetype = np.array(['-', '--', '-.', ':', '-'])
+#names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
+#label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
+#linetype = np.array(['-', '--', '-.', ':', '-'])
+names = np.array(['05_mvol_500', '05_mvol_100', '05_mvol_50', 
+                  '05_mvol_10', '05_mvol_5', '05_mvol_1'])
+label = np.array(['500', '100','50', '10', '5', '1'])
+linetype = np.array(['-', '--', '-.', ':', '-', '--'])
 
 results = {}
 for nn in names:
@@ -30,7 +33,7 @@ for nn in names:
     results[nn] = fn.load_obj(path + nn +'_results')
 
 #%% SCALE
-scale = [40, 20, 10, 2, 1]
+scale = [500, 100,50, 10, 5, 1]
 keys = ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'time', 'C (1, 0)']
 sres = {}
 for i in range(0, len(names)):
