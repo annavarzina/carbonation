@@ -60,8 +60,8 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros)        
-        self.fluid.call('_set_relaxation_params')  
-        
+        self.fluid.call('_set_relaxation_params') 
+ 
         if(self.phrqc.precipitation == 'interface' and self.phrqc.active != 'interface'):
             self.phrqc.nodetype = deepcopy(self.nodetype) 
         
@@ -83,6 +83,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.phases = self.update_phases()
         if(self.phrqc.precipitation == 'interface'):
             self.update_nodetype()
+        
     
     #%% SETTINGS
     def set_volume(self):

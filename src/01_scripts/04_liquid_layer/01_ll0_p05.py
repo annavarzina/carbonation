@@ -33,7 +33,7 @@ Reference:
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 2
+ll = 0
 l = 25 + ll
 lx = l*1.0e-6
 ly = 2.0e-6
@@ -140,7 +140,7 @@ N = Ts/carb_rt.dt
 N_res = 1e+4
 S = max(1,int(N/N_res))
 #%% RUN SOLVER
-while  itr <= nitr: #carb_rt.time <=Ts: #
+while  carb_rt.time <=Ts: #itr <= nitr: #
     if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
@@ -157,7 +157,7 @@ while  itr <= nitr: #carb_rt.time <=Ts: #
             j +=1
         
     carb_rt.advance()    
-    results = fn.append_results(carb_rt, results, step =1 )
+    results = fn.append_results(carb_rt, results, step =S )
     itr += 1
     
 #%% SIMULATION TIME
@@ -165,9 +165,8 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
             
 #%%  SAVE
-'''
-fresults  = fn.filter_results(results, path, nn)
-fn.save_obj(fresults, path + str(nn) +'_results')
+#fresults  = fn.filter_results(results, path, nn)
+fn.save_obj(results, path + str(nn) +'_results')
 
 np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
 np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
@@ -175,7 +174,6 @@ np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
 np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
 #np.save(path + 'poros', carb_rt.fluid.Ca.poros)
-'''
 #%% PLOT 
 
 fn.plot_species(results, names=[])#['calcite']

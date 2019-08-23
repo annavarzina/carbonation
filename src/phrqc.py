@@ -96,3 +96,4 @@ class CarbonationPhrqc(Phrqc):
         if(self.pinput['type']=='pco2'):
             modifystr.append("\t -component\tCO2(g)") 
             modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
+            #print(self.pinput['value'])
