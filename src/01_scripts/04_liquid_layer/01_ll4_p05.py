@@ -56,9 +56,9 @@ plt.imshow(domain.nodetype)
 plt.show()
 #%%  VALUES
 scale = 50
-nn='01_ll'+str(ll)+'_p05'
+nn='01_ll'+str(ll)+'_p05'+'_Dfix'
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
-path = root_dir+'\\results\\output\\liquid_layer\\' + nn + '\\'
+path = root_dir+'\\results\\output\\04_liquid_layer\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
@@ -88,9 +88,9 @@ app_tort = 1. * porosity ** (1./3.)
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'archie', #'fixed' or 'archie'
+            'diffusivity':{'type':'fixed', #'fixed' or 'archie'
                            'D_CC': 3e-12,
-                           'D_CH': 1e-11},
+                           'D_CH': 1e-10},
             'pcs': {'pcs': True, 
                     'pores': 'block', #'block'/'cylinder'
                     'int_energy': 0.5, # internal energy

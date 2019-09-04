@@ -16,21 +16,33 @@ import misc_func as fn
 import func as cf
 #%% SETTINGS
 Ts =1000.
-fname = 'dt'
-fpath = root_dir+'\\results\\output\\compare_time_step\\'
+scale = 50
+fname = 'dt_p05_cbc'
+fpath = root_dir+'\\results\\output\\01_time_step\\'
 fn.make_output_dir(fpath)
-#names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
-#label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
-#linetype = np.array(['-', '--', '-.', ':', '-'])
-names = np.array(['01_dt1_p05', '01_dt2_p05', '01_dt4_p05', '01_dt8_p05'])#, '01_fixD_005p_D11'])
-label = np.array(['f 1', 'f 2', 'f 4', 'f 8'])
+if fname == 'dt_p005_cbc':
+    names = np.array(['01_dt1_p005_cbc', '02_dt2_p005_cbc', '03_dt4_p005_cbc', '04_dt8_p005_cbc'])
+elif fname == 'dt_p05_cbc':
+    names = np.array(['01_dt1_p05_cbc', '02_dt2_p05_cbc', '03_dt4_p05_cbc', '04_dt8_p05_cbc'])
+elif fname == 'dt_p05':
+    names = np.array(['01_dt1_p05', '01_dt2_p05', '01_dt4_p05', '01_dt8_p05'])
+else:
+    sys.exit()
+#label = np.array(['f 1', 'f 2', 'f 4', 'f 8'])
 linetype = np.array(['-', '--', '-.', ':'])
 
+ts = np.array([1.667e-04, 8.332e-05, 4.167e-05, 2.082e-05])
 results = {}
 for nn in names:
-    path = root_dir+'\\results\\output\\time_step\\' + nn + '\\'
+    path = root_dir+'\\results\\output\\01_time_step\\' + nn + '\\'
     results[nn] = fn.load_obj(path + nn +'_results')
-
+    
+for i in range(0, len(names)):
+    temp = np.array(results[names[i]]['time'])
+    temp *= scale
+    results[names[i]]['time']= temp.tolist()
+    
+label = ts
 #%% CH DISSOLUTION 
 titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon',
           'Average pH', 'Input C', 'Porosity']
@@ -53,24 +65,31 @@ for k in range(0, len(comp)):
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
-rstart = 500
-rend = len(results[names[1]]['time']) - 1
+limits = [[-0.1, 0], [0, 0.1]]
+rate = {}
+for i in range(0, len(names)):
+    rate[names[i]] = {}
+    for k in range(0, len(comp)):
+        rate[names[i]][comp[k]] = cf.get_rate(results[names[i]][comp[k]],
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1])
 
+rstart = 0
+rend = len(results[names[1]]['time']) - 1      
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
         plt.plot(results[names[i]]['time'][rstart:rend], 
-                 cf.get_rate(results[names[i]][comp[k]][rstart:rend],
-                             results[names[i]]['time'][2] - \
-                             results[names[i]]['time'][1]),
+                 rate[names[i]][comp[k]][rstart:rend],
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
+    #plt.ylim(limits[k])
     plt.xlabel('Time (s)')
     plt.ylabel('Rate (mol/s)')
     plt.legend()
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
 #plt.savefig(fpath + fname + '_CH_rate')
+    
 
 #%% INTERPOLATION
 from scipy.interpolate import interp1d
@@ -80,7 +99,8 @@ p = {}
 for n in names:
     t[n] = results[n]['time']
     p[n] = results[n]['portlandite']#['avg_poros']
-f = interp1d(t['01_dt8_p05'], p['01_dt8_p05'], kind = 'cubic', fill_value="extrapolate")
+f = interp1d(t[names[3]], p[names[3]], kind = 'cubic', fill_value="extrapolate")
+pi = {}
 pi = {}
 diff = {}
 for i in range(0, len(names)):
@@ -88,7 +108,7 @@ for i in range(0, len(names)):
     diff[names[i]] = np.abs(p[names[i]] - pi[names[i]])
 
 #%% ERROR NORM
-ts = [1., 2, 4, 8.]
+
 def l2_norm(v, o):
     '''
     v - vector
@@ -108,7 +128,7 @@ for i in range(0, len(names)):
 plt.figure(figsize=(8,4))
 plt.plot(s, npnorm)
 plt.title('L2 norm')
-plt.xlabel('Time step factor')
+plt.xlabel('Time step')
 plt.ylabel('Numpy L2 norm')
 plt.savefig(fpath + fname + '_np_l2_norm')
 plt.show()
@@ -116,8 +136,43 @@ plt.show()
 plt.figure(figsize=(8,4))
 plt.plot(s, l2norm)
 plt.title('Relative error')
-plt.xlabel('Time step factor')
+plt.xlabel('Time step')
 plt.ylabel('Relative error')
 plt.savefig(fpath + fname + '_rel_error')
 plt.show()
 
+#%% DIFFERENCE IN PERCENT
+k = 'portlandite'
+er = np.array([])
+for nn in names:
+    e = results[nn][k][0]- results[nn][k][-2]
+    e = e/results[nn][k][0]*100
+    er = np.append(er, e)
+print(er)
+for i in range(0,len(er)):
+    print(er[i]-er[-1])
+#%% 
+for nn in names:
+    ch24 = np.array(results[nn]['portlandite_cells'])==24
+    ch23 = np.array(results[nn]['portlandite_cells'])==23
+    cross = np.roll(ch24,-1) +ch23
+    t = np.array(results[nn]['time'])[~cross]
+    print(t)
+    
+#%%
+    
+titles = ['Volume CH in (1,1)', 'Volume CH in (1,2)', 'Volume CH in (1,3)']
+comp =  ['vol_CH (1, 1)', 'vol_CH (1, 2)', 'vol_CH (1, 3)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        #indices = np.where(np.logical_and(np.array(results[names[i]]['time'])<=5,
+       #                    np.array(results[names[i]]['time'])>=3.1))
+        indices = np.where(np.array(results[names[i]]['time'])<=2)
+        plt.plot(np.array(results[names[i]]['time'])[indices],
+                 np.array(results[names[i]][comp[k]])[indices],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 

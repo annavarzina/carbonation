@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Example with precipitation everywhere
-Fixed PCO2 at the boundary
+Issue when porosity is large, phreeqc doesn't calculate it correct
 '''
 
 #%% PYTHON MODULES
@@ -33,8 +32,7 @@ Reference:
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 2
-l = 25 + ll
+l = 25
 lx = l*1.0e-6
 ly = 2.0e-6
 dx = 1.0e-6
@@ -45,7 +43,7 @@ domain = yantra.Domain2D(corner=(0, 0),
                          lengths=(lx, ly), 
                          dx=dx, 
                          grid_type='nodal')
-domain.nodetype[:, (1+ll):(l+ll)] = ct.Type.MULTILEVEL
+domain.nodetype[:, 1:l] = ct.Type.MULTILEVEL
 
 domain.nodetype[0,:] = ct.Type.SOLID
 domain.nodetype[-1,:] = ct.Type.SOLID
@@ -55,10 +53,10 @@ plt.figure(figsize=(5,5))
 plt.imshow(domain.nodetype) 
 plt.show()
 #%%  VALUES
-scale = 50
-nn='01_ll'+str(ll)+'_p05'+'_Dfix'
+scale = 1
+nn='05_mvol_' + str(scale) + ' upd'
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
-path = root_dir+'\\results\\output\\04_liquid_layer\\' + nn + '\\'
+path = root_dir+'\\results\\output\\02_molar_volume\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
@@ -69,8 +67,8 @@ phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6.
-init_porosCH = 0.5
+tfact =  1./6.*2
+init_porosCH = 0.9
 
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
@@ -86,14 +84,14 @@ D = 1.0e-09 # default diffusion coefficient in pure liquid
 porosity = fn.get_porosity(domain, pqty, mvol, m)
 app_tort = 1. * porosity ** (1./3.)
 
-settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
+settings = {'precipitation': 'all', # 'interface'/'all'/'mineral' nodes
             'active': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'fixed', #'fixed' or 'archie'
+            'diffusivity':{'type':'archie', #'fixed' or 'archie'
                            'D_CC': 3e-12,
                            'D_CH': 1e-10},
             'pcs': {'pcs': True, 
                     'pores': 'block', #'block'/'cylinder'
-                    'int_energy': 0.5, # internal energy
+                    'int_energy': 0.485, # internal energy
                     'pore_size': 0.01*dx, # threshold radius or distance/2
                     'crystal_size': 0.5*dx, # crystal or pore length
                     'pore_density': 20000, #pore density per um3 - only for cylinder type
@@ -109,7 +107,6 @@ domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
 bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
 solver_params = fn.set_solver_params(tfact = tfact)
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
-fn.save_settings(settings, bc_params, solver_params, path, nn)
 
 #%% INITIATE THE SOLVER
 carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, 
@@ -128,10 +125,10 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-ni = 100
-nitr = 100
-Ts = 1000/scale + 0.001#1.001#1.01
-step = int(Ts/10.)
+ni = 10
+nitr = 1500
+Ts = 1./scale + 0.001#1.001#1.01 +
+step = max(1,int(Ts/10))
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
@@ -140,14 +137,10 @@ N = Ts/carb_rt.dt
 N_res = 1e+4
 S = max(1,int(N/N_res))
 #%% RUN SOLVER
-while  carb_rt.time <=Ts: #itr <= nitr: #
+while itr <= nitr: #carb_rt.time <=Ts: #
     if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
-            fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path, nn, ptype=m)  
-            fn.save_figures_mols(carb_rt, time_points[j], path, nn, ptype=m, cC = 0.03, cCa = 0.05) 
-            #fn.save_vti(rt,  time_points[j], path, nn, m)
-            #fn.save_pickle(rt,  time_points[j], path, nn)
             if(False):
                 points = [(1,n) for n in np.arange(1,15)]
                 fn.print_points(carb_rt, points, names=['calcite', 'portlandite'])
@@ -157,7 +150,7 @@ while  carb_rt.time <=Ts: #itr <= nitr: #
             j +=1
         
     carb_rt.advance()    
-    results = fn.append_results(carb_rt, results, step =S )
+    results = fn.append_results(carb_rt, results, step=S)
     itr += 1
     
 #%% SIMULATION TIME
@@ -165,22 +158,31 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
             
 #%%  SAVE
-#fresults  = fn.filter_results(results, path, nn)
-fn.save_obj(results, path + str(nn) +'_results')
+'''
+fresults  = fn.filter_results(results, path, nn)
+fn.save_obj(fresults, path + str(nn) +'_results')
 
 np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
 np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
 np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
 np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
+'''
 #np.save(path + 'poros', carb_rt.fluid.Ca.poros)
-#%% PLOT 
-
-fn.plot_species(results, names=[])#['calcite']
-fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
+#%% PLOT
+fn.plot_species(results, names=['portlandite', 'calcite', 'C', 'Ca'])#['calcite']
+fn.plot_avg(results, names=['avg_poros']) 
+plt.figure(figsize=(8,4))
+plt.plot(results['time'], results['C (1, 0)'], label='C')
+plt.plot(results['time'], results['Ca (1, 0)'], label = 'Ca')
+plt.title('Input C')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+'''
 #fn.plot_points(results, names=['calcite', 'portlandite', 'poros', 'Ca', 'C'])
-#fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
-
+fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
+'''
 #%% PRINT
 #points = [(1,n) for n in np.arange(2,15)]
 #fn.print_points(rt, points)

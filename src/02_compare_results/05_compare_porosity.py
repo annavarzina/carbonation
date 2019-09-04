@@ -15,22 +15,29 @@ np.set_printoptions(precision=5, threshold=np.inf)
 import misc_func as fn
 import func as cf
 #%% SETTINGS
-Ts =1000.
-fname = 'diff'
-fpath = root_dir+'\\results\\output\\compare_diffusivity\\'
+Ts =100.
+fname = 'poros_Dfix'
+fpath = root_dir+'\\results\\output\\05_porosity\\'
 fn.make_output_dir(fpath)
-#names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
-#label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
-#linetype = np.array(['-', '--', '-.', ':', '-'])
-names = np.array(['01_fixD_p005_arch', '01_dixD_p005', '01_dixD_p005_D11', '01_dixD_p005_D12'])#, '01_fixD_005p_D11'])
-label = np.array(['Archies', '1e-10', '1e-11', '1e-12'])
+#names = np.array(['01_porosity_0.05', '02_porosity_0.1', 
+#                  '03_porosity_0.25', '04_porosity_0.5'])
+names = np.array(['01_porosity_0.05archie', '02_porosity_0.1archie', 
+                  '03_porosity_0.25archie', '04_porosity_0.5archie'])
+label = np.array(['0.05', '0.1','0.25', '0.5'])
 linetype = np.array(['-', '--', '-.', ':'])
 
 results = {}
 for nn in names:
-    path = root_dir+'\\results\\output\\diffusivity\\' + nn + '\\'
+    path = root_dir+'\\results\\output\\05_porosity\\' + nn + '\\'
     results[nn] = fn.load_obj(path + nn +'_results')
-
+#%% SCALE
+    
+scale = 50
+for i in range(0, len(names)):
+    temp = np.array(results[names[i]]['time'])
+    temp *= scale
+    results[names[i]]['time']= temp.tolist()
+    
 #%% CH DISSOLUTION 
 titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon',
           'Average pH', 'Input C', 'Porosity']
@@ -53,16 +60,12 @@ for k in range(0, len(comp)):
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
-rstart = 500
-rend = len(results[names[1]]['time']) - 1
-
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(results[names[i]]['time'][rstart:rend], 
-                 cf.get_rate(results[names[i]][comp[k]][rstart:rend],
-                             results[names[i]]['time'][2] - \
-                             results[names[i]]['time'][1]),
+        plt.plot(results[names[i]]['time'], 
+                 cf.get_rate(results[names[i]][comp[k]],
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1]),
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
     plt.xlabel('Time (s)')

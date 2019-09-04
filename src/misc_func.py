@@ -202,6 +202,7 @@ def set_phrqc_bc(c ):
         phrqc_input.append('\tC\t' + str(c['value']) + '\n')
     elif(c['type'] == 'pco2'):
         phrqc_input.append('\tC\t1\tCO2(g)\t-' + str(c['value']) + '\n')
+    phrqc_input.append('EQUILIBRIUM_PHASES\t100001\n')
     return phrqc_input
     
 def set_phrqc_liquid(c, ca):
@@ -490,7 +491,7 @@ def filter_results(results, path, name, length = 1e+4):
     return filtered_results
 
 #%% SETTINGS
-        
+       
 def save_settings(settings, bc_params, solver_params, path, name):
     def write_txt(settings, bc_params, solver_params, path, name):
         with open(path + name +'_settings.txt', 'w') as file:
@@ -506,6 +507,7 @@ def save_settings(settings, bc_params, solver_params, path, name):
     except IOError:
         os.mkdir(path)
         write_txt(settings, bc_params, solver_params, path, name)
+    
 #%% PICKLE
 
 def save_obj(obj, name ):

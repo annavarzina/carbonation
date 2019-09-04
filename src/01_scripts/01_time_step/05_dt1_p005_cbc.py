@@ -33,7 +33,7 @@ Reference:
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 2
+ll = 0
 l = 25 + ll
 lx = l*1.0e-6
 ly = 2.0e-6
@@ -56,12 +56,13 @@ plt.imshow(domain.nodetype)
 plt.show()
 #%%  VALUES
 scale = 50
-nn='01_ll'+str(ll)+'_p05'+'_Dfix'
+nn='01_dt1_p005_cbc'
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
-path = root_dir+'\\results\\output\\04_liquid_layer\\' + nn + '\\'
+path = root_dir+'\\results\\output\\01_time_step\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {#'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
+               'c_bc':{'type':'conc', 'value': 2.72E-02},#3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
                'c_liq':{'type':'eq', 'value': 'calcite'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -70,7 +71,7 @@ phrqc = fn.set_phrqc_input(phrqc_input)
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
 tfact =  1./6.
-init_porosCH = 0.5
+init_porosCH = 0.05
 
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
@@ -90,7 +91,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'fixed' or 'archie'
                            'D_CC': 3e-12,
-                           'D_CH': 1e-10},
+                           'D_CH': 1e-12},
             'pcs': {'pcs': True, 
                     'pores': 'block', #'block'/'cylinder'
                     'int_energy': 0.5, # internal energy
@@ -130,8 +131,9 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 1000/scale + 0.001#1.001#1.01
-step = int(Ts/10.)
+Ts = 1000.
+Ts = Ts/scale + 0.001#1.001#1.01
+step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
@@ -157,7 +159,7 @@ while  carb_rt.time <=Ts: #itr <= nitr: #
             j +=1
         
     carb_rt.advance()    
-    results = fn.append_results(carb_rt, results, step =S )
+    results = fn.append_results(carb_rt, results, step = S )
     itr += 1
     
 #%% SIMULATION TIME

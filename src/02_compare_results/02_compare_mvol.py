@@ -15,27 +15,31 @@ np.set_printoptions(precision=5, threshold=np.inf)
 import misc_func as fn
 import func as cf
 #%% SETTINGS
-Ts =1000.
+Ts =100.
 fname = 'mvol'
-fpath = root_dir+'\\results\\output\\simulations\\compare\\'
+fpath = root_dir+'\\results\\output\\02_molar_volume\\'
 fn.make_output_dir(fpath)
 #names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
 #label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
 #linetype = np.array(['-', '--', '-.', ':', '-'])
-names = np.array(['05_mvol_500', '05_mvol_100', '05_mvol_50', 
-                  '05_mvol_10', '05_mvol_5', '05_mvol2_1'])
-label = np.array(['500', '100','50', '10', '5', '1'])
-linetype = np.array(['-', '--', '-.', ':', '-', '--'])
+names = np.array(['05_mvol_100_cbc', '04_mvol_50_cbc', '03_mvol_10_cbc', 
+                  '02_mvol_5_cbc', '01_mvol_1_cbc'])
+label = np.array(['100','50', '10', '5', '1'])
+linetype = np.array(['-', '--', '-.', ':', '-'])
 
 results = {}
 for nn in names:
-    path = root_dir+'\\results\\output\\simulations\\' + nn + '\\'
+    path = root_dir+'\\results\\output\\02_molar_volume\\' + nn + '\\'
     results[nn] = fn.load_obj(path + nn +'_results')
 
 #%% SCALE
-scale = [500, 100,50, 10, 5, 1]
-dtime = [350,350,350,350,200,0]
-keys = ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'time', 'C (1, 0)']
+scale = [100,50, 10, 5, 1]
+#dtime = [350,350,350,350,200,0]
+keys = ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'time',
+        'C (1, 0)', 'C (1, 1)', 'avg_poros', 
+        'portlandite_cells', 'calcite_cells',
+        'vol_CH (1, 1)', 'vol_CH (1, 2)', 'vol_CH (1, 3)',
+        'vol_CC (1, 1)', 'vol_CC (1, 2)', 'Ca (1, 1)']
 sres = {}
 for i in range(0, len(names)):
     temp = {}
@@ -45,29 +49,45 @@ for i in range(0, len(names)):
         if(np.size(results[names[i]][k])==s):
             temp[k] = np.array(results[names[i]][k])[a]
     temp['time'] *= scale[i] 
-    temp['time']+=dtime[i]
+    #temp['time']+=dtime[i]
     temp['portlandite'] *=scale[i]
     temp['calcite'] *=scale[i]
     sres[names[i]] = temp
-    
+#%%   
 plt.figure(figsize=(8,4))
 for i in range(0, len(names)):
-    plt.plot(sres[names[i]]['time'], sres[names[i]]['pH'],
+    plt.plot(sres[names[i]]['time'], sres[names[i]]['Ca (1, 1)'],
              ls=linetype[i], label = label[i])
 plt.legend()
 plt.show() 
-#%%
+
+plt.figure(figsize=(8,4))
 for i in range(0, len(names)):
-    plt.plot(results[names[i]]['time'][1:50], results[names[i]]['O (1, 0)'][1:50],
-         ls=linetype[i], label = label[i])
-plt.xlabel('Time (s)')
+    plt.plot(sres[names[i]]['time'], sres[names[i]]['C (1, 1)'],
+             ls=linetype[i], label = label[i])
 plt.legend()
+plt.show() 
+
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(sres[names[i]]['time'], sres[names[i]]['vol_CH (1, 1)'],
+             ls=linetype[i], label = label[i])
+plt.legend()
+plt.show() 
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(sres[names[i]]['time'], sres[names[i]]['vol_CC (1, 1)'],
+             ls=linetype[i], label = label[i])
+plt.legend()
+plt.show() 
 #%% CH DISSOLUTION 
 titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon',
-          'Average pH', 'Input C']
-comp =  ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'C (1, 0)']
+          'Average pH', 'Input C', 'Porosity']
+comp =  ['portlandite', 'calcite', 'Ca', 'C', 'pH', 
+         'C (1, 0)', 'avg_poros']
 suffix = ['_portlandite', '_calcite', '_calcium', '_carbon',
-          '_average ph', '_input_c']
+          '_average ph', '_input_c', '_poros']
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
@@ -107,7 +127,7 @@ p = {}
 for n in names:
     t[n] = sres[n]['time']
     p[n] = sres[n]['portlandite']
-f = interp1d(t['05_mvol2_1'], p['05_mvol2_1'], kind = 'cubic')
+f = interp1d(t['01_mvol_1_cbc'], p['01_mvol_1_cbc'], kind = 'cubic', fill_value="extrapolate")
 pi = {}
 diff = {}
 for i in range(0, len(names)-1):
@@ -147,3 +167,36 @@ plt.ylabel('Relative error')
 plt.savefig(fpath + fname + '_rel_error')
 plt.show()
 
+#%%
+k = 'calcite'# 'avg_poros' #'portlandite''calcite'
+er = np.array([])
+for nn in names:
+    d_ch = sres[nn][k][0]- sres[nn][k][-2]
+    er = np.append(er, d_ch)
+print(er)
+for i in range(0,len(er)):
+    e = (er[i]-er[-1])/er[-1] * 100    
+    print('%s, %s ' %(names[i], str(e)))
+    
+ 
+#%% 
+for nn in names:
+    ch24 = np.array(sres[nn]['portlandite_cells'])==24
+    ch23 = np.array(sres[nn]['portlandite_cells'])==23
+    cross = np.roll(ch24,-1) + ch23
+    t = np.array(sres[nn]['time'])[~cross]
+    print(t)
+    
+#%%
+    
+titles = ['Volume CH in (1,1)', 'Volume CH in (1,2)', 'Volume CH in (1,3)']
+comp =  ['vol_CH (1, 1)', 'vol_CH (1, 2)', 'vol_CH (1, 3)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        plt.plot(sres[names[i]]['time'], sres[names[i]][comp[k]],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 

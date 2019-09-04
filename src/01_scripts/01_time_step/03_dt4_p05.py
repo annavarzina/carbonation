@@ -58,7 +58,7 @@ plt.show()
 scale = 50
 nn='01_dt4_p05'
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
-path = root_dir+'\\results\\output\\time_step\\' + nn + '\\'
+path = root_dir+'\\results\\output\\01_time_step\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
