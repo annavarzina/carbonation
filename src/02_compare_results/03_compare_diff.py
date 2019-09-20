@@ -16,14 +16,16 @@ import misc_func as fn
 import func as cf
 #%% SETTINGS
 Ts =1000.
-fname = 'diff_p005'
+fname = 'diff_p05_ll'
 fpath = root_dir+'\\results\\output\\03_diffusivity\\'
 fn.make_output_dir(fpath)
-names = np.array(['04_fixD_p005_arch', '01_fixD_p005', '02_fixD_p005_D11', '03_fixD_p005_D12'])#, '01_fixD_005p_D11'])
+#names = np.array(['04_fixD_p005_arch', '01_fixD_p005', '02_fixD_p005_D11', '03_fixD_p005_D12'])#, '01_fixD_005p_D11'])
 #names = np.array(['04_fixD_p05_arch', '01_fixD_p05', '02_fixD_p05_D11', '03_fixD_p05_D12'])#, '01_fixD_005p_D11'])
 label = np.array(['Archies', '1e-10', '1e-11', '1e-12'])
 linetype = np.array(['-', '--', '-.', ':'])
-
+names = np.array(['03_fixD_p05_D12_ll_all', '05_fixD_p05_D15_ll_all'])
+label = np.array(['1e-12', '1e-15'])
+linetype = np.array(['-', '--'])
 results = {}
 for nn in names:
     path = root_dir+'\\results\\output\\03_diffusivity\\' + nn + '\\'
@@ -38,6 +40,7 @@ for i in range(0, len(names)):
     results[names[i]]['time']= temp.tolist()
     
 #%% CH DISSOLUTION 
+
 titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon',
           'Average pH', 'Input C', 'Porosity']
 comp =  ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'C (1, 0)', 'avg_poros']
@@ -55,7 +58,7 @@ for k in range(0, len(comp)):
     plt.show() 
 
 #%% DISSOLUTION RATE
-
+'''
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
@@ -77,3 +80,37 @@ for k in range(0, len(comp)):
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
 #plt.savefig(fpath + fname + '_CH_rate')
+#%%
+k = 'calcite'# 'avg_poros' #'portlandite''calcite'
+er = np.array([])
+for nn in names:
+    d_ch = results[nn][k][0]- results[nn][k][-2]
+    er = np.append(er, d_ch)
+print(er)
+for i in range(0,len(er)):
+    e = (er[i]-er[-1])/er[-1] * 100    
+    print('%s, %s ' %(names[i], str(e)))
+'''
+#%%
+n = np.sort(results[names[1]].keys())
+points = ['(1, 0)', '(1, 1)', '(1, 2)']
+titles = ['Carbon ', 'Calcium ', 'Effective diffusivity ', 
+          'CC volume ', 'CH volume ', 'Porosity ']
+comp =  [ 'C ', 'Ca ', 'De ', 'vol_CC ', 'vol_CH ', 'poros ']
+
+tstart = 0
+tend = 1*scale
+
+for k in range(0, len(comp)):
+    for j in range(0, len(points)):
+        plt.figure(figsize=(8,4))
+        for i in range(0, len(names)):
+            indices = np.where(np.logical_and(np.array(results[names[i]]['time'])<=tend,
+                          np.array(results[names[i]]['time'])>=tstart))
+            plt.plot(np.array(results[names[i]]['time'])[indices], 
+                     np.array(results[names[i]][comp[k]+points[j]])[indices],
+                     ls=linetype[i], label = label[i])
+        plt.title(titles[k]+points[j])
+        plt.xlabel('Time (s)')
+        plt.legend()
+        plt.show() 

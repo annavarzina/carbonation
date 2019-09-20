@@ -86,7 +86,7 @@ class CarbonationPhrqc(Phrqc):
                             else: 
                                 pass  
                             if (self.ppt == True):
-                                if (phaseqty['portlandite'][cell-1]<=0):
+                                if (phaseqty['portlandite'][cell-1]<=0):# and phaseqty['calcite'][cell-1]<=0 ):
                                     modifystr.append("\t -component\tCO2(g)") 
                                     modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
         modifystr.append("end") 

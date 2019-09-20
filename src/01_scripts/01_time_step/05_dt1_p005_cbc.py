@@ -91,7 +91,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'fixed' or 'archie'
                            'D_CC': 3e-12,
-                           'D_CH': 1e-12},
+                           'D_CH': 1e-11},
             'pcs': {'pcs': True, 
                     'pores': 'block', #'block'/'cylinder'
                     'int_energy': 0.5, # internal energy
@@ -130,7 +130,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 itr = 0 
 j = 0
 ni = 100
-nitr = 100
+nitr = 10
 Ts = 1000.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
@@ -142,7 +142,7 @@ N = Ts/carb_rt.dt
 N_res = 1e+4
 S = max(1,int(N/N_res))
 #%% RUN SOLVER
-while  carb_rt.time <=Ts: #itr <= nitr: #
+while  itr <= nitr: #carb_rt.time <=Ts: #
     if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])

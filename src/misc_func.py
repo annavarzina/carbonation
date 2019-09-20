@@ -297,14 +297,18 @@ def get_sum_mineral_volume(rt):
     '''
     Total mineral volume
     '''
-    vol = np.sum(rt.solid.vol)
+    #vol = np.sum(rt.solid.vol)
+    not_boundary = (rt.phrqc.boundcells !=1)
+    vol = np.mean(rt.solid.vol[not_boundary])
     return(vol)
     
 def get_average_poros(rt):
     '''
     Average poroisty in the domain
     '''
-    poros = np.mean(rt.solid.poros)
+    #poros = np.mean(rt.solid.poros)
+    not_boundary = (rt.phrqc.boundcells !=1)
+    poros = np.mean(rt.solid.poros[not_boundary])
     return(poros)
     
 def get_average_Archie_D(rt):
@@ -312,8 +316,9 @@ def get_average_Archie_D(rt):
     Avarage effective diffusivity calculated by Archie's formula
     '''
     D0 = rt.fluid.H.D0
-    Dnew = rt.solid.poros * rt.solid.app_tort * D0        
-    return np.mean(Dnew)
+    Dnew = rt.solid.poros * rt.solid.app_tort * D0    
+    not_boundary = (rt.phrqc.boundcells !=1)  
+    return np.mean(Dnew[not_boundary])
 
 def get_delta_portlandite(rt):
     '''

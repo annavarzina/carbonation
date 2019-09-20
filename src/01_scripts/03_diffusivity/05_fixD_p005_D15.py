@@ -56,7 +56,7 @@ plt.imshow(domain.nodetype)
 plt.show()
 #%%  VALUES
 scale = 50
-nn='01_dixD_p005_D12'
+nn='05_fixD_p005_D15'
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
 path = root_dir+'\\results\\output\\03_diffusivity\\' + nn + '\\'
 fn.make_output_dir(path)
@@ -90,7 +90,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'fixed' or 'archie'
                            'D_CC': 3e-12,
-                           'D_CH': 1e-12},
+                           'D_CH': 1e-15},
             'pcs': {'pcs': True, 
                     'pores': 'block', #'block'/'cylinder'
                     'int_energy': 0.5, # internal energy
@@ -131,7 +131,7 @@ j = 0
 ni = 100
 nitr = 100
 Ts = 1000/scale + 0.001#1.001#1.01
-step = max(1,int(Ts/10.))
+step = int(Ts/10.)
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
