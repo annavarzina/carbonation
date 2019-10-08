@@ -429,7 +429,7 @@ def append_results(rt, results, step = 1e+2):
         for num, phase in enumerate(rt.solid.diffusive_phase_list, start=1):
             results[phase].append(np.sum(rt.solid._diffusive_phaseqty[num-1]))        
         for num, comp in enumerate(rt.fluid.components, start=1):
-            results[comp].append(np.sum(getattr(rt.fluid, comp)._c*getattr(rt.fluid, comp).poros))        
+            results[comp].append(np.sum((getattr(rt.fluid, comp)._c+getattr(rt.fluid, comp)._ss)*getattr(rt.fluid, comp).poros))        
         if (ptype == 'CSH'):
             results['csh'].append(get_sum_csh(rt))
         # average
@@ -460,10 +460,10 @@ def append_results(rt, results, step = 1e+2):
             for p in results['points']:
                 results['portlandite'+' ' + str(p)].append(rt.solid.portlandite.c[p])
                 results['calcite'+' ' + str(p)].append(rt.solid.calcite.c[p])
-                results['Ca'+' ' + str(p)].append(rt.fluid.Ca.c[p])
-                results['C'+' ' + str(p)].append(rt.fluid.C.c[p])
-                results['H'+' ' + str(p)].append(rt.fluid.H.c[p])
-                results['O'+' ' + str(p)].append(rt.fluid.O.c[p])
+                results['Ca'+' ' + str(p)].append(rt.fluid.Ca._c[p]+rt.fluid.Ca._ss[p])
+                results['C'+' ' + str(p)].append(rt.fluid.C._c[p]+rt.fluid.C._ss[p])
+                results['H'+' ' + str(p)].append(rt.fluid.H._c[p]+rt.fluid.H._ss[p])
+                results['O'+' ' + str(p)].append(rt.fluid.O._c[p]+rt.fluid.O._ss[p])
                 results['poros'+' ' + str(p)].append(rt.solid.poros[p])
                 results['vol'+' ' + str(p)].append(rt.solid.vol[p])
                 results['De'+' ' + str(p)].append(rt.fluid.H.De[p])
@@ -472,7 +472,7 @@ def append_results(rt, results, step = 1e+2):
                 results['vol_CC'+' ' + str(p)].append(rt.solid.vol_cc[p])
             
             if( ptype=='CSH'):
-                results['Si'+' ' + str(p)].append(rt.fluid.Si.c[p])
+                results['Si'+' ' + str(p)].append(rt.fluid.Si._c[p]+rt.fluid.Si._ss[p])
                 results['CSHQ_TobD'+' ' + str(p)].append(rt.solid.CSHQ_TobD.c[p])
                 results['CSHQ_JenD'+' ' + str(p)].append(rt.solid.CSHQ_JenD.c[p])
                 results['CSHQ_TobH'+' ' + str(p)].append(rt.solid.CSHQ_TobH.c[p])

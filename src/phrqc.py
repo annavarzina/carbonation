@@ -97,8 +97,14 @@ class CarbonationPhrqc(Phrqc):
     def modify_bc(self, modifystr):
         modifystr.append("\t -component calcite")
         modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+        modifystr.append("\t -component portlandite")
+        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
         #modifystr.append("\t\t%s\t%.20e" %('-si', 10))
         if(self.pinput['type']=='pco2'):
             modifystr.append("\t -component\tCO2(g)") 
             modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
+            modifystr.append("\t -component\tO2(g)") 
+            modifystr.append("\t\tsi\t-3")
+            modifystr.append("\t -component\tH2(g)") 
+            modifystr.append("\t\tsi\t-3")
             #print(self.pinput['value'])

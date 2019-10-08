@@ -54,6 +54,12 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_target_SI()
         if(self.settings['diffusivity']['type']=='fixed'): 
             self.update_diffusivity()
+        elif(self.settings['diffusivity']['type']=='cc_archie'): 
+            self.update_diffusivity_ch()
+        elif(self.settings['diffusivity']['type']=='cc_archie_ch_kin'): 
+            self.update_diffusivity_ch_kin()
+        elif(self.settings['diffusivity']['type']=='mixed'): 
+            self.update_diffusivity_mixed()
         self.fluid.call('advance')
         self.phrqc.is_calc = self.solid.calcite.c>0        
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
@@ -204,19 +210,30 @@ class CarbonationRT(PhrqcReactiveTransport):
         is_calc = (self.solid.calcite.c>0)
         is_solid = self.solid.nodetype == ct.Type.SOLID
         is_critical = np.zeros(np.shape(is_port))
+        is_interface = np.zeros(np.shape(is_port))
         #calc_c = self.phrqc.solid_phase_conc['calcite']
         if self.ptype == 'CH':
-            is_liquid =  (~is_port)
+            is_liquid = (~is_port)
             if(self.iters>1):
-                is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc
-                #is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc
-                is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(prev_nodetype==-1)
-            not_critical = np.logical_not(is_critical)
-            is_interface = (not_critical) & (is_port|(prev_nodetype==-2)| (prev_nodetype==-5))
+                is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc & (~is_port)
+                is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(~is_calc)#&((prev_nodetype==-1)|(prev_nodetype==-2))
+                is_interface = (~is_critical)&(~is_port)&(~is_solid)&(~is_liquid)
             self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
+                ct.Type.MULTILEVEL * is_critical + \
+                ct.Type.MULTILEVEL * is_port +\
                 ct.Type.INTERFACE * is_interface + \
-                ct.Type.MULTILEVEL * is_critical +\
-                ct.Type.SOLID * is_solid #ct.Type.INTERFACE * ((is_calc) &(~is_critical)) + 
+                ct.Type.SOLID * is_solid
+            #is_liquid =  (~is_port)
+            #if(self.iters>1):
+            #    is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc
+            #    #is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc
+            #    is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(prev_nodetype==-1)
+            #not_critical = np.logical_not(is_critical)
+            #is_interface = (not_critical) & (is_port|(prev_nodetype==-2)| (prev_nodetype==-5))
+            #self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
+            #    ct.Type.INTERFACE * is_interface + \
+            #    ct.Type.MULTILEVEL * is_critical +\
+            #    ct.Type.SOLID * is_solid #ct.Type.INTERFACE * ((is_calc) &(~is_critical)) + 
         if self.ptype == 'CSH':
             is_csh= (self.solid.CSHQ_JenD.c>0) | (self.solid.CSHQ_JenH.c>0) | \
                     (self.solid.CSHQ_TobD.c>0) |(self.solid.CSHQ_TobH.c>0)
@@ -242,16 +259,79 @@ class CarbonationRT(PhrqcReactiveTransport):
     def update_diffusivity(self):
         D_CC = self.settings['diffusivity']['D_CC']
         D_CH = self.settings['diffusivity']['D_CH']
-        D0 = self.fluid.Ca.D0  
+        Dref = self.fluid.H.Deref 
         is_port = self.solid.portlandite.c >0
         is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
         is_liquid = np.logical_and(~is_port, ~is_calc)
-        De = D_CC *is_calc + D_CH *is_port+ D0 * is_liquid 
+        De = D_CC *is_calc + D_CH *is_port+ Dref * is_liquid 
         Dnew_lb = De/self.solid.poros/self.solid.app_tort
         #print(Dnew_lb)
         self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
         self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
         self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)
+
+    def update_diffusivity_ch(self):
+        D_CH = self.settings['diffusivity']['D_CH']
+        Dref = self.fluid.H.Deref 
+        is_port = self.solid.portlandite.c >0
+        is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
+        is_liquid = np.logical_and(~is_port, ~is_calc)
+        De = D_CH *is_port+ Dref * is_liquid 
+        Dnew_lb = De/self.solid.poros/self.solid.app_tort
+        Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
+        #print(Dnew_lb)
+        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
+        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
+        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
+        
+    def update_diffusivity_ch_kin(self):
+        D_CH_Ca = self.settings['diffusivity']['D_CH_Ca']
+        D_CH = self.settings['diffusivity']['D_CH']
+        Dref = self.fluid.H.Deref 
+        is_port = self.solid.portlandite.c >0
+        is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
+        is_liquid = np.logical_and(~is_port, ~is_calc)
+        De = D_CH *is_port+ Dref * is_liquid 
+        Dnew_lb = De/self.solid.poros/self.solid.app_tort
+        Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
+        #print(Dnew_lb)
+        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
+        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
+        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
+        
+        De = D_CH_Ca *is_port+ Dref * is_liquid 
+        Dnew_lb = De/self.solid.poros/self.solid.app_tort
+        Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
+        
+        self.fluid.Ca.D0 = Dnew_lb
+        self.fluid.Ca.Deref=np.max(Dnew_lb)
+        self.fluid.Ca.Dr=Dnew_lb
+        
+    def update_diffusivity_mixed(self):
+        D_CH_Ca = self.settings['diffusivity']['D_CH_Ca']
+        D_CH = self.settings['diffusivity']['D_CH']
+        Dref = self.fluid.H.Deref
+        
+        is_port = self.solid.portlandite.c >0
+        is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
+        is_liquid = np.logical_and(~is_port, ~is_calc)
+        
+        mCH = self.solid.portlandite.c * self.solid.portlandite.mvol
+        D_mixed = np.nan_to_num(1./((1-mCH)/Dref/self.solid.poros/self.solid.app_tort + mCH/D_CH), Dref)
+        De = D_mixed *(~is_liquid)+ Dref * is_liquid
+        Dnew_lb = De/self.solid.poros/self.solid.app_tort
+        #print(Dnew_lb)
+        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
+        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
+        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
+        
+        D_mixed = np.nan_to_num(1./((1-mCH)/Dref/self.solid.poros/self.solid.app_tort + mCH/D_CH_Ca), Dref)
+        De = D_mixed *(~is_liquid)+ Dref * is_liquid
+        Dnew_lb = De/self.solid.poros/self.solid.app_tort
+        
+        self.fluid.Ca.D0 = Dnew_lb
+        self.fluid.Ca.Deref=np.max(Dnew_lb)
+        self.fluid.Ca.Dr=Dnew_lb
         
     def update_velocity(self):
         is_solid = self.solid.nodetype >=1
