@@ -60,7 +60,9 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.update_diffusivity_ch_kin()
         elif(self.settings['diffusivity']['type']=='mixed'): 
             self.update_diffusivity_mixed()
-        self.fluid.call('advance')
+        self.fluid.call('advance')        
+        self.correct()
+        
         self.phrqc.is_calc = self.solid.calcite.c>0        
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
             self.fluid.call('update_transport_params',self.solid.poros,
@@ -91,6 +93,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.update_nodetype()
         
     
+   
     #%% SETTINGS
     def set_volume(self):
         self.solid.vol = np.zeros(self.solid.shape)
@@ -393,7 +396,19 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.phrqc._target_SI = self.solid.taget_SI
         elif (self.ptype == 'CSH'): 
             pass        
-      
+    def correct(self):
+        c = deepcopy(self.fluid.get_attr('_c'))
+        f = deepcopy(self.fluid.get_attr('_f'))
+        flag = False
+        for comp in self.fluid.components:
+            n = c[comp] < 0
+            if n.any():
+                flag = True            
+                f[comp][n] = f[comp][n] - f[comp][n]*(f[comp][n]<0)
+        if flag: 
+            self.fluid.set_attr('_f',f)
+            self.fluid.set_attr('f',f)
+            self.fluid.call('compute_macro_var')      
     #%% VOLUMES
     def volume_CH(self):
         CH_vol = self.solid.portlandite.c * self.solid.portlandite.mvol
@@ -540,3 +555,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         for key, value in f.iteritems():
             f[key] = get_feq(c[key], poros)
         self.fluid.set_attr('f',f)
+        
+        
+ 
+            

@@ -857,13 +857,13 @@ def save_figures_minerals(rt, max_pqty, t, path, name, ptype = 'CSH', fsize = (1
         plt.savefig(fname)
         plt.close(f)
 
-def save_figures_mols(rt, t, path, name, cC = 0.02, cCa = 0.05, cSi = 0.01, ptype = 'CSH', fsize = (12,8)): #time_points[j]
+def save_figures_mols(rt, t, path, name, ptype = 'CSH', fsize = (12,8)): #time_points[j]
     
     nx = rt.fluid.Ca.nx -1
     ny = rt.fluid.Ca.ny -1
     
     f = plt.figure(figsize=fsize)
-    plt.imshow(rt.fluid.Ca.c[1:ny,1:nx], vmin = 0, vmax = cCa) 
+    plt.imshow(rt.fluid.Ca.c[1:ny,1:nx]) 
     plt.title('Ca' + ' time='+ str(t) )
     plt.colorbar()        
     fname = path + name +'_Ca_' + str(t) + '.png'
@@ -871,7 +871,7 @@ def save_figures_mols(rt, t, path, name, cC = 0.02, cCa = 0.05, cSi = 0.01, ptyp
     plt.close(f)   
     
     f = plt.figure(figsize=fsize)
-    plt.imshow(rt.fluid.C.c[1:ny,1:nx], vmin = 0, vmax = cC) 
+    plt.imshow(rt.fluid.C.c[1:ny,1:nx]) 
     plt.title('CO2' + ' time='+ str(t) )
     plt.colorbar()        
     fname = path + name +'_C_' + str(t) + '.png'
@@ -881,7 +881,7 @@ def save_figures_mols(rt, t, path, name, cC = 0.02, cCa = 0.05, cSi = 0.01, ptyp
     if (ptype == 'CSH'):
         
         f = plt.figure(figsize=fsize)
-        plt.imshow(rt.fluid.Si.c[1:ny,1:nx], vmin = 0, vmax = cSi) 
+        plt.imshow(rt.fluid.Si.c[1:ny,1:nx]) 
         plt.title('Si' + ' time='+ str(t) )
         plt.colorbar()        
         fname = path + name +'_Si_' + str(t) + '.png'

@@ -28,15 +28,13 @@ Carbonation of lime paste
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 0
-l = 25 + ll
-lx = l*1.0e-6
-ly = l*1.0e-6
+lx = 11*1.0e-6
+ly = 31*1.0e-6
 dx = 1.0e-6
 rad = 6*dx
 #wall_len_y = wall_len_x 
 domain = yantra.Domain2D(corner=(0, 0), 
-                         lengths=(lx, ly), 
+                         lengths=(ly, lx), 
                          dx=dx, 
                          grid_type='nodal')
 
@@ -59,10 +57,11 @@ plt.show()
 #%%  VALUES
 scale = 50
 init_porosCH = 0.05
-nn='01_rand_lime'
+nn='01_rand_lime_pco2_1'
 #fn.make_output_dir(root_dir+'\\results\\output\\simulations\\')
 path = root_dir+'\\results\\output\\12_lime_paste\\' + nn + '\\'
 fn.make_output_dir(path)
+np.save(path + 'init_geometry', domain.nodetype)
 '''
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
@@ -70,15 +69,15 @@ phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
                'ca_liq':{'type':'eq', 'value': 'calcite'}}#calcite
 '''
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 1}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'conc', 'value': '0'}}#calcite
+               'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6.
+tfact =  1./6.*2.
 default_porosCH = 0.05
 
 mvol_ratio = 3.69/3.31
@@ -95,7 +94,7 @@ porosity = fn.get_porosity(domain, pqty, mvol, m)
 app_tort = 1. * porosity ** (1./3.)
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'active': 'all', # 'all'/'smart'/'interface'
+            'active': 'smart', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'mixed', #'fixed' or 'archie'
                            'D_CC': 3e-12,
                            'D_CH_Ca': 1e-10,
@@ -124,22 +123,22 @@ fn.save_settings(settings, bc_params, solver_params, path, nn)
 
 #%% INITIATE THE SOLVER
 carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain, domain_params, bc_params, solver_params, settings) 
-
+carb_rt.phrqc.phrqc_smart_run_tol = 1e-4
 #%% OUTPUT PARAMETERS
 plist =  []
 pavglist = ['avg_poros', 'avg_D_eff']
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
-
+it=time.time()
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-nitr = 1500
+nitr = 500
 
-Ts = 3600. # 1 hour
+Ts = 3600. #sec
 Ts = Ts/scale + 0.001#1.001#1.01 +
 step = max(1,int(Ts/60))
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
-it=time.time()
+
 
 N = Ts/carb_rt.dt
 N_res = 1e+4
@@ -150,16 +149,17 @@ S = max(1,int(N/N_res))
 while  carb_rt.time <=Ts: #itr < nitr: #
     if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
-            print(time_points[j])
+            print('Time %s' %time_points[j])
+            if(carb_rt.time >0):
+                print('Active cells %s'%carb_rt.phrqc.nactive)
             fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path, nn, ptype=m)  
-            fn.save_figures_mols(carb_rt, time_points[j], path, nn, ptype=m, cC = 0.03, cCa = 0.05) 
+            fn.save_figures_mols(carb_rt, time_points[j], path, nn, ptype=m) 
             if(False):
                 print('SI %carb_rt' %carb_rt.phrqc.selected_output()['SI_calcite'][1,:])
                 print('C %carb_rt' %carb_rt.fluid.C.c[1,:])
                 print('Ca %carb_rt' %carb_rt.fluid.Ca.c[1,:])
             j +=1
-        
-    carb_rt.advance()    
+    carb_rt.advance() 
     results = fn.append_results(carb_rt, results, step=S)
     itr += 1
     
@@ -188,3 +188,24 @@ fn.plot_fields(carb_rt, names={ 'calcite', 'portlandite', 'Ca', 'C'})
 #print(carb_rt.solid.portlandite.c)
 #print(carb_rt.solid.calcite.c)
 #print(carb_rt.solid.poros)
+
+
+#%%
+'''
+from copy import deepcopy
+
+print(carb_rt.fluid.C._c)
+c = deepcopy(carb_rt.fluid.get_attr('_c'))
+f = deepcopy(carb_rt.fluid.get_attr('_f'))
+f2 = deepcopy(carb_rt.fluid.C._f)
+flag = False
+comp = 'C'
+n = c[comp] < 0
+if n.any():
+    flag = True
+    f[comp][n] = f[comp][n] - f[comp][n]*(f[comp][n]<0)
+carb_rt.fluid.set_attr('_f',f)
+carb_rt.fluid.set_attr('f',f)
+carb_rt.fluid.call('compute_macro_var')
+print(carb_rt.fluid.C._c)
+'''

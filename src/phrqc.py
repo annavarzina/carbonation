@@ -18,8 +18,8 @@ class CarbonationPhrqc(Phrqc):
             inactive += (1*(nodetype!=-2)-1*(nodetype==-2)).flatten()
         if self.phrqc_flags['only_fluid']: 
             inactive += (1*(nodetype>0)-1*(nodetype<=0)).flatten()
-        tot_solid_phase_conc = self.add_dict(self.flatten_dict(self.solid_phase_conc)) #TODO test w/o solid
-        inactive += -1*(tot_solid_phase_conc>0)
+        #tot_solid_phase_conc = self.add_dict(self.flatten_dict(self.solid_phase_conc)) #TODO test w/o solid
+        #inactive += -1*(tot_solid_phase_conc>0)
         active -= 1*(inactive>0)
         self.nactive = np.sum(active)
         return active
