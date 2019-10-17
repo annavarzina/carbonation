@@ -105,6 +105,4 @@ class CarbonationPhrqc(Phrqc):
             modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
             modifystr.append("\t -component\tO2(g)") 
             modifystr.append("\t\tsi\t-3")
-            modifystr.append("\t -component\tH2(g)") 
-            modifystr.append("\t\tsi\t-3")
             #print(self.pinput['value'])

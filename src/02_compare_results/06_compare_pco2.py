@@ -21,9 +21,9 @@ fpath = root_dir+'\\results\\output\\06_pco2\\compare\\'
 fn.make_output_dir(fpath)
 #names = np.array([ '02_pco2_0', '02_pco2_1', 
 #                  '02_pco2_2', '02_pco2_3', '01_reference'])
-names = np.array(['01_pco2_0_p05', '02_pco2_1_p05', '03_pco2_2_p05', 
-                  '04_pco2_3_p05', '05_pco2_34_p05'])
-label = np.array(['100%','10%', '1%', '0.1%', '0.03%'])
+names = np.array(['02_pco2_1_p005', '03_pco2_2_p005', 
+                  '04_pco2_3_p005', '05_pco2_34_p005'])
+label = np.array(['10%', '1%', '0.1%', '0.03%'])
 linetype = np.array(['-', '--', '-.', ':', '-'])
 
 results = {}
@@ -35,14 +35,20 @@ for nn in names:
 scale = 50
 for i in range(0, len(names)):
     temp = np.array(results[names[i]]['time'])
-    temp *= scale
+    temp *= scale/3600
     results[names[i]]['time']= temp.tolist()
+    temp = np.array(results[names[i]]['portlandite'])
+    temp *= scale
+    results[names[i]]['portlandite']= temp.tolist()
+    temp = np.array(results[names[i]]['calcite'])
+    temp *= scale
+    results[names[i]]['calcite']= temp.tolist()
     
 
 #%% CH DISSOLUTION 
 #label = np.array(['0.03%', '10%', '1%', '0.1%', '0.01%'])) 
 cf.plot_results(results, names, 'time', 'portlandite', label, linetype,
-             'Portlandite', 'Time (s)', 'Portlandite', fpath, fname, '_CH',
+             'Portlandite', 'Time (h)', 'Portlandite*1e-12 (mol)', fpath, fname, '_CH',
              fsize = (8,4))
 '''
 plt.figure(figsize=(8,4))
@@ -58,7 +64,7 @@ plt.show()
 
 #%% CC PRECIPITATION
 cf.plot_results(results, names, 'time', 'calcite', label, linetype,
-             'Calcite', 'Time (s)', 'Calcite', fpath, fname, '_CC',
+             'Calcite', 'Time (h)', 'Calcite*1e-12 (mol)', fpath, fname, '_CC',
              fsize = (8,4))
 
 #%% FULL PORTLANDITE TIME DISSOLUTION    
@@ -71,44 +77,44 @@ for i in range(0, len(names)):
              
 #%% LIQUID CA 
 cf.plot_results(results, names, 'time', 'Ca', label, linetype,
-             'Ca in liquid', 'Time (s)', 'Ca*1e-12 (mol)', fpath, fname, '_Ca',
+             'Ca in liquid', 'Time (h)', 'Ca*1e-12 (mol)', fpath, fname, '_Ca',
              fsize = (8,4))
 
 #%% LIQUID C
 cf.plot_results(results, names, 'time', 'C', label, linetype,
-             'C in liquid', 'Time (s)', 'C*1e-12 (mol)', fpath, fname, '_C',
+             'C in liquid', 'Time (h)', 'C*1e-12 (mol)', fpath, fname, '_C',
              fsize = (8,4))
 
 #%% AVG PH
 cf.plot_results(results, names, 'time', 'pH', label, linetype,
-             'Average pH', 'Time (s)', 'pH', fpath, fname, '_pH',
+             'Average pH', 'Time (h)', 'pH', fpath, fname, '_pH',
              fsize = (8,4))
 
 #%% INPUT C
 cf.plot_results(results, names, 'time', 'C (1, 0)', label, linetype,
-             'Input C', 'Time (s)', 'C (mol/l)', fpath, fname, '_inC',
+             'Input C', 'Time (h)', 'C (mol/l)', fpath, fname, '_inC',
              fsize = (8,4))
 
 #%% POROSITY
 cf.plot_results(results, names, 'time', 'avg_poros', label, linetype,
-             'Porosity', 'Time (s)', 'Porosity', fpath, fname, '_poros',
+             'Porosity', 'Time (h)', 'Porosity', fpath, fname, '_poros',
              fsize = (8,4))
 
 #%% POROSITY DIFFERENCE
 pt = []
 dt = results[names[1]]['time'][2] - results[names[1]]['time'][1] 
-t1 = 10 *scale
+t1 = 1
 #print(get_porosity_val(results[names[1]], t1, dt))
 text2 = ''
 for i in range(0, len(names)): 
     nn = names[i]
     p = cf.get_porosity_val(results[nn], t1, dt)
     pt.append(p)
-    text2 += ' \nPorosity at time ' + str(t1) + ' is ' + \
+    text2 += ' \nPorosity at time ' + str(t1) + ' (р) is ' + \
               str(p) + ' for ' + str(label[i]) + ' CO2'
 plt.figure(figsize=(8,4))
 plt.plot(label, pt)
-plt.title('Porosity at time %s' %t1)
+plt.title('Porosity at time %s hour' %t1)
 plt.xlabel('CO2')
 plt.ylabel('Porosity')
 plt.savefig(fpath + fname + '_poros_profile')
@@ -123,7 +129,7 @@ for i in range(0, len(names)):
              cf.get_rate(results[names[i]]['portlandite'][t2:-1], dt),
              label = label[i], ls = linetype[i])
 plt.title('Dissolution rate')
-plt.xlabel('Time (s)')
+plt.xlabel('Time (h)')
 plt.ylabel('Rate (mol/s)')
 plt.legend()
 plt.savefig(fpath + fname + '_CH_rate')
@@ -137,7 +143,7 @@ for i in range(0, len(names)):
              cf.get_rate(results[names[i]]['calcite'][t2:-1], dt),
              label = label[i], ls = linetype[i])
 plt.title('Precipitation rate')
-plt.xlabel('Time (s)')
+plt.xlabel('Time (h)')
 plt.ylabel('Rate (mol/s)')
 plt.legend()
 plt.savefig(fpath + fname + '_CC_rate')
@@ -162,27 +168,8 @@ for i in range(0, len(names)):
              str(results[names[i]]['De (1, 1)'][10000]) + \
              '. for ' + label[i] + ' CO2'
 
-#%% SI
-si = {}
-for i in range(0, len(names)): 
-    nn = names[i]
-    path = root_dir+'\\results\\output\\simulations\\' + nn + '\\'
-    si[names[i]] = np.load(path + 'SI' + '.npy')
-
-text6 = ''
-for i in range(0, len(names)):   
-    text6 += ' \nSI in a node (1,1) ' + \
-             str(si[names[i]][(1,1)]) + \
-             '. for ' + label[i] + ' CO2'
-   
-text7 = ''
-for i in range(0, len(names)):   
-    text7 += ' \nSI in a node (1,10) ' + \
-             str(si[names[i]][(1,10)]) + \
-             '. for ' + label[i] + ' CO2' 
-             
 #%% SAVE TXT
 text = ''
-for i in range(1,8):
+for i in range(1,6):
     text += eval('text'+str(i))
 np.save(fpath +fname, text)
