@@ -9,11 +9,11 @@ from yantra.physics.PhrqcReactiveTransport import Solid
 
 import cell_type as ct # change the path to cell_type file
 import defaults as df
-import phrqc 
+from yantra.physics._phrqc_wrapper import  Phrqc
 
 
-class CarbonationRT(PhrqcReactiveTransport):
-    def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):
+class DissolutionRT(PhrqcReactiveTransport):
+    def __init__(self,eqn,domain,domain_params,bc_params,solver_params):
         '''
         Reactive transport class for carbonation
         A Lattice Boltzmann method based reactive transport model \
@@ -21,7 +21,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         '''
         
         self.auto_time_step = solver_params.get('auto_time_step',True)
-        self.phrqc = phrqc.CarbonationPhrqc(domain,domain_params,bc_params,solver_params)        
+        self.phrqc = Phrqc(domain,domain_params,bc_params,solver_params)    
         components = self.phrqc.components
         bc = self.phrqc.boundary_conditions 
         init_c = self.phrqc.initial_conditions         
@@ -42,37 +42,21 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.ptype = 'CSH' if hasattr(self.fluid, 'Si') else 'CH'
         self.set_volume()
         self.set_porosity()        
-        self.nodetype = deepcopy(domain.nodetype)  
-        self.apply_settings(settings)  
-        c=deepcopy( self.fluid.get_attr('c'))
-        self.set_phrqc(c, self.nodetype)        
-        self.set_bc(settings)
+        self.nodetype = deepcopy(domain.nodetype)
+        self.set_phrqc()   
         self.solid.phases = self.update_phases()
         self.update_nodetype()
         
     
     def advance(self):
-        self.update_target_SI()
-        if(self.settings['diffusivity']['type']=='fixed'): 
-            self.update_diffusivity()
-        elif(self.settings['diffusivity']['type']=='cc_archie'): 
-            self.update_diffusivity_ch()
-        elif(self.settings['diffusivity']['type']=='cc_archie_ch_kin'): 
-            self.update_diffusivity_ch_kin()
-        elif(self.settings['diffusivity']['type']=='mixed'): 
-            self.update_diffusivity_mixed()
-        self.fluid.call('advance')        
-        self.correct()
-        
-        self.phrqc.is_calc = self.solid.calcite.c>0        
+        #print('\n===========================================\n')
+        #print(self.iters)
+        self.fluid.call('advance')   
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
-            self.phrqc.poros=deepcopy(self.solid.poros)        
-        self.fluid.call('_set_relaxation_params') 
- 
-        if(self.phrqc.precipitation == 'interface' and self.phrqc.active != 'interface'):
-            self.phrqc.nodetype = deepcopy(self.nodetype) 
+            self.phrqc.poros=deepcopy(self.solid.poros) 
+        self.fluid.call('_set_relaxation_params')  
         
         
         c=deepcopy( self.fluid.get_attr('c'))
@@ -80,23 +64,184 @@ class CarbonationRT(PhrqcReactiveTransport):
         phase_list = deepcopy(self.solid.diffusive_phase_list)
         for num, phase in enumerate(phase_list, start=1):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])
-        self.phrqc.modify_solid_phases(phaseqty, c, self.solid.nodetype) 
-        ss=self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
-        
-        #print(self.phrqc.selected_output()['portlandite'])
-        ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
-        pqty=self.solid.update(self.phrqc.dphases)            
-                
+        self.phrqc.modify_solid_phases(phaseqty) 
+        ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
+        new_c = self.update_neighbour_solution(11,12, self.solid.portlandite.c[1,3])
+        #print('new c %s' %str(new_c))
+        self.solid.portlandite.c[1,3] =new_c['portlandite']
+        ss = self.modify_all(11,12, new_c, c, self.solid.nodetype,phaseqty)
+        #ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
+        pqty=self.solid.update(self.phrqc.dphases)    
         self.fluid.set_attr('ss',ss)
-        
+        '''
+        print('Ca %s' %str(np.array(self.fluid.Ca.c[1,:]) ))
+        print('Ca ss %s' %str(np.array(self.fluid.Ca._ss[1,:])))
+        print('Ca +ss %s' %str(np.array(self.fluid.Ca.c[1,:]) + np.array(self.fluid.Ca._ss[1,:])/np.array(self.fluid.Ca.poros[1,:])))
+        print('CH %s' %str(np.array(self.solid.portlandite.c[1,:])))
+        print('dCH %s' %str(np.array(self.phrqc.dphases['portlandite'][1,:])))
+        print('poros %s' %str(self.solid.poros))
+        '''
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
-        self.update_solid_params() # or after if?        
-        if(self.settings['velocity']):
-            self.update_velocity()
+        self.update_solid_params()        
         self.solid.phases = self.update_phases()
-        if(self.phrqc.precipitation == 'interface'):
-            self.update_nodetype()
         
+    def update_neighbour_solution(self,  n_int, n_ch,p):
+        n = 123456
+        #c=deepcopy(self.phrqc.flatten_dict(self.fluid.get_attr('c')))
+        phaseqty = self.phrqc.flatten_dict(self.solid.phaseqty_for_phrqc())
+        modify_str = []
+        modify_str.append("EQUILIBRIUM_PHASES %i" % n)
+        modify_str.append("Portlandite 0 %.20e dissolve only" %(p))   
+        modify_str.append("END") 
+        modify_str.append('MIX %i' % n) 
+        modify_str.append('%i 1' % n_int)  
+        modify_str.append('SAVE solution %i' % n)  
+        modify_str.append("END") 
+        modify_str.append('USE solution %i' % n)  
+        modify_str.append('USE equilibrium_phase %i' % n)
+        modify_str.append('SAVE solution %i' % n)   
+        modify_str.append("END") 
+        modify_str.append("END") 
+        modify_str.append("EQUILIBRIUM_PHASES %i" % n_ch)
+        modify_str.append("Portlandite 0 %.20e" %(p))  
+        modify_str.append("END") 
+        modify_str.append('USE equilibrium_phase %i' % n_int)
+        modify_str.append('MIX %i' % n)         
+        modify_str.append('%i 1' % n) 
+        modify_str.append('%i 0' % n_int) 
+        modify_str.append('SAVE solution %i' % n_int)  
+        modify_str.append('SAVE equilibrium_phase %i' % n_int) 
+        modify_str.append("END") 
+               
+        modify_str ='\n'.join(modify_str)
+        #print(modify_str)
+        self.phrqc.IPhreeqc.RunString(modify_str)  
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        #print(output)
+        
+        comp = {}
+        comp['portlandite'] = output[2][9]
+        comp['Ca'] = output[3][6]
+        comp['H'] = output[3][7] 
+        comp['O'] = output[3][8]
+        #if comp['portlandite']>0:
+        #    print(self.iters)
+        #    print('CH precip')
+        return(comp)
+    
+    def modify_all(self, n_i, n_m, new_c, c, nodetype, phaseqty):
+        
+        phaseqty = self.phrqc.flatten_dict(phaseqty)
+        modifystr = []
+        for cell in range(self.phrqc.startcell,self.phrqc.stopcell+1,1):
+            modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
+            if cell == n_m:                
+                modifystr.append("\t -component portlandite")
+                modifystr.append("\t\t%s\t%.20e" %('-moles', new_c['portlandite']))
+            else:
+                modifystr.append("\t -component portlandite")
+                modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty['portlandite'][cell-1]))
+                #modifystr.append("\t\t%s\t%.20e" %('-si', 2))
+        modifystr.append("end")       
+        modifystr ='\n'.join(modifystr)
+        self.phrqc.IPhreeqc.RunString(modifystr)
+        
+        
+        moles_Ca = new_c['Ca']#*self.phrqc.poros.flatten(order='C')[n_i]
+        moles_H = new_c['H']#*self.phrqc.poros.flatten(order='C')[n_i]
+        moles_O = new_c['O']#*self.phrqc.poros.flatten(order='C')[n_i]
+        
+        active_nodes = self.phrqc.active_nodes(c,nodetype)
+        c_trans=deepcopy(c)
+        moles = self.phrqc.flatten_dict(self.phrqc.to_moles(c))
+        modify_str=[]
+        runcells=[]
+        runcell_str=[]
+        for i,cell in enumerate(range(self.phrqc.startcell,self.phrqc.stopcell+1,1)):
+            if active_nodes[i]:
+                runcells.append(str(cell))
+                if cell == n_i:
+                    modify_str.append('SOLUTION_MODIFY %i' % n_i)
+                    if moles_H <=0: moles_H= 1e-30
+                    modify_str.append('\t%s\t%.20e' % ('total_h', moles_H))
+                    if moles_O <=0: moles_O= 1e-30
+                    modify_str.append('\t%s\t%.20e' % ('total_o', moles_O))
+                    modify_str.append('\t-totals')
+                    if moles_Ca <=0: moles_Ca= 1e-30
+                    modify_str.append('\t\t%s\t%.20e' % ('Ca', moles_Ca))
+                    modify_str.append('end')   
+                else:
+                    modify_str.append('SOLUTION_MODIFY %i' % cell)
+                    if 'H' in moles:
+                        c = moles['H'][i]
+                        if c <=0: c= 1e-30
+                        modify_str.append('\t%s\t%.20e' % ('total_h', c))
+                    if 'O' in moles:
+                        c = moles['O'][i]
+                        if c <=0: c= 1e-30
+                        modify_str.append('\t%s\t%.20e' % ('total_o', c))
+                    modify_str.append('\t-totals')
+                    for name,val in moles.iteritems():
+                        if (name != 'H') and (name!='O'):
+                            c = val[i]
+                            if c <=0: c= 1e-30
+                            modify_str.append('\t\t%s\t%.20e' % (name, c))
+       
+        modify_str ='\n'.join(modify_str)
+        runcell_str.append('RUN_CELLS')
+        runcell_str.append('\t-cells %s'%'\n\t\t'.join(runcells))
+        runcell_str.append('\t-start_time %s'%self.time)
+        runcell_str.append('\t-time_step %s'%self.dt)
+        runcell_str.append('end')
+        runcell_str='\n'.join(runcell_str)
+        #print(modify_str)
+        self.phrqc.IPhreeqc.AccumulateLine(modify_str)
+        self.phrqc.IPhreeqc.AccumulateLine(runcell_str)
+        self.phrqc.IPhreeqc.RunAccumulated()
+        
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        selected_output={}
+        if len(output) > 0:
+            header = output[0]
+            for head in header:
+                 selected_output[head] = []
+            for row in output[1:]:
+                for (i, head) in enumerate(header):
+                    results = row[i]
+                    if head == 'H':
+                        results -= self.phrqc.H_norm
+                    elif head == 'O':
+                        results -= self.phrqc.O_norm
+                    selected_output[head].append(results)
+        merged_output = self.phrqc.list_dict(self.phrqc.flatten_dict(self.phrqc.prev_selected_output))
+        for name,val in selected_output.iteritems():
+            for i,cell in enumerate(selected_output[u'soln']): 
+                merged_output[name][cell-1]=val[i]             
+        selected_output = merged_output
+        selected_output = self.phrqc.ndarray_dict(selected_output)
+        selected_output = self.phrqc.reshape_dict(selected_output,self.phrqc.array_shape)
+        self.phrqc._selected_output = selected_output
+        self.phrqc.phrqc_flags['update_output'] = False
+        self.phrqc.poros = self.phrqc.selected_output()['poros']
+        c_current = self.phrqc.component_conc
+        ss={}
+        #print('c_trans %s' %str(c_trans))
+        #print('c_curr %s'%str(c_current))
+        for name in self.phrqc.components:
+            ss[name] = (c_current[name]-c_trans[name])/self.phrqc.dt
+            ss[name] = ss[name] *(active_nodes.reshape(self.phrqc.array_shape)>0)
+            ss[name] *= self.phrqc.poros
+        '''
+        print('ss %s'%str(ss))
+        print('dt %s'%str(self.phrqc.dt))
+        print('T %s'%str(self.fluid.Ca.convfactors['T']))
+        print('poros s %s' %str(self.solid.poros))
+        print('poros p %s' %str(self.phrqc.poros))
+        print('poros so %s' %str(self.phrqc.selected_output()['poros']))
+        '''
+        return(ss)
+    
+    
     #%% SETTINGS
     def set_volume(self):
         self.solid.vol = np.zeros(self.solid.shape)
@@ -135,18 +280,13 @@ class CarbonationRT(PhrqcReactiveTransport):
                 self.fluid.Si.bc[key] = ['flux', 0.0]
                 self.fluid.Si._bc[key+'bc'] = 'flux'
     
-    def set_phrqc(self, c, nodetype):
+    def set_phrqc(self):
         self.phrqc.boundcells = self.set_boundary_cells()
-        self.phrqc.init_port = self.solid.portlandite.c>0
-        self.phrqc.is_calc = self.solid.calcite.c>0
-        self.phrqc._target_SI = np.zeros(self.solid.shape)   
-        #self.phrqc.active = 'all'
-        #self.phrqc.precipitation = 'all'
-        #self.phrqc.pcs = False
+        self.phrqc.init_port = self.solid.portlandite.c>0 
         self.phrqc.nodetype = deepcopy(self.nodetype) 
         if self.solid.nphases >0:
             phaseqty = self.solid.phaseqty_for_phrqc()
-            self.phrqc.modify_solid_phases(phaseqty, c, nodetype) 
+            self.phrqc.modify_solid_phases(phaseqty) 
         
     def apply_settings(self, settings):
         self.settings = settings
@@ -181,30 +321,16 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.prev_vol = deepcopy(self.solid.vol)
         self.set_volume()
         self.set_porosity()
-        if(self.settings['velocity'] == True):
-            self.solid.dvol = self.solid.vol-self.solid.prev_vol
         
     def update_phases(self, thres = 1.0e-3):
         ch = self.solid.portlandite.c * self.solid.portlandite.mvol
-        cc = self.solid.calcite.c * self.solid.calcite.mvol
-        tot = cc + ch 
+        tot = ch 
         is_cl = (self.nodetype == 1) #clinker
         is_liq = (tot < thres)* ((self.nodetype ==-2)+(self.nodetype ==-1))
         phases = is_cl*2 + is_liq*(-1)
         if(self.ptype=='CH'):
-            is_cc = (cc==np.maximum.reduce([cc,ch])) * ~is_liq * ~is_cl
-            is_ch = (ch==np.maximum.reduce([cc,ch])) * ~is_liq * ~is_cl 
-            phases += is_ch*(-10) + is_cc*(-15)
-        if(self.ptype=='CSH'):
-            csh = self.solid.CSHQ_TobH.c * self.solid.CSHQ_TobH.mvol + \
-                  self.solid.CSHQ_TobD.c * self.solid.CSHQ_TobH.mvol + \
-                  self.solid.CSHQ_JenH.c * self.solid.CSHQ_TobH.mvol + \
-                  self.solid.CSHQ_JenD.c * self.solid.CSHQ_TobH.mvol              
-            tot += csh            
-            is_cc = (cc==np.maximum.reduce([cc,ch,csh]))   * ~is_liq * ~is_cl
-            is_ch = (ch==np.maximum.reduce([cc,ch,csh]))   * ~is_liq * ~is_cl 
-            is_csh = (csh==np.maximum.reduce([cc,ch,csh])) * ~is_liq * ~is_cl
-            phases += is_csh*(-5) + is_ch*(-10) + is_cc*(-15)
+            is_ch =  ~is_liq * ~is_cl 
+            phases += is_ch*(-10)
         return phases
     
     def update_nodetype(self):
@@ -213,7 +339,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         '''
         prev_nodetype = self.nodetype
         is_port = (self.solid.portlandite.c>0)
-        is_calc = (self.solid.calcite.c>0)
         is_solid = self.solid.nodetype == ct.Type.SOLID
         is_critical = np.zeros(np.shape(is_port))
         is_interface = np.zeros(np.shape(is_port))
@@ -221,8 +346,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         if self.ptype == 'CH':
             is_liquid = (~is_port)
             if(self.iters>1):
-                is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc & (~is_port)
-                is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(~is_calc)#&((prev_nodetype==-1)|(prev_nodetype==-2))
+                is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size)& (~is_port)
+                is_liquid =  (~is_critical)&(~is_port)&(~is_solid)#&((prev_nodetype==-1)|(prev_nodetype==-2))
                 is_interface = (~is_critical)&(~is_port)&(~is_solid)&(~is_liquid)
             self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
                 ct.Type.MULTILEVEL * is_critical + \
@@ -246,7 +371,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         
             is_liquid =  (~is_port) & (~is_csh)
             if(self.iters>1):
-                is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc& (~is_port) & (~is_csh)
+                is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & (~is_port) & (~is_csh)
                 is_liquid =  (~is_critical)&(~is_port) & (~is_csh)
                 
             self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
@@ -259,7 +384,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         yantra._solvers.update2d.reassign_mlvl_solid(self.solid.nodetype) 
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)       
             
-        self.solid.prev_calc_c = deepcopy(self.phrqc.solid_phase_conc['calcite'])
         self.nodetype = self.solid.nodetype
 
     def update_diffusivity(self):
