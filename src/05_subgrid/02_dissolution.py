@@ -70,16 +70,18 @@ domain_params['voxel_vol']=1
 domain_params['poros']=porosity
 #solver parameters
 solver_params={}
+solver_params['tfactbased'] = True
+solver_params['tfact'] = 1./6./8
+
 solver_params['collision_model']='trt'
-solver_params['tfactbased']=1
-solver_params['tfact']= 1./6./1
 solver_params['magic_para']=1.0/4.0
 solver_params['cphi_fact']=1.0/3.0
           
-bc_params = {'top':['flux', 0.0],
-           'bottom':['flux', 0.0],
-           'left':['flux', 0.0],
-           'right':['flux', 0.0],}
+bc_params = {'solution_labels':{'left':100003}, 
+            'top':['flux', 0.0],
+            'bottom':['flux', 0.0],
+            'left':['flux', 0.0],
+            'right':['flux', 0.0],}
             
 
 #%% INITIATE THE SOLVER
@@ -99,14 +101,19 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-nitr = 100
+nitr = 2
+Ts = 0.01
+rt_port = []
+rt_time = []
 #%% RUN SOLVER
-while  itr <= nitr: #carb_rt.time <=Ts: #
-    
-    rt.advance()    
+while     itr <= nitr: #rt.time <=Ts: # 
+    rt.advance()      
+    rt_port.append(np.sum(rt.solid.portlandite.c))
+    rt_time.append(rt.time)
     itr += 1
     
 #%% SIMULATION TIME
+'''
 print('Ca %s' %str(np.array(rt.fluid.Ca.c[1,:])))
 print('Ca ss %s' %str(np.array(rt.fluid.Ca._ss[1,:])))
 print('Ca +ss/theta %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.fluid.Ca.poros[1,:])))
@@ -117,3 +124,10 @@ print('CH %s' %str(np.array(rt.solid.portlandite.c[1,:])))
 print('dCH %s' %str(np.array(rt.phrqc.dphases['portlandite'][1,:])))
 #fn.plot_fields(carb_rt, names={ 'calcite', 'portlandite', 'Ca', 'C'})
 #print(rt.phrqc.selected_output())
+'''
+
+#%%
+plt.figure()
+plt.plot(rt_time, rt_port)
+plt.show()
+

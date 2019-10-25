@@ -66,17 +66,52 @@ class DissolutionRT(PhrqcReactiveTransport):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])
         self.phrqc.modify_solid_phases(phaseqty) 
         ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
-        new_c = self.update_neighbour_solution(11,12, self.solid.portlandite.c[1,3])
+        conv = self.fluid.Ca.convfactors['ss']
+        '''
+        print('Ca %s' %str(np.array(self.fluid.Ca.c[1,:]) ))
+        print('Ca +ss %s' %str(np.array(self.fluid.Ca.c[1,:]) + np.array(ss['Ca'][1,:]/conv)/np.array(self.fluid.Ca.poros[1,:])))
+        print('O %s' %str(np.array(self.fluid.O.c[1,:]) ))
+        print('O +ss %s' %str(np.array(self.fluid.O.c[1,:]) + np.array(ss['O'][1,:]/conv)/np.array(self.fluid.O.poros[1,:])))
+        print('H %s' %str(np.array(self.fluid.H.c[1,:]) ))
+        print('H +ss %s' %str(np.array(self.fluid.H.c[1,:]) + np.array(ss['H'][1,:]/conv)/np.array(self.fluid.H.poros[1,:])))
+        print('CH %s' %str(np.array(self.solid.portlandite.c[1,:])))
+        print('dCH %s' %str(np.array(self.phrqc.dphases['portlandite'][1,:])))
+        print('poros %s' %str(self.solid.poros))
+        '''
         #print('new c %s' %str(new_c))
-        self.solid.portlandite.c[1,3] =new_c['portlandite']
+        '''
+        by = np.where(self.solid.border)[0]
+        bx = np.where(self.solid.border)[1]
+        df = np.where(self.solid.border.flatten())[0]
+        for(i in np.arange(0, np.sum(self.solid.border))):
+            
+        '''
+        new_c = self.update_neighbour_solution(11,12, self.solid.portlandite.c[1,3])
+        #self.solid.portlandite.c[1,3] =new_c['portlandite']
+        '''
+        print('Source1\n')
+        print(ss)
+        ss1 = self.modify_all(11,12, new_c, c, self.solid.nodetype,phaseqty)
+        print('Source2\n')
+        print(ss1)
+        ss['Ca'][1,3] = ss1['Ca'][1,3]
+        ss['H'][1,3] = ss1['H'][1,3]
+        ss['O'][1,3] = ss1['O'][1,3]
+        ss['Ca'][1,4] = ss1['Ca'][1,4]
+        ss['H'][1,4] = ss1['H'][1,4]
+        ss['O'][1,4] = ss1['O'][1,4]
+        #print(ss)
+        '''
         ss = self.modify_all(11,12, new_c, c, self.solid.nodetype,phaseqty)
-        #ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
         pqty=self.solid.update(self.phrqc.dphases)    
         self.fluid.set_attr('ss',ss)
         '''
         print('Ca %s' %str(np.array(self.fluid.Ca.c[1,:]) ))
-        print('Ca ss %s' %str(np.array(self.fluid.Ca._ss[1,:])))
-        print('Ca +ss %s' %str(np.array(self.fluid.Ca.c[1,:]) + np.array(self.fluid.Ca._ss[1,:])/np.array(self.fluid.Ca.poros[1,:])))
+        print('Ca +ss %s' %str(np.array(self.fluid.Ca.c[1,:]) + np.array(ss['Ca'][1,:]/conv)/np.array(self.fluid.Ca.poros[1,:])))
+        print('O %s' %str(np.array(self.fluid.O.c[1,:]) ))
+        print('O +ss %s' %str(np.array(self.fluid.O.c[1,:]) + np.array(ss['O'][1,:]/conv)/np.array(self.fluid.O.poros[1,:])))
+        print('H %s' %str(np.array(self.fluid.H.c[1,:]) ))
+        print('H +ss %s' %str(np.array(self.fluid.H.c[1,:]) + np.array(ss['H'][1,:]/conv)/np.array(self.fluid.H.poros[1,:])))
         print('CH %s' %str(np.array(self.solid.portlandite.c[1,:])))
         print('dCH %s' %str(np.array(self.phrqc.dphases['portlandite'][1,:])))
         print('poros %s' %str(self.solid.poros))
@@ -102,8 +137,14 @@ class DissolutionRT(PhrqcReactiveTransport):
         modify_str.append('SAVE solution %i' % n)   
         modify_str.append("END") 
         modify_str.append("END") 
+        modify_str ='\n'.join(modify_str)
+        self.phrqc.IPhreeqc.RunString(modify_str) 
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        port = output[2][9]
+        
+        modify_str = []
         modify_str.append("EQUILIBRIUM_PHASES %i" % n_ch)
-        modify_str.append("Portlandite 0 %.20e" %(p))  
+        modify_str.append("Portlandite 0 %.20e" %(port))  
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' % n_int)
         modify_str.append('MIX %i' % n)         
@@ -114,19 +155,13 @@ class DissolutionRT(PhrqcReactiveTransport):
         modify_str.append("END") 
                
         modify_str ='\n'.join(modify_str)
-        #print(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str)  
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(output)
-        
         comp = {}
-        comp['portlandite'] = output[2][9]
-        comp['Ca'] = output[3][6]
-        comp['H'] = output[3][7] 
-        comp['O'] = output[3][8]
-        #if comp['portlandite']>0:
-        #    print(self.iters)
-        #    print('CH precip')
+        comp['Ca'] = output[1][6]
+        comp['H'] = output[1][7] 
+        comp['O'] = output[1][8]
+        comp['portlandite'] = port
         return(comp)
     
     def modify_all(self, n_i, n_m, new_c, c, nodetype, phaseqty):
@@ -159,8 +194,9 @@ class DissolutionRT(PhrqcReactiveTransport):
         runcell_str=[]
         for i,cell in enumerate(range(self.phrqc.startcell,self.phrqc.stopcell+1,1)):
             if active_nodes[i]:
-                runcells.append(str(cell))
+                
                 if cell == n_i:
+                    runcells.append(str(cell))
                     modify_str.append('SOLUTION_MODIFY %i' % n_i)
                     if moles_H <=0: moles_H= 1e-30
                     modify_str.append('\t%s\t%.20e' % ('total_h', moles_H))
@@ -171,6 +207,7 @@ class DissolutionRT(PhrqcReactiveTransport):
                     modify_str.append('\t\t%s\t%.20e' % ('Ca', moles_Ca))
                     modify_str.append('end')   
                 else:
+                    runcells.append(str(cell))
                     modify_str.append('SOLUTION_MODIFY %i' % cell)
                     if 'H' in moles:
                         c = moles['H'][i]
@@ -186,15 +223,17 @@ class DissolutionRT(PhrqcReactiveTransport):
                             c = val[i]
                             if c <=0: c= 1e-30
                             modify_str.append('\t\t%s\t%.20e' % (name, c))
+                    #'''
        
         modify_str ='\n'.join(modify_str)
+        #print(modify_str)
         runcell_str.append('RUN_CELLS')
         runcell_str.append('\t-cells %s'%'\n\t\t'.join(runcells))
         runcell_str.append('\t-start_time %s'%self.time)
         runcell_str.append('\t-time_step %s'%self.dt)
         runcell_str.append('end')
         runcell_str='\n'.join(runcell_str)
-        #print(modify_str)
+        #print(runcell_str)
         self.phrqc.IPhreeqc.AccumulateLine(modify_str)
         self.phrqc.IPhreeqc.AccumulateLine(runcell_str)
         self.phrqc.IPhreeqc.RunAccumulated()
@@ -231,6 +270,7 @@ class DissolutionRT(PhrqcReactiveTransport):
             ss[name] = (c_current[name]-c_trans[name])/self.phrqc.dt
             ss[name] = ss[name] *(active_nodes.reshape(self.phrqc.array_shape)>0)
             ss[name] *= self.phrqc.poros
+        #print(ss)
         '''
         print('ss %s'%str(ss))
         print('dt %s'%str(self.phrqc.dt))
@@ -354,38 +394,45 @@ class DissolutionRT(PhrqcReactiveTransport):
                 ct.Type.MULTILEVEL * is_port +\
                 ct.Type.INTERFACE * is_interface + \
                 ct.Type.SOLID * is_solid
-            #is_liquid =  (~is_port)
-            #if(self.iters>1):
-            #    is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc
-            #    #is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc
-            #    is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(prev_nodetype==-1)
-            #not_critical = np.logical_not(is_critical)
-            #is_interface = (not_critical) & (is_port|(prev_nodetype==-2)| (prev_nodetype==-5))
-            #self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
-            #    ct.Type.INTERFACE * is_interface + \
-            #    ct.Type.MULTILEVEL * is_critical +\
-            #    ct.Type.SOLID * is_solid #ct.Type.INTERFACE * ((is_calc) &(~is_critical)) + 
-        if self.ptype == 'CSH':
-            is_csh= (self.solid.CSHQ_JenD.c>0) | (self.solid.CSHQ_JenH.c>0) | \
-                    (self.solid.CSHQ_TobD.c>0) |(self.solid.CSHQ_TobH.c>0)
         
-            is_liquid =  (~is_port) & (~is_csh)
-            if(self.iters>1):
-                is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & (~is_port) & (~is_csh)
-                is_liquid =  (~is_critical)&(~is_port) & (~is_csh)
-                
-            self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
-                ct.Type.MULTILEVEL * is_port  + \
-                ct.Type.MULTILEVEL * is_csh  + \
-                ct.Type.MULTILEVEL * is_critical +\
-                ct.Type.SOLID * is_solid
         yantra._solvers.update2d.reassign_mlvl(self.solid.nodetype) 
         self.solid.nodetype[prev_nodetype == ct.Type.SOLID] = ct.Type.SOLID
         yantra._solvers.update2d.reassign_mlvl_solid(self.solid.nodetype) 
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)       
-            
+        border, interface = self.get_b_i(self.solid.nodetype)
+        self.solid.border = border
+        self.solid.interface = interface
         self.nodetype = self.solid.nodetype
-
+        
+    def get_b_i(self, nodetype):
+        is_port = (self.solid.portlandite.c>0)
+        is_mineral = is_port | (nodetype==ct.Type.SOLID)
+        val = -16
+        temp = deepcopy(nodetype)
+        temp = temp*(~is_mineral) + val*is_mineral
+        border = self.get_border(temp, val, is_port)
+        interface = self.get_interfaces(border, temp, val)
+        return border, interface
+        
+    def get_border(self, nt, val, is_port):
+        rolled = np.roll(nt, -1, axis = 1)/4+np.roll(nt, 1, axis = 1)/4 +\
+              np.roll(nt, -1, axis = 0)/4+np.roll(nt, 1, axis = 0)/4
+        is_border = (rolled!=val)&is_port
+        return(is_border)
+        
+    def get_interfaces(self, is_border, nt, val):        
+        down = is_border & (np.roll(nt, 1, axis = 0) != val)
+        up =  is_border & (np.roll(nt, -1, axis = 0) != val)
+        left =  is_border & (np.roll(nt, -1, axis = 1) != val)
+        right =  is_border & (np.roll(nt, 1, axis = 1) != val)       
+        
+        interfaces = {'left': left,
+                      'right': right,
+                      'up': up,
+                      'down': down,
+                      'sum' : 1*down + 1*up + 1*left + 1*right}
+        
+        return interfaces
     def update_diffusivity(self):
         D_CC = self.settings['diffusivity']['D_CC']
         D_CH = self.settings['diffusivity']['D_CH']
@@ -462,36 +509,6 @@ class DissolutionRT(PhrqcReactiveTransport):
         self.fluid.Ca.D0 = Dnew_lb
         self.fluid.Ca.Deref=np.max(Dnew_lb)
         self.fluid.Ca.Dr=Dnew_lb
-        
-    def update_velocity(self):
-        is_solid = self.solid.nodetype >=1
-        not_solid = ~is_solid
-        #not_solid = np.ones(self.solid.shape)
-        '''
-        is_ch = self.solid.portlandite.c >= 0.05
-        not_liquid = np.logical_or(is_ch,is_solid)
-        ch_neighbors = not_liquid.astype(int) + \
-            np.roll(not_liquid, shift = 1, axis= 1).astype(int) + \
-            np.roll(not_liquid, shift = -1, axis= 1).astype(int) +\
-            np.roll(not_liquid, shift = 1, axis= 0).astype(int) +\
-            np.roll(not_liquid, shift = -1, axis= 0).astype(int)
-            
-        #not_solid =  np.logical_and(~is_solid, ~(ch_neighbors==5))
-        '''
-        neighbors = np.roll(not_solid, shift = 1, axis= 1).astype(int) + \
-            np.roll(not_solid, shift = -1, axis= 1).astype(int) +\
-            np.roll(not_solid, shift = 1, axis= 0).astype(int) +\
-            np.roll(not_solid, shift = -1, axis= 0).astype(int)
-        self.fluid.u = self.solid.dvol/(neighbors + 1*(neighbors==0))*not_solid*self.solid.poros    
-        ux = (np.roll(self.fluid.u,1,1) - np.roll(self.fluid.u,-1,1))* \
-            not_solid
-        uy = (np.roll(self.fluid.u,1,0) - np.roll(self.fluid.u,-1,0))* \
-            not_solid
-        velocity = np.array((uy,ux))
-        velocity={}
-        for name in self.fluid.components:
-            velocity[name] = np.array((ux,uy))
-        self.fluid.set_attr('u',velocity)
     
     def update_target_SI(self):
         if (self.ptype == 'CH'):  
