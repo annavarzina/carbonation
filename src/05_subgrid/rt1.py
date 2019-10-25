@@ -52,7 +52,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         
     
     def advance(self):
-        print(self.iters)
+        #print(self.iters)
         
         self.update_target_SI()
         if(self.settings['diffusivity']['type']=='fixed'): 
@@ -85,8 +85,9 @@ class CarbonationRT(PhrqcReactiveTransport):
         ss=self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
         new_c = self.update_neighbour_solution(9,10, self.solid.portlandite.c[1,2], self.solid.calcite.c[1,2], self.solid.poros[1,1])
         #print('new c %s' %str(new_c))
+        #print(ss)
         #self.solid.portlandite.c[1,2] =new_c['portlandite']
-        #self.solid.calcite.c[1,1] =new_c['calcite']
+        self.solid.calcite.c[1,1] =new_c['calcite']
         '''
         print('Ca %s' %str(np.array(self.fluid.Ca.c[1,:]) ))
         print('CH %s' %str(np.array(self.solid.portlandite.c[1,:])))
@@ -99,6 +100,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         #                    self.solid.app_tort,self.auto_time_step)
         #self.phrqc.poros=deepcopy(self.solid.poros)      
         ss = self.modify_all(9,10, new_c, c, self.solid.nodetype,phaseqty)
+        #print(ss)
         '''
         print('Ca %s' %str(np.array(self.fluid.Ca.c[1,:]) ))
         print('C %s' %str(np.array(self.fluid.C.c[1,:]) ))
@@ -148,10 +150,11 @@ class CarbonationRT(PhrqcReactiveTransport):
         #print(modify_str)
         #print(output)
         port = output[2][10]
+        calc = output[2][12]
         modify_str = [] 
         modify_str.append("EQUILIBRIUM_PHASES %i" % n_ch)
         modify_str.append("Portlandite 0 %.20e" %(port))   
-        modify_str.append("Calcite 0 %.20e" %(p_cc)) # precipitate only
+        modify_str.append("Calcite 0 %.20e" %(calc)) # precipitate only
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' % n_int)        
         modify_str.append('MIX %i' % n)      
@@ -201,8 +204,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         
         moles_Ca = new_c['Ca']#*self.phrqc.poros.flatten(order='C')[n_i]
         moles_C = new_c['C']#*self.phrqc.poros.flatten(order='C')[n_i]
-        moles_H = new_c['H']#*(self.solid.vol.flatten(order='C')[n_i])#-self.phrqc.H_norm
-        moles_O = new_c['O']#*(self.solid.vol.flatten(order='C')[n_i])#-self.phrqc.O_norm
+        moles_H = new_c['H']#(self.solid.vol.flatten(order='C')[n_i])#-self.phrqc.H_norm
+        moles_O = new_c['O']#(self.solid.vol.flatten(order='C')[n_i])#-self.phrqc.O_norm
         
         active_nodes = self.phrqc.active_nodes(c,nodetype)
         c_trans=deepcopy(c)
@@ -226,7 +229,7 @@ class CarbonationRT(PhrqcReactiveTransport):
                     if moles_C <=0: moles_C= 1e-30
                     modify_str.append('\t\t%s\t%.20e' % ('C', moles_C))
                     modify_str.append('end')   
-                else:
+                else:#elif cell == n_m:
                     
                     runcells.append(str(cell))
                     modify_str.append('SOLUTION_MODIFY %i' % cell)
@@ -244,7 +247,6 @@ class CarbonationRT(PhrqcReactiveTransport):
                             c = val[i]
                             if c <=0: c= 1e-30
                             modify_str.append('\t\t%s\t%.20e' % (name, c))
-                    
         modify_str ='\n'.join(modify_str)
         runcell_str.append('RUN_CELLS')
         runcell_str.append('\t-cells %s'%'\n\t\t'.join(runcells))
@@ -288,7 +290,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         selected_output = self.phrqc.reshape_dict(selected_output,self.phrqc.array_shape)
         self.phrqc._selected_output = selected_output
         self.phrqc.phrqc_flags['update_output'] = False
-        self.phrqc.poros = self.solid.poros#self.phrqc.selected_output()['poros']#
+        self.phrqc.poros = self.phrqc.selected_output()['poros']#self.solid.poros#
         c_current = self.phrqc.component_conc
         ss={}
         #print('c_trans %s' %str(c_trans))

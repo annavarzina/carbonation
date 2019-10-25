@@ -30,10 +30,19 @@ fn.make_output_dir(fpath)
 linetype = np.array(['-', '-', '-',# ':', '-', '--', '-.', ':',
                      '--', '--', '--', #':', '-', '--', '-.', ':'])
                      '-.', '-.', '-.',])
+color = np.array(['r', 'b', 'g',
+                  'r', 'b', 'g',
+                  'r', 'b', 'g'])
 paths = np.repeat(root_dir+'\\results\\temp\\01_subgrid\\', 9) 
 names = np.array(['01_test_D_p001', '01_test_D_p005', '01_test_D_p01',
                   '01_test_Db_p001', '01_test_Db_p005', '01_test_Db_p01',
                   '01_test_sg_p001', '01_test_sg_p005', '01_test_sg_p01'])
+#names = np.array(['01_test_D_p001_10', '01_test_D_p005_10', '01_test_D_p01_10',
+#                  '01_test_Db_p001_10', '01_test_Db_p005_10', '01_test_Db_p01_10',
+#                  '01_test_sg_p001', '01_test_sg_p005', '01_test_sg_p01'])
+#names = np.array(['01_test_D_p001_Caeq', '01_test_D_p005_Caeq', '01_test_D_p01_Caeq',
+#                  '01_test_Db_p001_Caeq', '01_test_Db_p005_Caeq', '01_test_Db_p01_Caeq',
+#                  '01_test_sg_p001_Caeq', '01_test_sg_p005_Caeq', '01_test_sg_p01_Caeq'])
 porosity = np.array([ '0.01','0.05', '0.1',
                      '0.01','0.05', '0.1',
                      '0.01','0.05', '0.1'])
@@ -63,7 +72,7 @@ for k in range(0, len(comp)):
     plt.figure(figsize=(10,6))
     for i in range(0, len(names)):
         plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
-                 ls=linetype[i], label = label[i])
+                 ls=linetype[i], label = label[i], color = color[i])
     plt.title(titles[k])
     plt.xlabel('Time (s)')
     plt.legend(loc=position[k])
@@ -74,7 +83,7 @@ plt.figure(figsize=(10,6))
 for i in range(0, len(names)):
     plt.plot(results[names[i]]['time'], 
              (results[names[i]]['avg_poros'] - results[names[i]]['avg_poros'][0]),
-             ls=linetype[i], label = label[i])
+             ls=linetype[i], label = label[i], color = color[i])
 plt.title('Porosity')
 plt.xlabel('Time (s)')
 plt.ylabel('Porosity change (%)')
@@ -83,15 +92,15 @@ plt.legend(loc='lower left')
 plt.show() 
        
 #%% PROPERTIES in node (1,1)
-titles = [ 'Calcite', 'Calcium', 'Carbon']
-comp =  [ 'calcite (1, 1)', 'Ca (1, 1)', 'C (1, 1)']
-suffix = [ '_calcite', '_calcium', '_carbon','_poros']
-position = ['upper left','lower right' , 'upper right']
+titles = [ 'Calcite', 'Calcium', 'Carbon', 'pH']
+comp =  [ 'calcite (1, 1)', 'Ca (1, 1)', 'C (1, 1)','pH (1, 1)']
+suffix = [ '_calcite', '_calcium', '_carbon','_poros','_pH']
+position = ['upper left','lower right' , 'upper right','lower right']
 for k in range(0, len(comp)):
     plt.figure(figsize=(10,6))
     for i in range(0, len(names)):
         plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
-                 ls=linetype[i], label = label[i])
+                 ls=linetype[i], label = label[i], color = color[i])
     plt.title(titles[k] + ' (1, 1)')
     plt.xlabel('Time (s)')
     plt.legend(loc=position[k])
@@ -99,15 +108,15 @@ for k in range(0, len(comp)):
     plt.show() 
     
 #%% PROPERTIES in node (1,2)
-titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon']
-comp =  ['portlandite (1, 2)', 'calcite (1, 2)', 'Ca (1, 2)', 'C (1, 2)']
-suffix = ['_portlandite', '_calcite', '_calcium', '_carbon','_poros']
-position = ['lower left','upper left','lower right' , 'upper right']
+titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon', 'pH']
+comp =  ['portlandite (1, 2)', 'calcite (1, 2)', 'Ca (1, 2)', 'C (1, 2)','pH']
+suffix = ['_portlandite', '_calcite', '_calcium', '_carbon','_poros','_pH']
+position = ['lower left','upper left','lower right' , 'upper right','lower right']
 for k in range(0, len(comp)):
     plt.figure(figsize=(10,6))
     for i in range(0, len(names)):
         plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
-                 ls=linetype[i], label = label[i])
+                 ls=linetype[i], label = label[i], color = color[i])
     plt.title(titles[k] + ' (1, 2)')
     plt.xlabel('Time (s)')
     plt.legend(loc=position[k])
@@ -123,7 +132,7 @@ for k in range(0, len(comp)):
     plt.figure(figsize=(10,6))
     for i in range(0, len(names)):
         plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
-                 ls=linetype[i], label = label[i])
+                 ls=linetype[i], label = label[i], color = color[i])
     plt.title(titles[k] + ' (1, 3)')
     plt.xlabel('Time (s)')
     plt.legend(loc=position[k])

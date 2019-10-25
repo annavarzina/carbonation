@@ -63,10 +63,11 @@ phrqc_input = {'c_bc':{'type':'conc', 'value': 1e-2}, #3.05E-02, 3.74E-02, 4.30E
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
                'ca_liq':{'type':'conc', 'value': '0'}}#calcite
+               #'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6.
+tfact =  1./6./8
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
 mvol = [mvolCH, mvolCH*mvol_ratio]
@@ -87,7 +88,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'diffusivity':{'type':'cc_archie_ch_kin', #'fixed' or 'archie'cc_archie_ch_kin
                            'D_CH': 1e-12,
                            'D_CH_Ca': 1e-9},
-            'pcs': {'pcs': True, 
+            'pcs': {'pcs': False, 
                     'pores': 'block', #'block'/'cylinder'
                     'int_energy': 0.5, # internal energy
                     'pore_size': 0.01*dx, # threshold radius or distance/2
@@ -128,7 +129,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 itr = 0 
 j = 0
 ni = 200
-nitr =500
+nitr =500*8
 Ts = 1 #second
 Ts = Ts/scale + 0.001#1.001#1.01 +
 step = max(int(Ts/36.),1)
