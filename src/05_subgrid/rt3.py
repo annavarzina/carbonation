@@ -80,7 +80,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         phase_list = deepcopy(self.solid.diffusive_phase_list)
         for num, phase in enumerate(phase_list, start=1):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])
-        self.phrqc.modify_solid_phases(phaseqty, c, self.solid.nodetype) 
+        self.phrqc.modify_solid_phases(phaseqty)#, c, self.solid.nodetype) 
         ss=self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
         
         #ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
@@ -147,7 +147,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.phrqc.nodetype = deepcopy(self.nodetype) 
         if self.solid.nphases >0:
             phaseqty = self.solid.phaseqty_for_phrqc()
-            self.phrqc.modify_solid_phases(phaseqty, c, nodetype) 
+            self.phrqc.modify_solid_phases(phaseqty)#, c, nodetype) 
         
     def apply_settings(self, settings):
         self.settings = settings

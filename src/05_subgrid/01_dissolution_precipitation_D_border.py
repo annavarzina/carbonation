@@ -53,12 +53,12 @@ plt.show()
 #%%  VALUES
 nn='01_test_Db_p01'
 scale = 50
-init_porosCH = 0.1
+init_porosCH = 0.05
 fn.make_output_dir(root_dir+'\\results\\temp\\01_subgrid\\')
 path = root_dir+'\\results\\temp\\01_subgrid\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'conc', 'value': 1e-2}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'conc', 'value': 1e-3}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -67,7 +67,7 @@ phrqc_input = {'c_bc':{'type':'conc', 'value': 1e-2}, #3.05E-02, 3.74E-02, 4.30E
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6./8
+tfact =  1./6./1
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
 mvol = [mvolCH, mvolCH*mvol_ratio]
@@ -129,7 +129,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 itr = 0 
 j = 0
 ni = 200
-nitr =500*8
+nitr =10#500*8
 Ts = 1 #second
 Ts = Ts/scale + 0.001#1.001#1.01 +
 step = max(int(Ts/36.),1)
@@ -149,8 +149,8 @@ while  itr <= nitr: #carb_rt.time <=Ts: #
 fn.save_obj(results, path + str(nn) +'_results')  
 #%% SIMULATION TIME
 
-print('Ca ss %s' %str(np.array(carb_rt.fluid.Ca._ss[1,:])))
-print('C ss %s' %str(np.array(carb_rt.fluid.C._ss[1,:])))
+print('Ca trans %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
+print('C trans  %s' %str(np.array(carb_rt.fluid.C._c[1,:])))
 print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
 print('C +ss %s' %str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
 print('H +ss %s' %str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))

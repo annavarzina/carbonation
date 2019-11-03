@@ -33,9 +33,9 @@ m = 'CH' #or 'CSH'
 
 ll = 2
 l = 5 +ll
-lx = l*1.0e-6
-ly = 2.0e-6
-dx = 1.0e-6
+dx = 1.0e-3
+lx = l*dx
+ly = 2*dx
 
 domain = yantra.Domain2D(corner=(0, 0), 
                          lengths=(lx, ly), 
@@ -70,8 +70,8 @@ domain_params['voxel_vol']=1
 domain_params['poros']=porosity
 #solver parameters
 solver_params={}
-solver_params['tfactbased'] = True
-solver_params['tfact'] = 1./6./8
+#solver_params['tfactbased'] = True
+#solver_params['tfact'] = 1./6./8
 
 solver_params['collision_model']='trt'
 solver_params['magic_para']=1.0/4.0
@@ -97,36 +97,34 @@ pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation',
 #'calcite_cells', 'active_cells','dt', 'pH', 'avg_poros',  'avg_D_eff', 'sum_vol'
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
-
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-nitr = 2
-Ts = 0.01
+nitr = 500
+Ts = 1000*3600
 rt_port = []
 rt_time = []
 #%% RUN SOLVER
-while     itr <= nitr: #rt.time <=Ts: # 
+while  itr <= nitr:# rt.time <=Ts: #
     rt.advance()      
     rt_port.append(np.sum(rt.solid.portlandite.c))
-    rt_time.append(rt.time)
+    rt_time.append(rt.time/3600)
     itr += 1
     
 #%% SIMULATION TIME
-'''
+#'''
 print('Ca %s' %str(np.array(rt.fluid.Ca.c[1,:])))
-print('Ca ss %s' %str(np.array(rt.fluid.Ca._ss[1,:])))
 print('Ca +ss/theta %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.fluid.Ca.poros[1,:])))
-print('Ca +ss %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])))
 print('H +ss %s' %str(np.array(rt.fluid.H.c[1,:]) + np.array(rt.fluid.H._ss[1,:])/np.array(rt.fluid.H.poros[1,:])))
 print('O +ss %s' %str(np.array(rt.fluid.O.c[1,:]) + np.array(rt.fluid.O._ss[1,:])/np.array(rt.fluid.O.poros[1,:])))
 print('CH %s' %str(np.array(rt.solid.portlandite.c[1,:])))
 print('dCH %s' %str(np.array(rt.phrqc.dphases['portlandite'][1,:])))
 #fn.plot_fields(carb_rt, names={ 'calcite', 'portlandite', 'Ca', 'C'})
 #print(rt.phrqc.selected_output())
-'''
+#'''
 
 #%%
+print('time %s hours' %str(rt.time/3600))
 plt.figure()
 plt.plot(rt_time, rt_port)
 plt.show()

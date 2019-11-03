@@ -13,51 +13,56 @@ import matplotlib.pylab as plt
 from math import exp
 from math import erfc
 
-def opt_fun(x, ceq, cm, c0):
+def equation(x, ceq, cm, c0):
     a = x*exp(x**2)*erfc(-x)
     b = (ceq-c0)/(cm-ceq)
     return (np.sqrt(np.pi)*a-b)
-#%%
-cm = 1#0.95
-ceq = 0.4#0.01949
-c0 = 0.1# 0
-crange = np.arange(-2,1,0.01)
+#%% Benchmark from thesis of Ravi
+cm = 1 #mol/l
+ceq = 0.4 #mol/l
+c0 = 0.1 #mol/l
+k_range = np.arange(-2,1,0.01)
 f = []
-for v in crange:
-    f.append(opt_fun(v, ceq, cm, c0))
-plt.plot(crange, np.array(f))
+'''
+for k in k_range:
+    f.append(equation(k, ceq, cm, c0))
+plt.plot(k_range, np.array(f))
 plt.show()
-
-res = root(opt_fun, 0, args = (ceq, cm, c0))
-#res = minimize(lambda x: opt_fun(x, ceq, cm, c0), x0=-0.25)
-#print(res.success)
-#print(res.x[0])
-
+'''
+res = root(equation, 0, args = (ceq, cm, c0))
 k = res.x[0]
 print(k)
-time = np.arange(0, 8 ,0.1)
-plt.plot(time, np.abs(2*k*np.sqrt(1e-3*time*3600)))
+
+time = np.arange(0, 8 ,0.1) #hours
+time_s = time*3600 #seconds
+D = 1e-3 # mm2/s = 1e-9 m2/s
+plt.figure()
+plt.plot(time, np.abs(2*k*np.sqrt(D*time_s)))
+plt.xlabel('Time (h)')
+plt.ylabel('dr (mm)')
 plt.show()
 
 #%%
 
-cm = 0.95
-ceq = 0.01949
-c0 = 0
-crange = np.arange(-2,1,0.01)
-f = []
-for v in crange:
-    f.append(opt_fun(v, ceq, cm, c0))
-plt.plot(crange, np.array(f))
-plt.show()
-
-res = root(opt_fun, 0, args = (ceq, cm, c0))
-#res = minimize(lambda x: opt_fun(x, ceq, cm, c0), x0=-0.25)
-#print(res.success)
-#print(res.x[0])
-
+cm = 0.95 #mol/l
+ceq = 0.01949 #mol/l
+c0 = 0 #mol/l
+res = root(equation, 0, args = (ceq, cm, c0))
 k = res.x[0]
 print(k)
-time = np.arange(0, 10 ,0.01)
-plt.plot(time, np.abs(2*k*np.sqrt(1e+3*time)))
+time = np.arange(0, 0.2 ,0.001) #minutes
+time_s = time*60#seconds
+D = 1e-9*1e+12 #um2/s
+#D = 1e-9*1e+6 # mm2/s 
+plt.figure()
+plt.plot(time, np.abs(2*k*np.sqrt(D*time_s)))
+plt.xlabel('Time (min)')
+plt.ylabel('dr (um)')
+plt.show()
+
+
+plt.figure()
+plt.plot(time_s, np.abs(2*k*np.sqrt(D*time_s)))
+plt.xlabel('Time (sec)')
+plt.ylabel('dr (um)')
 plt.show()

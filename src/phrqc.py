@@ -26,7 +26,7 @@ class CarbonationPhrqc(Phrqc):
         return active
 
     
-    def modify_eq(self, phaseqty, c, nodetype):
+    def modify_eq(self, phaseqty):#, c, nodetype):
         '''
         modifies the phaseqty in phreeqc
         updates saturation index (SI) for calcite
@@ -36,13 +36,13 @@ class CarbonationPhrqc(Phrqc):
         phaseqty: dict
             dictionary containing an ndarray of new quantities of equilibrium phases
         '''
-        active_nodes = self.active_nodes(c,nodetype)
+        #active_nodes = self.active_nodes(c,nodetype)
         phaseqty = self.flatten_dict(phaseqty)
         modifystr = []
         is_boundary = (self.boundcells ==1).flatten(order='C')
         if (self.iters==0):
             for i,cell in enumerate(range(self.startcell,self.stopcell+1,1)):
-                if active_nodes[i]:
+                #if active_nodes[i]:
                     modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
                     if(is_boundary[cell-1]):  
                         self.modify_bc(modifystr)
@@ -56,7 +56,7 @@ class CarbonationPhrqc(Phrqc):
             is_mineral = (self.init_port>0).flatten(order='C')  
             si = self._target_SI.flatten(order='C')  
             for i,cell in enumerate(range(self.startcell,self.stopcell+1,1)):
-                if active_nodes[i]:
+                #if active_nodes[i]:
                     modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)                     
                     if(is_boundary[cell-1]):  
                         self.modify_bc(modifystr)
@@ -109,16 +109,23 @@ class CarbonationPhrqc(Phrqc):
         modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
         modifystr.append("\t -component portlandite")
         modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+        modifystr.append("\t -component\tO2(g)") 
+        modifystr.append("\t\tsi\t-3")
+        #modifystr.append("\t -component\tH2(g)") 
+        #modifystr.append("\t\tsi\t-3")
+        
         #modifystr.append("\t\t%s\t%.20e" %('-si', 10))
         if(self.pinput['type']=='pco2'):
             modifystr.append("\t -component\tCO2(g)") 
             modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
-            modifystr.append("\t -component\tO2(g)") 
-            modifystr.append("\t\tsi\t-3")
+            #modifystr.append("\t -component\tO2(g)") 
+            #modifystr.append("\t\tsi\t-3")
+            #modifystr.append("\t -component\tH2(g)") 
+            #modifystr.append("\t\tsi\t-3")
             #print(self.pinput['value'])
     
          
-    def modify_solid_phases(self,phaseqty, c, nodetype):
+    def modify_solid_phases(self,phaseqty):#, c, nodetype):
         """
         modifies solid phases to the qunatities given as input in phaseqty
         
@@ -132,7 +139,7 @@ class CarbonationPhrqc(Phrqc):
             self._selected_output[name] = val
         eqphases, ssphases, kinphases = self.sort_phases(phaseqty)
         if len(eqphases)>0:
-            self.modify_eq(eqphases, c, nodetype)
+            self.modify_eq(eqphases)#, c, nodetype)
         if len(ssphases)>0:
             self.modify_ss(ssphases)            
         if len(kinphases)>0:

@@ -219,7 +219,7 @@ def set_phrqc_liquid(c, ca):
     else:
         pass        
     if(ca['type'] == 'conc'):
-        phrqc_input.append('\tC\t' + str(ca['value']))
+        phrqc_input.append('\tCa\t' + str(ca['value']))
     elif(ca['type'] == 'eq'):
         phrqc_input.append('\tCa\t1\t' + str(ca['value']))
     else:
@@ -243,7 +243,7 @@ def set_phrqc_mlvl(c, ca):
     else:
         pass              
     if(ca['type'] == 'conc'):
-        phrqc_input.append('\tC\t' + str(ca['value']))
+        phrqc_input.append('\tCa\t' + str(ca['value']))
     elif(ca['type'] == 'eq'):
         phrqc_input.append('\tCa\t1\t' + str(ca['value']))
     else:

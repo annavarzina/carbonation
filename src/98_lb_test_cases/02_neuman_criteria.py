@@ -29,60 +29,56 @@ PARENT = '..'
 sys.path.append(os.path.join(os.path.dirname(__file__), PARENT))
 import yantra
 import matplotlib.pylab as plt
+import numpy as np
     
 #%% generate domain instance
-domain = yantra.Domain2D((0,0), (0.1,0.05),0.001, grid_type = 'midway')
+dx = 0.1*1e-3 #0.1 um
+lx = 100*dx
+ly = 5*dx
+domain = yantra.Domain2D((0,0), (lx,ly),dx, grid_type = 'midway')
 x,_ = domain.meshgrid()
-Dlow  = 1e-11
-Dhigh = 2000 * Dlow
-D = Dlow * (x<=0.02) + Dhigh*(x>0.02)*(x<0.08) +  Dlow * (x>=0.08)
+D  = 2.2e-10
 #%% define physics
 #domain params
 domain_params={}
 domain_params['D']=D
 domain_params['c']=0.1 
-domain_params['poros']=1
+domain_params['poros']=1 * (x<=20*dx) + 0.05*(x>20*dx)*(x<80*dx) +  1 * (x>=80*dx)
 
-Dref = Dlow#Dhigh/20
 bc_params = {}
 bc_params['left']=['c',0.]
 bc_params['right']=['flux',0]       
 solver_params={}         
-solver_params['Dref']=Dref
 solver_params['lattice']='D2Q5'
-solver_params['collision_model']='srt'
-ade_srt=yantra.AdvectionDiffusion(domain,domain_params,bc_params,solver_params)
-solver_params['collision_model']='diff_vel'
-ade_diff_vel=yantra.AdvectionDiffusion(domain,domain_params,bc_params,solver_params)
-#!!!s
-solver_params['Deref']=Dref#Dlow
 domain_params['D0']=D
-#solver_params['tfactbased'] = True
 solver_params['collision_model']='trt'
 solver_params['magic_para']=1./4.
-solver_params['cphi']=1./3.
+#solver_params['cphi']=1./3.
 solver_params['cphi_fact']=1./3.
-ade_trt=yantra.MultilevelAdvectionDiffusion(domain,domain_params,bc_params,solver_params)
+solver_params['tfactbased']=True
+solver_params['tfact']=1./6.
+
+ade=yantra.MultilevelAdvectionDiffusion(domain,domain_params,bc_params,solver_params)
+print('Current dt %s' %str(ade.dt))
+
 #%% run models
-tf=20000#500*3600*24 #500 days #
-it = 10
-ade_srt.run(iters= it)
-print('srt collision model finished. Number of iterations: %s'%ade_srt.iters)
-ade_trt.run(iters= it)
-print('trt collision model finished. Number of iterations: %s'%ade_trt.iters)
-ade_diff_vel.run(iters= it)
-print('diff_vel collision model finished. Number of iterations: %s'%ade_diff_vel.iters)
+tf=24*3600 #1 h
+ade.run(time=tf)
+print('trt collision model finished. Number of iterations: %s'%ade.iters)
 #%% plot data to generate fig 6 of the paper
-y = int(ade_srt.ny/2)
+y = int(ade.ny/2)
 plt.figure(figsize=(10,10))
 plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["font.size"] = 20
-#plt.plot(x[y,:],ade_srt.c[y,:],label=ade_srt.collision_model.upper())
-plt.plot(x[y,:],ade_trt.c[y,:],'-.',label=ade_trt.collision_model.upper())
-plt.plot(x[y,:],ade_diff_vel.c[y,:],'--',label=ade_diff_vel.collision_model.upper())
+plt.plot(x[y,:],ade.c[y,:],'-.',label=ade.collision_model.upper())
 plt.legend(loc=4)
-plt.grid()
 plt.xlabel('Distance (m)')
 plt.ylabel(r'concentration (mol/m$^3$)')
-plt.title('Time %s days'%(ade_srt.time/(3600*24)))
+plt.title('Time %s h'%(ade.time/(3600)))
 plt.show()
+
+#%% Criteria
+print('Current dt %s' %str(ade.dt))
+print('Von Neumann: dt should be less then %s' %str(0.5*dx*dx/np.max(ade.De)))
+#print('Von Neumann: dt=1 should be less then %s' %str(0.5*(dx/ade.convfactors['L'])**2/(np.max(ade.De)/ade.convfactors['D'])))
+#print('dt should be less then %s' %str(0.5*dx*dx*np.min(ade.poros)/np.max(ade.De)))
