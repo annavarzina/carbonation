@@ -54,8 +54,8 @@ plt.show()
 nn='01_test'
 slabels = np.zeros(domain.nodetype.shape)
 slabels =  100001*(domain.nodetype!= -5) + 100002*(domain.nodetype== -5)
-pqty = 0.95*(domain.nodetype==-5)
-porosity = 0.05*(domain.nodetype==-5) + 1.0*(domain.nodetype!=-5)
+pqty = 0.5*(domain.nodetype==-5)
+porosity = 0.5*(domain.nodetype==-5) + 1.0*(domain.nodetype!=-5)
 D = 1e-9*(domain.nodetype== -1)+1e-09*(domain.nodetype!= -1) #1e-15
 #domain params
 
@@ -100,7 +100,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-nitr = 500
+nitr = 1000
 Ts = 1000*3600
 rt_port = []
 rt_time = []
@@ -128,4 +128,3 @@ print('time %s hours' %str(rt.time/3600))
 plt.figure()
 plt.plot(rt_time, rt_port)
 plt.show()
-

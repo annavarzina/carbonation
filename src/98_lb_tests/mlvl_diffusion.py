@@ -15,7 +15,7 @@ import matplotlib.pylab as plt
 
 #%% domain generation
 l = 1e-5
-domain=yantra.Domain2D((0,0),(l,l),l/6,grid_type='nodal')
+domain=yantra.Domain2D((0,0),(l,l),l/6,grid_type='midway')
 domain.nodetype[3,3]=-2
 
 #%%set Multilevel advection diffusion model

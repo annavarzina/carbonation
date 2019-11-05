@@ -150,7 +150,7 @@ def set_domain_params(D, mvol, pqty, poros, app_tort, slabels, input_file = 'CH_
     return dp
 
 
-def set_solver_params(tfact = 1./6.*2):
+def set_solver_params(tfact = None):
     sp={}
     sp['collision_model']= 'trt' #'diff_vel' #
     sp['magic_para']=1.0/4.0
@@ -159,9 +159,9 @@ def set_solver_params(tfact = 1./6.*2):
     sp['phrqc_flags'] = {}
     sp['phrqc_flags']['smart_run']=True
     sp['phrqc_smart_run_tol']=1e-8
-    
-    sp['tfactbased']=1
-    sp['tfact']= tfact
+    if(tfact):
+        sp['tfactbased']=1
+        sp['tfact']= tfact
     return sp
 
 def set_bc_params(bc_slabels):

@@ -59,15 +59,18 @@ path = root_dir+'\\results\\temp\\01_subgrid\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'conc', 'value': 1e-3}, #3.05E-02, 3.74E-02, 4.30E-02
-               'c_mlvl':{'type':'conc', 'value': '0'}, 
-               'c_liq':{'type':'conc', 'value': '0'},
+               # 'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
+               #'c_mlvl':{'type':'conc', 'value': '0'}, 
+               #'c_liq':{'type':'conc', 'value': '0'},
+               'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
+               'c_liq':{'type':'eq', 'value': 'calcite'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'conc', 'value': '0'}}#calcite
-               #'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
+               #'ca_liq':{'type':'conc', 'value': '0'}}#calcite
+               'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6./1
+tfact =  1./6./20
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
 mvol = [mvolCH, mvolCH*mvol_ratio]
@@ -128,8 +131,8 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-ni = 200
-nitr =10#500*8
+ni = 10
+nitr =500#500*8
 Ts = 1 #second
 Ts = Ts/scale + 0.001#1.001#1.01 +
 step = max(int(Ts/36.),1)
@@ -149,8 +152,8 @@ while  itr <= nitr: #carb_rt.time <=Ts: #
 fn.save_obj(results, path + str(nn) +'_results')  
 #%% SIMULATION TIME
 
-print('Ca trans %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
-print('C trans  %s' %str(np.array(carb_rt.fluid.C._c[1,:])))
+#print('Ca ss %s' %str(np.array(carb_rt.fluid.Ca._ss[1,:])))
+#print('Ca %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
 print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
 print('C +ss %s' %str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
 print('H +ss %s' %str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
@@ -160,7 +163,7 @@ print('dCH %s' %str(np.array(carb_rt.phrqc.dphases['portlandite'][1,:])))
 print('CC %s' %str(np.array(carb_rt.solid.calcite.c[1,:])))
 print('dCC %s' %str(np.array(carb_rt.phrqc.dphases['calcite'][1,:])))
 print('Vol %s' %str(np.array(carb_rt.solid.vol[1,:])))
-
+print('D %s' %str(np.array(carb_rt.fluid.C.De[1,:])))
 #print(carb_rt.phrqc.selected_output())
 
 #%%

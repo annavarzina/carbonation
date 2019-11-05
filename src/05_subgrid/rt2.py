@@ -46,6 +46,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         self.set_phrqc()   
         self.solid.phases = self.update_phases()
         self.update_nodetype()
+        self.fluid.call('_set_relaxation_params')  
         
     
     def advance(self):
@@ -56,7 +57,6 @@ class DissolutionRT(PhrqcReactiveTransport):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros) 
-        self.fluid.call('_set_relaxation_params')  
         
         
         c=deepcopy( self.fluid.get_attr('c'))
@@ -78,19 +78,16 @@ class DissolutionRT(PhrqcReactiveTransport):
         print('dCH %s' %str(np.array(self.phrqc.dphases['portlandite'][1,:])))
         print('poros %s' %str(self.solid.poros))
         '''
-        # CH cell (1,3) = N11, Int cel = (1,2) = N10
-        result = {}
-        result = self.update_neighbour_solution(result, 11, 12, self.solid.portlandite.c[1, 3])
-        #print('Result %s' %str(result))
         
+        '''
+        cell_i = 11
+        cell_m = 12
+        result = {}
+        result = self.update_neighbour_solution(result, cell_i, cell_m, self.solid.portlandite.c[1, 3])        
         ssnew={}
         for name in self.phrqc.components:
-            ssnew[name] = (result['12 11'][name]-c[name][1,2])/self.dt
+            ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][1,2])/self.dt
             ssnew[name] *= self.phrqc.selected_output()['poros'][1,2]
-            #print(name)
-            #print(ssnew[name]/conv)
-            #print(ss[name][1,2]/conv)
-            #print(self.phrqc.selected_output()['poros'][1,2])
             ss[name][1,2] = ssnew[name]
         '''
         result = {}
@@ -99,39 +96,61 @@ class DissolutionRT(PhrqcReactiveTransport):
         df = np.where(self.solid.border.flatten())[0]
         lx = self.nodetype.shape[1]
         for i in np.arange(0, np.sum(self.solid.border)):
-            #print(by[i])
-            #print(bx[i])
-            #print(df[i])
-            #print(self.solid.interface)
+            if (self.solid.interface['down'][by[i], bx[i]]):
+                cell_i = df[i]+1-lx
+                cell_m = df[i]+1
+                #print(df[i]-lx)
+                result  = self.update_neighbour_solution(result,cell_i, cell_m,  self.solid.portlandite.c[by[i], bx[i]])
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i]-1, bx[i]])/self.dt
+                    ssnew[name] *= self.phrqc.selected_output()['poros'][by[i]-1, bx[i]]#TODO chack x y
+                    ss[name][by[i]-1, bx[i]] = ssnew[name]
+            if (self.solid.interface['up'][by[i], bx[i]]):
+                cell_i = df[i]+1+lx
+                cell_m = df[i]+1
+                #print(df[i]+lx)
+                result  = self.update_neighbour_solution(result, cell_i, cell_m,  self.solid.portlandite.c[by[i], bx[i]])
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i]+1, bx[i]])/self.dt
+                    ssnew[name] *= self.phrqc.selected_output()['poros'][by[i]+1, bx[i]]
+                    ss[name][by[i]+1, bx[i]] = ssnew[name]
+            if (self.solid.interface['left'][by[i], bx[i]]):
+                cell_i = df[i]
+                cell_m = df[i]+1
+                result  = self.update_neighbour_solution(result,cell_i, cell_m, self.solid.portlandite.c[by[i], bx[i]])
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i], bx[i]-1])/self.dt
+                    ssnew[name] *= self.phrqc.selected_output()['poros'][by[i], bx[i]-1]
+                    ss[name][by[i], bx[i]-1] = ssnew[name]
+            if (self.solid.interface['right'][by[i], bx[i]]):
+                cell_i = df[i]+2
+                cell_m = df[i] +1
+                result  = self.update_neighbour_solution(result,cell_i, cell_m,  self.solid.portlandite.c[by[i], bx[i]])
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i], bx[i]+1])/self.dt
+                    ssnew[name] *= self.phrqc.selected_output()['poros'][by[i], bx[i]+1]
+                    ss[name][by[i], bx[i]+1] = ssnew[name]
+            
+        pqty=self.solid.update(self.phrqc.dphases) 
+        #'''
+        for i in np.arange(0, np.sum(self.solid.border)):
             if (self.solid.interface['down'][by[i], bx[i]]):
                 #print(df[i]-lx)
-                result  = self.update_neighbour_solution(result, df[i],df[i]-lx, self.solid.portlandite.c[by[i], bx[i]])
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['portlandite']
             if (self.solid.interface['up'][by[i], bx[i]]):
                 #print(df[i]+lx)
-                result  = self.update_neighbour_solution(result, df[i],df[i]+lx, self.solid.portlandite.c[by[i], bx[i]])
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['portlandite']
             if (self.solid.interface['left'][by[i], bx[i]]):
                 #print(df[i]-1)
-                result  = self.update_neighbour_solution(result, df[i],df[i]-1, self.solid.portlandite.c[by[i], bx[i]])
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['portlandite']    
             if (self.solid.interface['right'][by[i], bx[i]]):
                 #print(df[i]+1)
-                result  = self.update_neighbour_solution(result, df[i],df[i]+1, self.solid.portlandite.c[by[i], bx[i]])
-            
-        '''
-        
-        #ss = self.modify_all(result, c, self.solid.nodetype,phaseqty)
-        '''
-        print('Ca %s' %str(np.array(self.fluid.Ca.c[1,:]) ))
-        print('Ca +ss %s' %str(np.array(self.fluid.Ca.c[1,:]) + np.array(ss['Ca'][1,:]/conv)/np.array(self.fluid.Ca.poros[1,:])))
-        print('O %s' %str(np.array(self.fluid.O.c[1,:]) ))
-        print('O +ss %s' %str(np.array(self.fluid.O.c[1,:]) + np.array(ss['O'][1,:]/conv)/np.array(self.fluid.O.poros[1,:])))
-        print('H %s' %str(np.array(self.fluid.H.c[1,:]) ))
-        print('H +ss %s' %str(np.array(self.fluid.H.c[1,:]) + np.array(ss['H'][1,:]/conv)/np.array(self.fluid.H.poros[1,:])))
-        print('CH %s' %str(np.array(self.solid.portlandite.c[1,:])))
-        print('dCH %s' %str(np.array(self.phrqc.dphases['portlandite'][1,:])))
-        print('poros %s' %str(self.solid.poros))
-        '''
-        pqty=self.solid.update(self.phrqc.dphases) 
-        self.solid.portlandite.c[1,3] = result['12 11']['portlandite']
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['portlandite']
+        #'''
         self.fluid.set_attr('ss',ss)        
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
         self.update_solid_params()        
@@ -158,13 +177,10 @@ class DissolutionRT(PhrqcReactiveTransport):
         self.phrqc.IPhreeqc.RunString(modify_str) 
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
         newport = output[2][9]
-        #print(modify_str)
-        #print(output)
         
         modify_str = []
         modify_str.append("EQUILIBRIUM_PHASES %i" % n_ch)
-        modify_str.append("Portlandite 0 %.20e" %(newport)) 
-        #modify_str.append('SAVE equilibrium_phase %i' % n_ch)  
+        modify_str.append("Portlandite 0 %.20e" %(newport))  
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' % n_int)
         modify_str.append('MIX %i' % n)         
@@ -175,10 +191,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         modify_str.append("END")                
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str)  
-        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
-        
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()        
         
         comp = {}
         comp['n_m'] = n_ch
@@ -188,132 +201,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         comp['O'] = output[1][8] - self.phrqc.O_norm
         comp['portlandite'] = newport
         result[str(n_ch) + ' ' + str(n_int)] = comp
-        return(result)
-    
-    def modify_all(self, res,  c, nodetype, phaseqty):
-        '''
-        phaseqty = self.phrqc.flatten_dict(phaseqty)
-        modifystr = []
-        for cell in range(self.phrqc.startcell,self.phrqc.stopcell+1,1):
-            modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
-            if cell == n_m:                
-                modifystr.append("\t -component portlandite")
-                modifystr.append("\t\t%s\t%.20e" %('-moles', new_c['portlandite']))
-            else:
-                modifystr.append("\t -component portlandite")
-                modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty['portlandite'][cell-1]))
-                #modifystr.append("\t\t%s\t%.20e" %('-si', 2))
-        modifystr.append("end")       
-        modifystr ='\n'.join(modifystr)
-        self.phrqc.IPhreeqc.RunString(modifystr)
-        '''
-        
-        
-        
-        active_nodes = self.phrqc.active_nodes(c,nodetype)
-        c_trans=deepcopy(c)
-        moles = self.phrqc.flatten_dict(self.phrqc.to_moles(c))
-        modify_str=[]
-        runcells=[]
-        runcell_str=[]
-        interfaces = []
-        for r in res.keys():
-            n = res[r]['n_i']
-            interfaces.append(n)
-            
-            moles_Ca = res[r]['Ca']#*self.phrqc.poros.flatten(order='C')[n_i]
-            moles_H = res[r]['H']#*self.phrqc.poros.flatten(order='C')[n_i]
-            moles_O = res[r]['O']#*self.phrqc.poros.flatten(order='C')[n_i]
-            runcells.append(str(n))
-            modify_str.append('SOLUTION_MODIFY %i' % n)
-            if moles_H <=0: moles_H= 1e-30
-            modify_str.append('\t%s\t%.20e' % ('total_h', moles_H))
-            if moles_O <=0: moles_O= 1e-30
-            modify_str.append('\t%s\t%.20e' % ('total_o', moles_O))
-            modify_str.append('\t-totals')
-            if moles_Ca <=0: moles_Ca= 1e-30
-            modify_str.append('\t\t%s\t%.20e' % ('Ca', moles_Ca))
-            modify_str.append('end')   
-                
-        for i,cell in enumerate(range(self.phrqc.startcell,self.phrqc.stopcell+1,1)):
-            
-                
-            if cell not in interfaces:
-                if active_nodes[i]:
-                    runcells.append(str(cell))
-                    modify_str.append('SOLUTION_MODIFY %i' % cell)
-                    if 'H' in moles:
-                        c = moles['H'][i]
-                        if c <=0: c= 1e-30
-                        modify_str.append('\t%s\t%.20e' % ('total_h', c))
-                    if 'O' in moles:
-                        c = moles['O'][i]
-                        if c <=0: c= 1e-30
-                        modify_str.append('\t%s\t%.20e' % ('total_o', c))
-                    modify_str.append('\t-totals')
-                    for name,val in moles.iteritems():
-                        if (name != 'H') and (name!='O'):
-                            c = val[i]
-                            if c <=0: c= 1e-30
-                            modify_str.append('\t\t%s\t%.20e' % (name, c))
-                    #'''
-       
-        modify_str ='\n'.join(modify_str)
-        #print(modify_str)
-        runcell_str.append('RUN_CELLS')
-        runcell_str.append('\t-cells %s'%'\n\t\t'.join(runcells))
-        runcell_str.append('\t-start_time %s'%self.time)
-        runcell_str.append('\t-time_step %s'%self.dt)
-        runcell_str.append('end')
-        runcell_str='\n'.join(runcell_str)
-        #print(runcell_str)
-        self.phrqc.IPhreeqc.AccumulateLine(modify_str)
-        self.phrqc.IPhreeqc.AccumulateLine(runcell_str)
-        self.phrqc.IPhreeqc.RunAccumulated()
-        
-        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        selected_output={}
-        if len(output) > 0:
-            header = output[0]
-            for head in header:
-                 selected_output[head] = []
-            for row in output[1:]:
-                for (i, head) in enumerate(header):
-                    results = row[i]
-                    if head == 'H':
-                        results -= self.phrqc.H_norm
-                    elif head == 'O':
-                        results -= self.phrqc.O_norm
-                    selected_output[head].append(results)
-        merged_output = self.phrqc.list_dict(self.phrqc.flatten_dict(self.phrqc.prev_selected_output))
-        for name,val in selected_output.iteritems():
-            for i,cell in enumerate(selected_output[u'soln']): 
-                merged_output[name][cell-1]=val[i]             
-        selected_output = merged_output
-        selected_output = self.phrqc.ndarray_dict(selected_output)
-        selected_output = self.phrqc.reshape_dict(selected_output,self.phrqc.array_shape)
-        self.phrqc._selected_output = selected_output
-        self.phrqc.phrqc_flags['update_output'] = False
-        self.phrqc.poros = self.phrqc.selected_output()['poros']
-        c_current = self.phrqc.component_conc
-        ss={}
-        #print('c_trans %s' %str(c_trans))
-        #print('c_curr %s'%str(c_current))
-        for name in self.phrqc.components:
-            ss[name] = (c_current[name]-c_trans[name])/self.phrqc.dt
-            ss[name] = ss[name] *(active_nodes.reshape(self.phrqc.array_shape)>0)
-            ss[name] *= self.phrqc.poros
-        #print(ss)
-        '''
-        print('ss %s'%str(ss))
-        print('dt %s'%str(self.phrqc.dt))
-        print('T %s'%str(self.fluid.Ca.convfactors['T']))
-        print('poros s %s' %str(self.solid.poros))
-        print('poros p %s' %str(self.phrqc.poros))
-        print('poros so %s' %str(self.phrqc.selected_output()['poros']))
-        '''
-        return(ss)
-    
+        return(result)    
     
     #%% SETTINGS
     def set_volume(self):
@@ -456,8 +344,8 @@ class DissolutionRT(PhrqcReactiveTransport):
     def get_interfaces(self, is_border, nt, val):        
         down = is_border & (np.roll(nt, 1, axis = 0) != val)
         up =  is_border & (np.roll(nt, -1, axis = 0) != val)
-        left =  is_border & (np.roll(nt, -1, axis = 1) != val)
-        right =  is_border & (np.roll(nt, 1, axis = 1) != val)       
+        left =  is_border & (np.roll(nt, 1, axis = 1) != val)
+        right =  is_border & (np.roll(nt, -1, axis = 1) != val)       
         
         interfaces = {'left': left,
                       'right': right,
