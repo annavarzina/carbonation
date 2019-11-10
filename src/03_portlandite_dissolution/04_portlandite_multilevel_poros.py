@@ -43,16 +43,18 @@ class DissolutionRT(PhrqcReactiveTransport):
             self.set_volume()
             self.set_porosity()        
             self.nodetype = deepcopy(domain.nodetype)
-            self.update_diffusivity()
-            self.fluid.call('_set_relaxation_params')  
+        self.update_diffusivity()
+        self.fluid.call('_set_relaxation_params')  
             
         #self.fluid.call('advance')
         
         
         
-        #Ca self.fluid.Ca.advance()
+        self.fluid.Ca.advance()
+        '''
         self.fluid.Ca.time +=self.dt
         self.fluid.Ca.iters+=1
+        
         print("=======================================")
         print("step %s" %self.fluid.Ca.iters)
         print("=======================================")
@@ -77,6 +79,10 @@ class DissolutionRT(PhrqcReactiveTransport):
         print("\tf: \n\t N3 %s \n\t N4 %s \n\t N5 %s" %(self.fluid.Ca.f[1,3,:],
                                           self.fluid.Ca.f[1,4,:],
                                           self.fluid.Ca.f[1,5,:]))
+        
+        print("\tsum f: \t N3 %s \t N4 %s \t N5 %s" %(np.sum(self.fluid.Ca.f[1,3,:]),
+                                          np.sum(self.fluid.Ca.f[1,4,:])/self.fluid.Ca.poros[1,4],
+                                          np.sum(self.fluid.Ca.f[1,5,:])/self.fluid.Ca.poros[1,5]))
         print("\tC:\t N3 %s \t N4 %s \t N5 %s" %(self.fluid.Ca.c[1,3],
                                           self.fluid.Ca.c[1,4],
                                           self.fluid.Ca.c[1,5]))
@@ -128,6 +134,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         print("\tPorosity:\t N3 %s \t N4 %s \t N5 %s" %(self.fluid.Ca.poros[1,3],
                                           self.fluid.Ca.poros[1,4],
                                           self.fluid.Ca.poros[1,5]))
+        '''
         self.fluid.H.advance()
         self.fluid.O.advance()
         
@@ -205,9 +212,11 @@ domain_params['poros']=porosity
 #solver parameters
 solver_params={}
 solver_params['collision_model']='trt'
-#solver_params['tauref']=1
+solver_params['tauref']=1
 solver_params['magic_para']= 1./4.
 solver_params['cphi_fact']= 1./3.
+#solver_params['tfact']= 1./6.
+#['tfactbased']= True
 
 bc_params={'solution_labels':{'left':100001}, 
            'top':['flux', 0.0],
@@ -217,21 +226,34 @@ bc_params={'solution_labels':{'left':100001},
 rt= DissolutionRT('MultilevelAdvectionDiffusion', domain,
                                   domain_params,bc_params,solver_params)
 #%% run model
+
+conc_Ca = 'Ca\n'
+conc_H = 'H\n'
+conc_O = 'O\n'
+pqty_CH = 'CH\n'
+porosity = 'Poros\n'
+
 time=[]
-AvgCa =[]
+TotCa =[]
 TotCH = []
-iters = 3
+iters = 10
 while  rt.iters < iters:#rt.time<=0.1:#
     rt.advance() 
-    AvgCa.append(np.sum(rt.fluid.Ca.c)/np.sum(rt.fluid.Ca.nodetype<=0)) 
+    TotCa.append(np.sum(rt.fluid.Ca.c*rt.fluid.Ca.poros)) 
     TotCH.append(np.sum(rt.solid.portlandite.c))
     time.append(rt.time)     
+    
+    conc_Ca += str(rt.iters) + ': ' + str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:])) +'\n'
+    conc_H += str(rt.iters) + ': ' + str(np.array(rt.fluid.H.c[1,:]) + np.array(rt.fluid.H._ss[1,:])/np.array(rt.phrqc.poros[1,:]))+'\n'
+    conc_O += str(rt.iters) + ': ' + str(np.array(rt.fluid.O.c[1,:]) + np.array(rt.fluid.O._ss[1,:])/np.array(rt.phrqc.poros[1,:]))+'\n'
+    pqty_CH += str(rt.iters) + ': ' + str(np.array(rt.solid.portlandite.c[1,:]))+'\n'
+    porosity += str(rt.iters) + ': ' + str(np.array(rt.solid.poros[1,:]))+'\n'
         
 #%%plot results
 plt.figure()
-plt.plot(time,AvgCa)
+plt.plot(time,TotCa)
 plt.xlabel('Time [s]')
-plt.ylabel('Avg. Ca conc in aqeuous phase [mM]')
+plt.ylabel('Total Ca mass in aqeuous phase [mM]')
 plt.show()
 
 
@@ -256,3 +278,14 @@ print('CH')
 print(rt.solid.portlandite.c[1,:])
 print('De')       
 print(rt.fluid.Ca.De[1,:])
+print('tau')       
+print(rt.fluid.Ca.tau[1,:])
+
+#'''
+with open('conc1.txt', 'w') as file:
+    file.write(conc_Ca)
+    file.write(conc_O)
+    file.write(conc_H)
+    file.write(pqty_CH)
+    file.close()
+#'''
