@@ -135,6 +135,7 @@ class DissolutionRT(PhrqcReactiveTransport):
                     ssnew[name] *= self.phrqc.selected_output()['poros'][by[i], bx[i]+1]
                     ss[name][by[i], bx[i]+1] = ssnew[name]
             
+        self.update_solid_params()
         pqty=self.solid.update(self.phrqc.dphases) 
         #'''
         for i in np.arange(0, np.sum(self.solid.border)):
@@ -151,9 +152,10 @@ class DissolutionRT(PhrqcReactiveTransport):
                 #print(df[i]+1)
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['portlandite']
         #'''
+        pqty=self.solid.update(self.phrqc.dphases) 
+        #self.update_solid_params()        
         self.fluid.set_attr('ss',ss)        
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
-        self.update_solid_params()        
         self.solid.phases = self.update_phases()
         
     def update_neighbour_solution(self, result, n_int, n_ch, port):
@@ -188,7 +190,8 @@ class DissolutionRT(PhrqcReactiveTransport):
         modify_str.append('%i 0' % n_int) 
         modify_str.append('SAVE solution %i' % n_int)  
         modify_str.append('SAVE equilibrium_phase %i' % n_int) 
-        modify_str.append("END")                
+        modify_str.append("END")      
+        #modify_str.append('SAVE equilibrium_phase %i' % n_ch)           
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str)  
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()        

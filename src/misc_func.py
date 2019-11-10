@@ -751,7 +751,7 @@ def plot_points(results, names=[], fsize=(8,4)):
             for p in results['points']:  
                 plt.plot(results['time'], results[k+' '+str(p)], label = str(p))
             plt.legend()
-            plt.title(title[k] + ' for points ' + str(results['points']))
+            plt.title(title[k] + ' in points ' + str(results['points']))
             plt.ylabel(ylab[k])
             plt.xlabel('Time [s]')
             plt.show()

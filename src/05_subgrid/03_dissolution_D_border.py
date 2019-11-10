@@ -386,7 +386,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-nitr = 20
+nitr = 3000
 Ts = 3#000*3600
 rt_port = []
 rt_time = []

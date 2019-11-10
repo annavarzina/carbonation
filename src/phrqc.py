@@ -50,7 +50,7 @@ class CarbonationPhrqc(Phrqc):
                         for key in phaseqty.keys():
                             modifystr.append("\t -component %s" %(key))
                             modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
-                            #modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+                            modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
         else:
             is_liquid = (self.nodetype.flatten(order='C') == -1) 
             is_mineral = (self.init_port>0).flatten(order='C')  
@@ -64,8 +64,8 @@ class CarbonationPhrqc(Phrqc):
                         for key in phaseqty.keys():
                             modifystr.append("\t -component %s" %(key))
                             modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
-                            #if key == 'portlandite':   
-                            #    modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+                            if key == 'portlandite':   
+                                modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
                             if (key == 'calcite'):
                                 if (self.pcs == False):
                                     modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))

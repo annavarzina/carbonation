@@ -18,7 +18,7 @@ import time
 import yantra
 import cell_type as ct # change the path to cell_type file
 import misc_func as fn
-import rt3
+import rt1
 #import phrqc
 #%% PROBLEM DEFINITION
 __doc__= """ 
@@ -51,26 +51,25 @@ plt.figure(figsize=(5,5))
 plt.imshow(domain.nodetype) 
 plt.show()
 #%%  VALUES
-nn='01_test_Db_p01'
+nn='01_test_sg_p01'
 scale = 50
 init_porosCH = 0.1
 fn.make_output_dir(root_dir+'\\results\\temp\\01_subgrid\\')
 path = root_dir+'\\results\\temp\\01_subgrid\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {#'c_bc':{'type':'conc', 'value': 1e-2}, #3.05E-02, 3.74E-02, 4.30E-02
-               'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
-               #'c_mlvl':{'type':'conc', 'value': '0'}, 
-               #'c_liq':{'type':'conc', 'value': '0'},
-               'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
-               'c_liq':{'type':'eq', 'value': 'calcite'},
-               'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               #'ca_liq':{'type':'conc', 'value': '0'}}#calcite
-               'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
+phrqc_input = {#'c_bc':{'type':'conc', 'value': 1e-1}, #3.05E-02, 3.74E-02, 4.30E-02
+               'c_bc':{'type':'pco2', 'value': 3.4},
+               'c_mlvl':{'type':'conc', 'value': '0'}, 
+               'c_liq':{'type':'conc', 'value': '0'},
+               #'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
+               #'c_liq':{'type':'eq', 'value': 'calcite'},
+               'ca_mlvl':{'type':'eq', 'value': 'portlandite'},    
+               #'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite            
+               'ca_liq':{'type':'conc', 'value': '0'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-tfact =  1./6./20
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
 mvol = [mvolCH, mvolCH*mvol_ratio]
@@ -86,11 +85,10 @@ porosity = fn.get_porosity(domain, pqty, mvol, m)
 app_tort = 1. * porosity ** (1./3.)
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            #'dissolution':'subgrid',
+            'dissolution':'subgrid',
             'active': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'cc_archie_ch_kin', #'fixed' or 'archie'cc_archie_ch_kin
-                           'D_CH': 1e-12,
-                           'D_CH_Ca': 1e-9},
+            'diffusivity':{'type':'archie', #'fixed' or 'archie'
+                           'D_CH': 1e-12},
             'pcs': {'pcs': True, 
                     'pores': 'block', #'block'/'cylinder'
                     'int_energy': 0.1, # internal energy
@@ -108,19 +106,19 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
 bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
-solver_params = fn.set_solver_params(tfact = tfact)
+#solver_params = fn.set_solver_params(tfact = tfact)
+solver_params = fn.set_solver_params()
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 fn.save_settings(settings, bc_params, solver_params, path, nn)
 
 #%% INITIATE THE SOLVER
-carb_rt= rt3.CarbonationRT('MultilevelAdvectionDiffusion',  domain, 
+carb_rt= rt1.CarbonationRT('MultilevelAdvectionDiffusion',  domain, 
                           domain_params, bc_params, solver_params,
                           settings) 
 carb_rt.phrqc.phrqc_smart_run_tol = 1e-6
-carb_rt.Dref = D
 #%% PARAMETERS
 #plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
-plist =  [(1,n) for n in np.arange(1,4)]
+plist =  [(1,n) for n in np.arange(0, 6)]
 pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation',
             'dissolution', 'portlandite_cells', 'calcite_cells', 'dt'] 
 #'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
@@ -130,10 +128,8 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 itr = 0 
-j = 0
-ni = 10
-nitr =10000#500*8
-Ts = 5 #second
+nitr =50#25000#500*2#500*8
+Ts = 1 #second
 Ts = Ts/scale + 0.001#1.001#1.01 +
 step = max(int(Ts/36.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -142,19 +138,46 @@ time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+s
 N = Ts/carb_rt.dt
 N_res = 1e+4
 S = max(1,int(N/N_res))
+
+#%% LISTS
+conc_Ca = 'Ca\n'
+conc_C = 'C\n'
+conc_H = 'H\n'
+conc_O = 'O\n'
+pqty_CH = 'CH\n'
+pqty_CC = 'CC\n'
+porosity = 'Poros\n'
 #%% RUN SOLVER
-while  carb_rt.time <=Ts: #itr <= nitr: #
+while  itr <= nitr: #carb_rt.time <=Ts: #
     
     carb_rt.advance()    
     results = fn.append_results(carb_rt, results, step = S )
     itr += 1
-  
-fn.save_obj(results, path + str(nn) +'_results')  
+    
+    conc_Ca += str(itr) + ': ' + str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])) +'\n'
+    conc_C += str(itr) + ': ' + str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:]))+'\n'
+    conc_H += str(itr) + ': ' + str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:]))+'\n'
+    conc_O += str(itr) + ': ' + str(np.array(carb_rt.fluid.O.c[1,:]) + np.array(carb_rt.fluid.O._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:]))+'\n'
+    pqty_CH += str(itr) + ': ' + str(np.array(carb_rt.solid.portlandite.c[1,:]))+'\n'
+    pqty_CC += str(itr) + ': ' + str(np.array(carb_rt.solid.calcite.c[1,:]))+'\n'
+    porosity += str(itr) + ': ' + str(np.array(carb_rt.solid.poros[1,:]))+'\n'
+    '''
+    conc_Ca.append(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:]))
+    conc_C.append(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:]))
+    conc_H.append(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:]))
+    conc_O.append(np.array(carb_rt.fluid.O.c[1,:]) + np.array(carb_rt.fluid.O._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:]))
+    pqty_CH.append(np.array(carb_rt.solid.portlandite.c[1,:]))
+    pqty_CC.append(np.array(carb_rt.solid.calcite.c[1,:]))
+    porosity.append(np.array(carb_rt.solid.poros[1,:]))
+    '''
+fn.save_obj(results, path + str(nn) +'_results')
 #%% SIMULATION TIME
-
+#'''
 #print('Ca ss %s' %str(np.array(carb_rt.fluid.Ca._ss[1,:])))
 #print('Ca %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
 print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
+
+#print('C %s' %str(np.array(carb_rt.fluid.C._c[1,:])))
 print('C +ss %s' %str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
 print('H +ss %s' %str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
 print('O +ss %s' %str(np.array(carb_rt.fluid.O.c[1,:]) + np.array(carb_rt.fluid.O._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
@@ -164,10 +187,28 @@ print('CC %s' %str(np.array(carb_rt.solid.calcite.c[1,:])))
 print('dCC %s' %str(np.array(carb_rt.phrqc.dphases['calcite'][1,:])))
 print('Vol %s' %str(np.array(carb_rt.solid.vol[1,:])))
 print('D %s' %str(np.array(carb_rt.fluid.C.De[1,:])))
-#print(carb_rt.phrqc.selected_output())
+#'''
+#print(carb_rt.phrqc.selected_output()['poros'])
 
 #%%
-fn.plot_points(results,names={ 'calcite', 'portlandite', 'Ca','C'})#, 'Ca', 'C', 'O', 'H'})
-#fn.plot_species(results, names={ 'calcite', 'portlandite', 'Ca', 'C', 'O', 'H'})
-#print(results['portlandite'][-1]-results['portlandite'][0])
-#print(results['calcite'][-1]-results['calcite'][0])
+
+fn.plot_points(results,names={'calcite','portlandite', 'Ca', 'C'})#, 'Ca', 'C', 'O', 'H'})
+#fn.plot_species(results, names={ 'calcite', 'portlandite', 'Ca', 'C'}) 
+#%%
+'''
+conc_Ca ='Ca\n'.join(conc_Ca)
+conc_C ='C\n'.join(conc_C)
+conc_H ='H\n'.join(conc_H)
+conc_O ='O\n'.join(conc_O)
+pqty_CH ='CH\n'.join(pqty_CH)
+pqty_CC ='CC\n'.join(pqty_CC)
+'''
+#%%
+with open('conc2.txt', 'w') as file:
+    file.write(conc_Ca)
+    file.write(conc_C)
+    file.write(conc_O)
+    file.write(conc_H)
+    file.write(pqty_CH)
+    file.write(pqty_CC)
+    file.close()
