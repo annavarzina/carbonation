@@ -48,7 +48,7 @@ plt.imshow(domain.nodetype)
 plt.show()
 
 #%%  PHREEQC
-nn='01_default_example'
+nn='01_example_default'
 fn.make_output_dir(root_dir+'\\results\\output\\00_examples\\')
 path = root_dir+'\\results\\output\\00_examples\\' + nn + '\\'
 fn.make_output_dir(path)
@@ -149,8 +149,8 @@ while itr < nitr: # carb_rt.time <=Ts: #
         if ( (carb_rt.time <= time_points[j]) and \
             ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
-            fn.save_figures_minerals(rt,  max_pqty, time_points[j], path, nn, ptype=m)  
-            fn.save_figures_mols(rt, time_points[j], path, nn, ptype=m) 
+            fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path, nn, ptype=m)  
+            fn.save_figures_mols(carb_rt, time_points[j], path, nn, ptype=m) 
             #save_vti(rt, phases, time_points[j], path, nn, m)
             #save_pickle(rt, phases, time_points[j], path, nn)
             if(j>0):

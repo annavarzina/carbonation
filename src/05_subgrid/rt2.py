@@ -95,6 +95,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         bx = np.where(self.solid.border)[1]
         df = np.where(self.solid.border.flatten())[0]
         lx = self.nodetype.shape[1]
+        pqty=self.solid.update(self.phrqc.dphases) 
         for i in np.arange(0, np.sum(self.solid.border)):
             if (self.solid.interface['down'][by[i], bx[i]]):
                 cell_i = df[i]+1-lx
@@ -135,9 +136,7 @@ class DissolutionRT(PhrqcReactiveTransport):
                     ssnew[name] *= self.phrqc.selected_output()['poros'][by[i], bx[i]+1]
                     ss[name][by[i], bx[i]+1] = ssnew[name]
             
-        self.update_solid_params()
-        pqty=self.solid.update(self.phrqc.dphases) 
-        #'''
+        '''
         for i in np.arange(0, np.sum(self.solid.border)):
             if (self.solid.interface['down'][by[i], bx[i]]):
                 #print(df[i]-lx)
@@ -151,8 +150,8 @@ class DissolutionRT(PhrqcReactiveTransport):
             if (self.solid.interface['right'][by[i], bx[i]]):
                 #print(df[i]+1)
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['portlandite']
-        #'''
-        pqty=self.solid.update(self.phrqc.dphases) 
+        '''
+        self.update_solid_params()
         #self.update_solid_params()        
         self.fluid.set_attr('ss',ss)        
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
@@ -190,8 +189,8 @@ class DissolutionRT(PhrqcReactiveTransport):
         modify_str.append('%i 0' % n_int) 
         modify_str.append('SAVE solution %i' % n_int)  
         modify_str.append('SAVE equilibrium_phase %i' % n_int) 
-        modify_str.append("END")      
-        #modify_str.append('SAVE equilibrium_phase %i' % n_ch)           
+        #modify_str.append('SAVE equilibrium_phase %i' % n_ch) 
+        modify_str.append("END")                
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str)  
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()        

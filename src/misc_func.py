@@ -132,6 +132,11 @@ def set_domain_params(D, mvol, pqty, poros, app_tort, slabels, input_file = 'CH_
     dp['solution_labels']=slabels
     dp['database']='cemdata07.dat'
     
+    if(len(mvol) == 1):
+        dp['phrqc_input_file']=input_file#'CH_CC_Ceq.phrq'
+        dp['eq_names'] = ['portlandite']
+        dp['solid_phases']={'portlandite':{'type':'diffusive','mvol':mvol[0],'c':pqty[0]}}
+    
     if(len(mvol) == 2):
         dp['phrqc_input_file']=input_file#'CH_CC_Ceq.phrq'
         dp['eq_names'] = ['portlandite', 'calcite']

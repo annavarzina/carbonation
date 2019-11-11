@@ -168,7 +168,7 @@ class CarbonationRT(PhrqcReactiveTransport):
                     ssnew[name] *= self.phrqc.selected_output()['poros'][by[i], bx[i]+1]
                     ss[name][by[i], bx[i]+1] = ssnew[name]
         
-        
+        #'''
         for i in np.arange(0, np.sum(self.solid.border)):
             if (self.solid.interface['down'][by[i], bx[i]]):
                 #print(df[i]-lx)
@@ -181,6 +181,7 @@ class CarbonationRT(PhrqcReactiveTransport):
                 self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_m']
                 self.solid.calcite.c[by[i]+1, bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_i']
             if (self.solid.interface['left'][by[i], bx[i]]):
+                pass
                 #print(df[i]-1)
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['portlandite_m']  
                 #self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['calcite_m']  
@@ -190,7 +191,7 @@ class CarbonationRT(PhrqcReactiveTransport):
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['portlandite_m'] 
                 self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_m']  
                 self.solid.calcite.c[by[i], bx[i]+1] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_i']    
-        
+        #'''
         #pqty=self.solid.update(self.phrqc.dphases)  
         #self.solid.portlandite.c[1,2] = result['10 9']['portlandite_m']
         #self.solid.calcite.c[1,2] = result['10 9']['calcite_m']
@@ -229,11 +230,9 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.phases = self.update_phases()
         #if(self.phrqc.precipitation == 'interface'):
         self.update_nodetype()
-        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
+        #self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
         
     def update_neighbour_solution(self, result, n_int, n_ch, m_ch, m_cc, i_cc, poros_m):
-        #global ncell
-        #ncell = ncell + 1
         ncell = 123456
         modify_str = []
         modify_str.append("EQUILIBRIUM_PHASES %i" % ncell)
@@ -241,8 +240,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         modify_str.append("Calcite 0 %.20e dissolve only" %(m_cc))   # m_cc
         modify_str.append("END") 
         modify_str.append('MIX %i' % ncell) 
-        modify_str.append('%i 1' %n_int)  
-        #modify_str.append('%i %.20e' %( n_int, (1-poros_m) ))
+        #modify_str.append('%i 1' %n_int)  
+        modify_str.append('%i %.20e' %( n_int, (1-poros_m) ))
         modify_str.append('SAVE solution %i' % ncell)  
         modify_str.append("END") 
         modify_str.append('USE solution %i' % ncell)  
@@ -253,21 +252,18 @@ class CarbonationRT(PhrqcReactiveTransport):
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str) 
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
         port = output[2][10]
-        calc = output[2][12]# + p_cc_i #
+        calc = output[2][12]
         modify_str = [] 
         modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
         modify_str.append("Portlandite 0 %.20e dissolve only" %(port))   #
-        modify_str.append("Calcite 0 %.20e precipitate only" %(m_cc)) #
+        modify_str.append("Calcite 0 %.20e precipitate only" %(calc)) #
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' %n_int)      
         modify_str.append('MIX %i' % ncell)      
         modify_str.append('%i 1' % ncell)   
-        modify_str.append('%i 0' %n_int)    
-        #modify_str.append('%i %.20e' %( ncell, 1 ))
-        #modify_str.append('%i %.20e' %( n_int, poros_m))
+        #modify_str.append('%i 0' %n_int)    
+        modify_str.append('%i %.20e' %( n_int, poros_m))
         modify_str.append('SAVE solution %i' %(n_int))  
         modify_str.append('SAVE equilibrium_phase %i' %n_int)
         modify_str.append('SAVE equilibrium_phase %i' %(n_ch))  
@@ -275,23 +271,15 @@ class CarbonationRT(PhrqcReactiveTransport):
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str)  
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
-        
-        #print(m_ch-port)
-        #print(m_cc - calc)
-        #print(i_cc - output[1][12])
         comp = {}
         comp['portlandite_m'] = port
         comp['calcite_i'] = output[1][12]#/output[1][5]
-        comp['calcite_m'] = m_cc#calc#output[1][12]
+        comp['calcite_m'] = calc#calc#output[1][12]
         comp['C'] = output[1][6]#*output[1][5]
         comp['Ca'] = output[1][7]#*output[1][5]
         comp['H'] = (output[1][8] - self.phrqc.H_norm)#/output[1][5])
         comp['O'] = (output[1][9] - self.phrqc.O_norm)#/output[1][5])
         result[str(n_ch) + ' ' + str(n_int)] = comp
-        #print(result)
-        
         return(result)
         
     #%% SETTINGS

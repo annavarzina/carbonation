@@ -96,10 +96,10 @@ settings = {'precipitation': 'all', # 'interface'/'all'/'mineral' nodes
                     'crystal_size': 0.5*dx, # crystal or pore length
                     'pore_density': 20000, #pore density per um3 - only for cylinder type
                     }, 
-           'velocity': False, 
-           'bc': phrqc_input['c_bc'],
-           'dx': dx 
-           }
+            'velocity': False, 
+            'bc': phrqc_input['c_bc'],
+            'dx': dx 
+            }
                
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
@@ -129,7 +129,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 #%% TIME SETTINGS
 itr = 0 
 nitr =1000#25000#500*2#500*8
-Ts =  50#second
+Ts =  20#second
 Ts = Ts/scale + 0.001#1.001#1.01 +
 step = max(int(Ts/36.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -154,10 +154,8 @@ fn.plot_avg(results, names = {'avg_poros', 'calcite', 'portlandite', 'Ca','C'})
 
 #%% SIMULATION TIME
 #'''
-#print('Ca ss %s' %str(np.array(carb_rt.fluid.Ca._ss[1,:])))
 print('Ca %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
 print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
-
 print('C %s' %str(np.array(carb_rt.fluid.C._c[1,:])))
 print('C +ss %s' %str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
 print('H +ss %s' %str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
@@ -177,12 +175,9 @@ print(np.array(carb_rt.phrqc.selected_output()['portlandite'][1,:])-np.array(car
 print(np.array(carb_rt.phrqc.selected_output()['calcite'][1,:])-np.array(carb_rt.solid.calcite.c[1,:]))
 print(np.array(carb_rt.solid.portlandite.c_prev[1,:])-np.array(carb_rt.solid.portlandite.c[1,:]))
 print(np.array(carb_rt.solid.calcite.c_prev[1,:])-np.array(carb_rt.solid.calcite.c[1,:]))
-#'''
-#print(carb_rt.phrqc.selected_output()['poros'])
 
-#print(results['portlandite'][-1]-results['portlandite'][0])
-#print(results['calcite'][-1]-results['calcite'][0])
-#print(results['portlandite (1, 2)'][-1]-results['portlandite (1, 2)'][0])
-#print(results['portlandite (1, 3)'][-1]-results['portlandite (1, 3)'][0])
-#print(results['calcite (1, 2)'][-1]-results['calcite (1, 2)'][0])
-#print(results['calcite (1, 1)'][-1]-results['calcite (1, 1)'][0])
+print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
+print('Total CC dissolved %s' %(results['calcite'][-1]-results['calcite'][0]))
+
+#'''
+

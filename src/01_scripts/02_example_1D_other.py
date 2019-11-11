@@ -48,7 +48,7 @@ plt.imshow(domain.nodetype)
 plt.show()
 
 #%%  PHREEQC
-nn='01_default_example'
+nn='02_example_other'
 fn.make_output_dir(root_dir+'\\results\\output\\00_examples\\')
 path = root_dir+'\\results\\output\\00_examples\\' + nn + '\\'
 fn.make_output_dir(path)
