@@ -6,7 +6,6 @@ from yantra.physics._phrqc_wrapper import  Phrqc
 class CarbonationPhrqc(Phrqc):
     def active_nodes(self,c,nodetype):
         active =np.ones(self.array_shape).flatten()
-        #is_solid = (nodetype > 0)
         prev_c = self.component_conc
         smart_inactive = np.zeros(self.array_shape)
         inactive=0
@@ -14,13 +13,16 @@ class CarbonationPhrqc(Phrqc):
             for name in self.active_components:
                 diff =np.abs( c[name]*(c[name]-prev_c[name])/(c[name]+1e-30)**2)
                 smart_inactive +=(1*(diff<self.phrqc_smart_run_tol))
-        inactive+=1*(smart_inactive.flatten(order='c') >0)# + 1*is_solid.flatten(order='c')
+            inactive+=1*(smart_inactive.flatten(order='c') >0) #+ 1*is_solid.flatten(order='c') #is_solid = (nodetype > 0)
         if self.phrqc_flags['only_interface']:
             inactive += (1*(nodetype!=-2)-1*(nodetype==-2)).flatten()
+            tot_solid_phase_conc = self.add_dict(self.flatten_dict(self.solid_phase_conc)) 
+            inactive += -1*(tot_solid_phase_conc>0)
         if self.phrqc_flags['only_fluid']: 
             inactive += (1*(nodetype>0)-1*(nodetype<=0)).flatten()
-        #tot_solid_phase_conc = self.add_dict(self.flatten_dict(self.solid_phase_conc)) #TODO test w/o solid
-        #inactive += -1*(tot_solid_phase_conc>0)
+        if self.phrqc_flags['only_mineral']: 
+            tot_solid_phase_conc = self.add_dict(self.flatten_dict(self.solid_phase_conc))
+            inactive += -1*(tot_solid_phase_conc>0)
         active -= 1*(inactive>0)
         self.nactive = np.sum(active)
         return active

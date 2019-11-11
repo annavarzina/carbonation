@@ -139,16 +139,20 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.phrqc.active = settings['active_nodes']
         self.phrqc.precipitation = settings['precipitation']
         self.phrqc.pcs = settings['pcs_mode']['pcs']
+        self.phrqc.phrqc_flags['only_mineral'] = False
+        self.phrqc.phrqc_flags['only_interface'] = False
+        self.phrqc.phrqc_flags['only_fluid'] = False
+        self.phrqc.phrqc_flags['smart_run'] = False
         if(settings['active_nodes'] == 'all'):
-            self.phrqc.phrqc_flags['smart_run'] = False
-            self.phrqc.phrqc_flags['only_interface'] = False
             self.phrqc.nodetype = deepcopy(self.nodetype)
-        elif(settings['active_nodes'] == 'interface'):        
-            self.phrqc.phrqc_flags['smart_run'] = False
+        elif(settings['active_nodes'] == 'interface'):    
             self.phrqc.phrqc_flags['only_interface'] = True
         elif(settings['active_nodes'] == 'smart'):
             self.phrqc.phrqc_flags['smart_run'] = True
-            self.phrqc.phrqc_flags['only_interface'] = False
+        elif(settings['active_nodes'] == 'mineral'):
+            self.phrqc.phrqc_flags['only_mineral'] = True
+        elif(settings['active_nodes'] == 'fluid'):
+            self.phrqc.phrqc_flags['only_fluid'] = True
         else:
             sys.exit()
         if ('pco2' in settings) and (settings['bc']['type']=='pco2'):            
