@@ -11,7 +11,6 @@ import cell_type as ct # change the path to cell_type file
 import defaults as df
 import phrqc 
 
-
 class CarbonationRT(PhrqcReactiveTransport):
     def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):
         '''
@@ -19,7 +18,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         A Lattice Boltzmann method based reactive transport model \
         where reactions are computed using geochemical solver PHREEQC
         '''
-        
         self.auto_time_step = solver_params.get('auto_time_step',True)
         self.phrqc = phrqc.CarbonationPhrqc(domain,domain_params,bc_params,solver_params)        
         components = self.phrqc.components
@@ -28,8 +26,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         for name in components:
             if name not in domain_params:
                 domain_params[name]={}
-            domain_params[name]['c']=init_c[name]
-            
+            domain_params[name]['c']=init_c[name]            
         for name in bc:
             for comp in components:
                 if comp not in bc_params:
@@ -37,65 +34,52 @@ class CarbonationRT(PhrqcReactiveTransport):
                 bc_params[comp][name]=['c',bc[name][comp]]                
         self.fluid=Multicomponent(eqn,components,domain,domain_params,
                                   bc_params,solver_params)
-        self.solid=Solid(domain,domain_params,solver_params)        
-        self.dx = self.fluid.H.dx  #pcs settings      
+        self.solid=Solid(domain,domain_params,solver_params)   
         self.ptype = 'CSH' if hasattr(self.fluid, 'Si') else 'CH'
         self.set_volume()
-        self.set_porosity()        
+        self.set_porosity()  
+        self.set_app_tort() #TODO degree      
         self.nodetype = deepcopy(domain.nodetype)  
         self.apply_settings(settings)  
-        c=deepcopy( self.fluid.get_attr('c'))
-        self.set_phrqc(c, self.nodetype)        
+        self.set_phrqc()        
         self.set_bc(settings)
         self.solid.phases = self.update_phases()
         self.update_nodetype()
         
     
     def advance(self):
+        self.update_border_and_interface(self.nodetype)
         self.update_target_SI()
-        if(self.settings['diffusivity']['type']=='fixed'): 
-            self.update_diffusivity()
-        elif(self.settings['diffusivity']['type']=='cc_archie'): 
-            self.update_diffusivity_ch()
-        elif(self.settings['diffusivity']['type']=='cc_archie_ch_kin'): 
-            self.update_diffusivity_ch_kin()
-        elif(self.settings['diffusivity']['type']=='mixed'): 
-            self.update_diffusivity_mixed()
-        self.fluid.call('advance')        
-        self.correct()
-        
-        self.phrqc.is_calc = self.solid.calcite.c>0        
+        self.update_diffusivity() 
+        self.fluid.call('advance')         
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
-            self.phrqc.poros=deepcopy(self.solid.poros)        
-        self.fluid.call('_set_relaxation_params') 
- 
-        if(self.phrqc.precipitation == 'interface' and self.phrqc.active != 'interface'):
-            self.phrqc.nodetype = deepcopy(self.nodetype) 
-        
+            self.phrqc.poros=deepcopy(self.solid.poros)      
+        self.phrqc.is_calc = self.solid.calcite.c>0  
+        self.fluid.call('_set_relaxation_params')        
+        if(self.phrqc.precipitation == 'interface'):
+            if(self.phrqc.active != 'interface'):
+                self.phrqc.nodetype = deepcopy(self.nodetype)
         
         c=deepcopy( self.fluid.get_attr('c'))
         phaseqty=self.solid.phaseqty_for_phrqc()
         phase_list = deepcopy(self.solid.diffusive_phase_list)
         for num, phase in enumerate(phase_list, start=1):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])
-        self.phrqc.modify_solid_phases(phaseqty, c, self.solid.nodetype) 
-        ss=self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
-        
-        #print(self.phrqc.selected_output()['portlandite'])
-        ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
-        pqty=self.solid.update(self.phrqc.dphases)            
-                
+        self.phrqc.modify_solid_phases(phaseqty) 
+        ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
+        pqty=self.solid.update(self.phrqc.dphases)   
+        if(self.settings['dissolution']=='subgrid'):
+            ss=self.update_border_solution(c,ss)
+        ss = self.update_no_flux(ss)
         self.fluid.set_attr('ss',ss)
         
-        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
-        self.update_solid_params() # or after if?        
+        self.update_solid_params()  
+        self.solid.phases = self.update_phases()    
         if(self.settings['velocity']):
             self.update_velocity()
-        self.solid.phases = self.update_phases()
-        if(self.phrqc.precipitation == 'interface'):
-            self.update_nodetype()
+        self.update_nodetype()
         
     #%% SETTINGS
     def set_volume(self):
@@ -106,10 +90,12 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.solid.vol += val.c * self.solid.mvol[num-1] 
             
     def set_porosity(self):        
-        self.solid.poros=1.- self.solid.vol/self.solid.voxel_vol 
-        self.solid.app_tort = 1. * self.solid.poros ** (1./3.)
+        self.solid.poros=1.- self.solid.vol/self.solid.voxel_vol
         if np.any(self.solid.poros<=1e-10):
             sys.exit('Negative or zero porosity')
+        
+    def set_app_tort(self, d = 1./3.):  
+        self.solid.app_tort = 1. * self.solid.poros ** d
         
     def set_boundary_cells(self):
         nodes = np.zeros(np.shape(self.nodetype))
@@ -135,34 +121,32 @@ class CarbonationRT(PhrqcReactiveTransport):
                 self.fluid.Si.bc[key] = ['flux', 0.0]
                 self.fluid.Si._bc[key+'bc'] = 'flux'
     
-    def set_phrqc(self, c, nodetype):
+    def set_phrqc(self):
         self.phrqc.boundcells = self.set_boundary_cells()
         self.phrqc.init_port = self.solid.portlandite.c>0
         self.phrqc.is_calc = self.solid.calcite.c>0
-        self.phrqc._target_SI = np.zeros(self.solid.shape)   
-        #self.phrqc.active = 'all'
-        #self.phrqc.precipitation = 'all'
-        #self.phrqc.pcs = False
+        self.phrqc._target_SI = np.zeros(self.solid.shape)  
         self.phrqc.nodetype = deepcopy(self.nodetype) 
         if self.solid.nphases >0:
             phaseqty = self.solid.phaseqty_for_phrqc()
-            self.phrqc.modify_solid_phases(phaseqty, c, nodetype) 
+            self.phrqc.modify_solid_phases(phaseqty) 
         
     def apply_settings(self, settings):
         self.settings = settings
-        self.phrqc.pinput = settings['bc']
-        
-        self.phrqc.active = settings['active']
+        self.Dref = settings['Dref']
+        self.dx =  settings['dx']
+        self.phrqc.pinput = settings['bc']        
+        self.phrqc.active = settings['active_nodes']
         self.phrqc.precipitation = settings['precipitation']
-        self.phrqc.pcs = settings['pcs']['pcs']
-        if(settings['active'] == 'all'):
+        self.phrqc.pcs = settings['pcs_mode']['pcs']
+        if(settings['active_nodes'] == 'all'):
             self.phrqc.phrqc_flags['smart_run'] = False
             self.phrqc.phrqc_flags['only_interface'] = False
             self.phrqc.nodetype = deepcopy(self.nodetype)
-        elif(settings['active'] == 'interface'):        
+        elif(settings['active_nodes'] == 'interface'):        
             self.phrqc.phrqc_flags['smart_run'] = False
             self.phrqc.phrqc_flags['only_interface'] = True
-        elif(settings['active'] == 'smart'):
+        elif(settings['active_nodes'] == 'smart'):
             self.phrqc.phrqc_flags['smart_run'] = True
             self.phrqc.phrqc_flags['only_interface'] = False
         else:
@@ -181,6 +165,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.prev_vol = deepcopy(self.solid.vol)
         self.set_volume()
         self.set_porosity()
+        self.set_app_tort() #TODO degree
         if(self.settings['velocity'] == True):
             self.solid.dvol = self.solid.vol-self.solid.prev_vol
         
@@ -229,17 +214,6 @@ class CarbonationRT(PhrqcReactiveTransport):
                 ct.Type.MULTILEVEL * is_port +\
                 ct.Type.INTERFACE * is_interface + \
                 ct.Type.SOLID * is_solid
-            #is_liquid =  (~is_port)
-            #if(self.iters>1):
-            #    is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc
-            #    #is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc
-            #    is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(prev_nodetype==-1)
-            #not_critical = np.logical_not(is_critical)
-            #is_interface = (not_critical) & (is_port|(prev_nodetype==-2)| (prev_nodetype==-5))
-            #self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
-            #    ct.Type.INTERFACE * is_interface + \
-            #    ct.Type.MULTILEVEL * is_critical +\
-            #    ct.Type.SOLID * is_solid #ct.Type.INTERFACE * ((is_calc) &(~is_critical)) + 
         if self.ptype == 'CSH':
             is_csh= (self.solid.CSHQ_JenD.c>0) | (self.solid.CSHQ_JenH.c>0) | \
                     (self.solid.CSHQ_TobD.c>0) |(self.solid.CSHQ_TobH.c>0)
@@ -257,103 +231,108 @@ class CarbonationRT(PhrqcReactiveTransport):
         yantra._solvers.update2d.reassign_mlvl(self.solid.nodetype) 
         self.solid.nodetype[prev_nodetype == ct.Type.SOLID] = ct.Type.SOLID
         yantra._solvers.update2d.reassign_mlvl_solid(self.solid.nodetype) 
-        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)       
-            
+        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)                   
         self.solid.prev_calc_c = deepcopy(self.phrqc.solid_phase_conc['calcite'])
         self.nodetype = self.solid.nodetype
+        #self.phrqc.nodetype = self.solid.nodetype
 
     def update_diffusivity(self):
-        D_CC = self.settings['diffusivity']['D_CC']
-        D_CH = self.settings['diffusivity']['D_CH']
-        Dref = self.fluid.H.Deref 
-        is_port = self.solid.portlandite.c >0
+        if(self.settings['diffusivity']['type']=='fixed'): 
+            self.update_diffusivity_fixed()
+        elif(self.settings['diffusivity']['type']=='mixed'): 
+            self.update_diffusivity_mixed()
+        elif(self.settings['diffusivity']['type']=='archie'):
+            pass
+        else:
+            print('Incorrect diffusivity type. Archie\'s relationship is used.')
+            
+    def update_diffusivity_fixed(self):
+        Dref = self.Dref
+        D_border = self.Dref
+        D_CC = None
+        D_CH = None
+        if('D_border' in self.settings['diffusivity']):
+            D_border = self.settings['diffusivity']['D_border']
+        if('D_CC' in self.settings['diffusivity']):
+            D_CC = self.settings['diffusivity']['D_CC']
+        if('D_CH' in self.settings['diffusivity']):
+            D_CH = self.settings['diffusivity']['D_CH']
+        
+        is_border = self.solid.border
+        is_port = (self.solid.portlandite.c >0) & (~is_border)
         is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
+        is_calc = np.logical_and(is_calc,~is_border)
         is_liquid = np.logical_and(~is_port, ~is_calc)
-        De = D_CC *is_calc + D_CH *is_port+ Dref * is_liquid 
-        Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        #print(Dnew_lb)
+        is_liquid = np.logical_and(is_liquid, ~is_border)
+        
+        Dnew_lb = Dref*np.ones(np.shape(self.nodetype))
+        if(D_CC is None and D_CH is None): 
+            De = D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            Dnew_lb = Dref*is_port + Dref*is_calc + Dnew_lb*np.logical_or(~is_port, ~is_calc)
+        elif(D_CC is None and D_CH is not None):
+            De = D_CH*is_port+ D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
+        elif(D_CC is not None and D_CH is None):            
+            De = D_CC*is_calc+ D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            Dnew_lb = Dref*is_port + Dnew_lb*(~is_port)
+        else:
+            De = D_CH*is_port + D_CC*is_calc + D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            
         self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
         self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
-        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)
-
-    def update_diffusivity_ch(self):
-        D_CH = self.settings['diffusivity']['D_CH']
-        Dref = self.fluid.H.Deref 
-        is_port = self.solid.portlandite.c >0
-        is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
-        is_liquid = np.logical_and(~is_port, ~is_calc)
-        De = D_CH *is_port+ Dref * is_liquid 
-        Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
-        #print(Dnew_lb)
-        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
-        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
-        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
-        
-    def update_diffusivity_ch_kin(self):
-        D_CH_Ca = self.settings['diffusivity']['D_CH_Ca']
-        D_CH = self.settings['diffusivity']['D_CH']
-        Dref = self.fluid.H.Deref 
-        is_port = self.solid.portlandite.c >0
-        is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
-        is_liquid = np.logical_and(~is_port, ~is_calc)
-        De = D_CH *is_port+ Dref * is_liquid 
-        Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
-        #print(Dnew_lb)
-        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
-        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
-        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
-        
-        De = D_CH_Ca *is_port+ Dref * is_liquid 
-        Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
-        
-        self.fluid.Ca.D0 = Dnew_lb
-        self.fluid.Ca.Deref=np.max(Dnew_lb)
-        self.fluid.Ca.Dr=Dnew_lb
+        #self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
         
     def update_diffusivity_mixed(self):
-        D_CH_Ca = self.settings['diffusivity']['D_CH_Ca']
-        D_CH = self.settings['diffusivity']['D_CH']
-        Dref = self.fluid.H.Deref
+        #TODO check correctness
+        Dref = self.Dref
+        D_border = self.Dref
+        D_CC = None
+        D_CH = None
+        if('D_border' in self.settings['diffusivity']):
+            D_border = self.settings['diffusivity']['D_border']
+        if('D_CC' in self.settings['diffusivity']):
+            D_CC = self.settings['diffusivity']['D_CC']
+        if('D_CH' in self.settings['diffusivity']):
+            D_CH = self.settings['diffusivity']['D_CH']
         
-        is_port = self.solid.portlandite.c >0
+        is_border = self.solid.border
+        is_port = (self.solid.portlandite.c >0) & (~is_border)
         is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
+        is_calc = np.logical_and(is_calc,~is_border)
         is_liquid = np.logical_and(~is_port, ~is_calc)
+        is_liquid = np.logical_and(is_liquid, ~is_border)
         
         mCH = self.solid.portlandite.c * self.solid.portlandite.mvol
-        D_mixed = np.nan_to_num(1./((1-mCH)/Dref/self.solid.poros/self.solid.app_tort + mCH/D_CH), Dref)
-        De = D_mixed *(~is_liquid)+ Dref * is_liquid
-        Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        #print(Dnew_lb)
+        mCC = self.solid.calcite.c * self.solid.calcite.mvol
+        Dnew_lb = Dref*np.ones(np.shape(self.nodetype))
+        if(D_CC is None and D_CH is None): 
+            De = D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            Dnew_lb = Dref*is_port + Dref*is_calc + Dnew_lb*np.logical_or(~is_port, ~is_calc)
+        elif(D_CC is None and D_CH is not None):
+            D_mixed = np.nan_to_num(1./((1-mCH)/Dref/self.solid.poros/self.solid.app_tort + mCH/D_CH), Dref)
+            De = D_mixed *np.logical_or(~is_liquid, ~is_border)+ D_border*is_border+ Dref * is_liquid
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+        elif(D_CC is not None and D_CH is None):            
+            D_mixed = np.nan_to_num(1./((1-mCC)/Dref/self.solid.poros/self.solid.app_tort + mCC/D_CC), Dref)
+            De = D_mixed *np.logical_or(~is_liquid, ~is_border)+ D_border*is_border+ Dref * is_liquid
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+        else:
+            D_mixed = np.nan_to_num(1./((1-mCC-mCH)/Dref/self.solid.poros/self.solid.app_tort + mCC/D_CC+ mCH/D_CH), Dref)
+            De = D_mixed *np.logical_or(~is_liquid, ~is_border)+ D_border*is_border+ Dref * is_liquid
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort                    
+        
         self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
         self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
-        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
-        
-        D_mixed = np.nan_to_num(1./((1-mCH)/Dref/self.solid.poros/self.solid.app_tort + mCH/D_CH_Ca), Dref)
-        De = D_mixed *(~is_liquid)+ Dref * is_liquid
-        Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        
-        self.fluid.Ca.D0 = Dnew_lb
-        self.fluid.Ca.Deref=np.max(Dnew_lb)
-        self.fluid.Ca.Dr=Dnew_lb
+        #self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
         
     def update_velocity(self):
         is_solid = self.solid.nodetype >=1
         not_solid = ~is_solid
-        #not_solid = np.ones(self.solid.shape)
-        '''
-        is_ch = self.solid.portlandite.c >= 0.05
-        not_liquid = np.logical_or(is_ch,is_solid)
-        ch_neighbors = not_liquid.astype(int) + \
-            np.roll(not_liquid, shift = 1, axis= 1).astype(int) + \
-            np.roll(not_liquid, shift = -1, axis= 1).astype(int) +\
-            np.roll(not_liquid, shift = 1, axis= 0).astype(int) +\
-            np.roll(not_liquid, shift = -1, axis= 0).astype(int)
-            
-        #not_solid =  np.logical_and(~is_solid, ~(ch_neighbors==5))
-        '''
         neighbors = np.roll(not_solid, shift = 1, axis= 1).astype(int) + \
             np.roll(not_solid, shift = -1, axis= 1).astype(int) +\
             np.roll(not_solid, shift = 1, axis= 0).astype(int) +\
@@ -373,19 +352,19 @@ class CarbonationRT(PhrqcReactiveTransport):
         if (self.ptype == 'CH'):  
             self.solid.vol_ch = self.volume_CH()
             self.solid.vol_cc = self.volume_CC()          
-            if (self.settings['pcs']['pores']=='cylinder'):
+            if (self.settings['pcs_mode']['pores']=='cylinder'):
                 #TODO check this case
                 if (self.iters<=1):
-                    self.solid.threshold_pore_size = self.settings['pcs']['crystal_size']
-                    self.solid.pore_length = self.settings['pcs']['crystal_size']  
+                    self.solid.threshold_pore_size = self.settings['pcs_mode']['crystal_size']
+                    self.solid.pore_length = self.settings['pcs_mode']['crystal_size']  
                 self.solid.pore_amount = self.pore_amount()  
                 self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.free_volume()  
                 self.solid.pore_size = self.pore_size()
                 self.solid.pore_volume_cc = self.pore_volume_CC() 
-            elif(self.settings['pcs']['pores']=='block'):                
+            elif(self.settings['pcs_mode']['pores']=='block'):                
                 if (self.iters<1):      
-                    self.solid.threshold_crystal = self.settings['pcs']['crystal_size'] #default crystal size
-                    self.solid.threshold_pore_size = self.settings['pcs']['pore_size']
+                    self.solid.threshold_crystal = self.settings['pcs_mode']['crystal_size'] #default crystal size
+                    self.solid.threshold_pore_size = self.settings['pcs_mode']['pore_size']
                     self.solid.threshold_distance = self.solid.threshold_pore_size*2
                     self.solid.block_size = self.block_size()
                 self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.solid._poros * self.dx**3#self.get_pore_volume(self)
@@ -395,23 +374,179 @@ class CarbonationRT(PhrqcReactiveTransport):
                 self.solid.pore_size =  self.pore_size()
             else:
                 pass        
-            self.solid.taget_SI = self.target_SI()
-            self.phrqc._target_SI = self.solid.taget_SI
+            self.solid.target_SI = self.target_SI()
+            self.phrqc._target_SI = self.solid.target_SI
         elif (self.ptype == 'CSH'): 
-            pass        
-    def correct(self):
-        c = deepcopy(self.fluid.get_attr('_c'))
-        f = deepcopy(self.fluid.get_attr('_f'))
-        flag = False
-        for comp in self.fluid.components:
-            n = c[comp] < 0
-            if n.any():
-                flag = True            
-                f[comp][n] = f[comp][n] - f[comp][n]*(f[comp][n]<0)
-        if flag: 
-            self.fluid.set_attr('_f',f)
-            self.fluid.set_attr('f',f)
-            self.fluid.call('compute_macro_var')      
+            pass     
+    
+    def update_no_flux(self, ss):        
+        ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
+        return(ss)
+        
+    def update_border_and_interface(self, nodetype):
+        is_port = (self.solid.portlandite.c>0)
+        is_mineral = is_port | (nodetype==ct.Type.SOLID)
+        val = -16
+        temp = deepcopy(nodetype)
+        temp = temp*(~is_mineral) + val*is_mineral
+        border = self.get_border(temp, val, is_port)
+        interface = self.get_interfaces(border, temp, val)
+        self.solid.border = border
+        self.solid.interface = interface
+    
+    def get_border(self, nt, val, is_port):
+        rolled = np.roll(nt, -1, axis = 1)/4+np.roll(nt, 1, axis = 1)/4 +\
+              np.roll(nt, -1, axis = 0)/4+np.roll(nt, 1, axis = 0)/4
+        is_border = (rolled!=val)&is_port
+        return(is_border)
+        
+    def get_interfaces(self, is_border, nt, val):        
+        down = is_border & (np.roll(nt, 1, axis = 0) != val)
+        up =  is_border & (np.roll(nt, -1, axis = 0) != val)
+        left =  is_border & (np.roll(nt, 1, axis = 1) != val)
+        right =  is_border & (np.roll(nt, -1, axis = 1) != val)       
+        
+        interfaces = {'left': left,
+                      'right': right,
+                      'up': up,
+                      'down': down,
+                      'sum' : 1*down + 1*up + 1*left + 1*right}        
+        return interfaces
+    
+    def update_border_solution(self,c,ss):
+        phrqc_poros = self.phrqc.selected_output()['poros']
+        fraction = self.settings['subgrid']['fraction']
+        result = {}
+        by = np.where(self.solid.border)[0]
+        bx = np.where(self.solid.border)[1]
+        df = np.where(self.solid.border.flatten())[0]
+        lx = self.nodetype.shape[1]
+        for i in np.arange(0, np.sum(self.solid.border)):
+            if fraction is None:
+                fraction = 1-phrqc_poros[by[i], bx[i]]
+                #fraction = fraction - phrqc_poros[by[i], bx[i]]
+            if (self.solid.interface['down'][by[i], bx[i]]):
+                cell_i = df[i]+1-lx
+                cell_m = df[i]+1
+                result  = self.update_neighbour_solution(result,cell_i, cell_m,  
+                                      self.solid.portlandite.c[by[i], bx[i]],
+                                      self.solid.calcite.c[by[i], bx[i]], 
+                                      self.solid.calcite.c[by[i]-1, bx[i]],
+                                      fraction)
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i]-1, bx[i]])/self.dt
+                    ssnew[name] *= phrqc_poros[by[i]-1, bx[i]]
+                    ss[name][by[i]-1, bx[i]] = ssnew[name]
+            if (self.solid.interface['up'][by[i], bx[i]]):
+                cell_i = df[i]+1+lx
+                cell_m = df[i]+1
+                result  = self.update_neighbour_solution(result,cell_i, cell_m,  
+                                      self.solid.portlandite.c[by[i], bx[i]],
+                                      self.solid.calcite.c[by[i], bx[i]], 
+                                      self.solid.calcite.c[by[i]+1, bx[i]],
+                                      fraction)#self.solid.poros[1,1])
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i]+1, bx[i]])/self.dt
+                    ssnew[name] *= phrqc_poros[by[i]+1, bx[i]]
+                    ss[name][by[i]+1, bx[i]] = ssnew[name]
+            if (self.solid.interface['left'][by[i], bx[i]]):
+                cell_i = df[i]
+                cell_m = df[i]+1
+                result  = self.update_neighbour_solution(result,cell_i, cell_m,  
+                                      self.solid.portlandite.c[by[i], bx[i]],
+                                      self.solid.calcite.c[by[i], bx[i]], 
+                                      self.solid.calcite.c[by[i], bx[i]-1],
+                                      fraction)
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i], bx[i]-1])/self.dt
+                    ssnew[name] *= phrqc_poros[by[i], bx[i]-1]
+                    ss[name][by[i], bx[i]-1] = ssnew[name]
+               
+            if (self.solid.interface['right'][by[i], bx[i]]):
+                cell_i = df[i]+2
+                cell_m = df[i] +1
+                result  = self.update_neighbour_solution(result,cell_i, cell_m,  
+                                      self.solid.portlandite.c[by[i], bx[i]],
+                                      self.solid.calcite.c[by[i], bx[i]], 
+                                      self.solid.calcite.c[by[i], bx[i]+1],
+                                      fraction)
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m) + ' ' +str(cell_i)][name]-c[name][by[i], bx[i]+1])/self.dt
+                    ssnew[name] *= phrqc_poros[by[i], bx[i]+1]
+                    ss[name][by[i], bx[i]+1] = ssnew[name]
+        
+        for i in np.arange(0, np.sum(self.solid.border)):
+            if (self.solid.interface['down'][by[i], bx[i]]):
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['portlandite_m']
+                #self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['calcite_m']
+                #self.solid.calcite.c[by[i]-1, bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['calcite_i']
+            if (self.solid.interface['up'][by[i], bx[i]]):
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['portlandite_m']
+                #self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_m']
+                #self.solid.calcite.c[by[i]+1, bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_i']
+            if (self.solid.interface['left'][by[i], bx[i]]):
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['portlandite_m']  
+                self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['calcite_m']  
+                self.solid.calcite.c[by[i], bx[i]-1] = result[str(df[i]+1) + ' ' +str(df[i])]['calcite_i']    
+            if (self.solid.interface['right'][by[i], bx[i]]):
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['portlandite_m'] 
+                #self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_m']  
+                #self.solid.calcite.c[by[i], bx[i]+1] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_i']    
+        
+        return ss
+        
+    def update_neighbour_solution(self, result, n_int, n_ch, m_ch, m_cc, i_cc, fraction=1):
+        ncell = 123456
+        modify_str = []
+        modify_str.append("EQUILIBRIUM_PHASES %i" % ncell)
+        modify_str.append("Portlandite 0 %.20e dissolve only" %(m_ch))   
+        modify_str.append("Calcite 0 %.20e dissolve only" %(m_cc))   # m_cc
+        modify_str.append("END") 
+        modify_str.append('MIX %i' % ncell)         
+        modify_str.append('%i %.20e' %( n_int, max(fraction,0.))) #modify_str.append('%i 1' %n_int)  
+        modify_str.append('SAVE solution %i' % ncell)  
+        modify_str.append("END") 
+        modify_str.append('USE solution %i' % ncell)  
+        modify_str.append('USE equilibrium_phase %i' % ncell)
+        modify_str.append('SAVE solution %i' % ncell)   
+        modify_str.append("END") 
+        modify_str.append("END") 
+        modify_str ='\n'.join(modify_str)
+        self.phrqc.IPhreeqc.RunString(modify_str) 
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        port = output[2][10] 
+        calc = output[2][12] 
+        modify_str = [] 
+        modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
+        modify_str.append("Portlandite 0 %.20e dissolve only" %(port))
+        modify_str.append("Calcite 0 %.20e precipitate only" %(calc)) #
+        modify_str.append("END") 
+        modify_str.append('USE equilibrium_phase %i' %n_int)      
+        modify_str.append('MIX %i' % ncell)      
+        modify_str.append('%i 1' % ncell)   
+        modify_str.append('%i %.20e' %( n_int, min(1.-fraction,1.))) #modify_str.append('%i 0' %n_int)    
+        modify_str.append('SAVE solution %i' %(n_int))  
+        modify_str.append('SAVE equilibrium_phase %i' %n_int)
+        modify_str.append('SAVE equilibrium_phase %i' %(n_ch))  
+        modify_str.append("END") 
+        modify_str ='\n'.join(modify_str)
+        self.phrqc.IPhreeqc.RunString(modify_str)  
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        comp = {}
+        comp['portlandite_m'] = port
+        comp['calcite_m'] = calc
+        comp['calcite_i'] = output[1][12]
+        comp['C'] = output[1][6]
+        comp['Ca'] = output[1][7]
+        comp['H'] = (output[1][8] - self.phrqc.H_norm)
+        comp['O'] = (output[1][9] - self.phrqc.O_norm)
+        result[str(n_ch) + ' ' + str(n_int)] = comp        
+        return(result)     
+    
     #%% VOLUMES
     def volume_CH(self):
         CH_vol = self.solid.portlandite.c * self.solid.portlandite.mvol
@@ -430,7 +565,7 @@ class CarbonationRT(PhrqcReactiveTransport):
 
     def pore_volume_CC(self):
         v = 0
-        if(self.settings['pcs']['pores'] == 'cylinder'):
+        if(self.settings['pcs_mode']['pores'] == 'cylinder'):
             v = self.solid.pore_amount * np.pi * self.solid.pore_size**2 * \
                 self.solid.pore_length #*2
         else:
@@ -440,14 +575,14 @@ class CarbonationRT(PhrqcReactiveTransport):
     def free_volume(self):
         v = self.solid.voxel_vol - self.solid.vol_ch
         return v
-    #%% PORE PROPERTIES
     
+    #%% PORE PROPERTIES    
     def pore_amount(self, ptype='CH'):
         '''
         Return matrix of pore amounts per each cell
         '''  
         vol = self.free_volume()
-        n = self.settings['pcs']['pore_density'] * vol #* np.ones(np.shape(pore_vol))
+        n = self.settings['pcs_mode']['pore_density'] * vol #* np.ones(np.shape(pore_vol))
         n[n<1] = 1
         return n   
     
@@ -458,15 +593,14 @@ class CarbonationRT(PhrqcReactiveTransport):
         Pore volume is total free volume or porosity
         '''
         r = (pore_vol *dx**3 / (pore_num * np.pi * pore_length))**(1./2.) 
-        return r
-    
+        return r    
     
     def pore_size(self):
         '''
         Return matrix of pore radiuses per each cell
         '''
         pore_size = np.ones(np.shape(self.solid.shape)) 
-        if(self.settings['pcs']['pores'] == 'cylinder'):
+        if(self.settings['pcs_mode']['pores'] == 'cylinder'):
             pore_size = self.get_cylinder_radius(self.solid.poros, 
                                                  self.solid.pore_amount, #self.settings['pcs']['pore_density']
                                                  self.solid.pore_length, 
@@ -477,13 +611,13 @@ class CarbonationRT(PhrqcReactiveTransport):
         return pore_size
     
     def threshold_pore_size(self):
-        si = self.settings['pcs']['threshold_SI']
+        si = self.settings['pcs_mode']['threshold_SI']
         omega = 10.**si
         ps = (-1) * self.settings['si_params']['mvol'] *\
             np.cos(np.pi*self.settings['si_params']['angle'])*2*\
-            self.settings['pcs']['iene'] /\
-            self.settings['pcs']['R'] /\
-            self.settings['pcs']['T'] / np.log(omega)
+            self.settings['pcs_mode']['iene'] /\
+            self.settings['pcs_mode']['R'] /\
+            self.settings['pcs_mode']['T'] / np.log(omega)
         return ps
     
     def block_size(self):
@@ -505,8 +639,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         v_c = (self.solid.crystal_size+self.dx )**3
         p = 1 - v_c/v_cp
         return p
-    #%% SATURATION INDEX
     
+    #%% SATURATION INDEX    
     def target_SI(self):        
         pore_size = self.solid.pore_size
         si = self.saturation_index(pore_size)    
@@ -527,7 +661,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         '''
         Saturation index 
         '''
-        params = self.settings['pcs']
+        params = self.settings['pcs_mode']
         omega = self.saturation_ratio(size, 
                                       params.get('int_energy'), 
                                       df.ANGLE, 
@@ -536,29 +670,10 @@ class CarbonationRT(PhrqcReactiveTransport):
                                       df.TEMPERATURE )
         si = np.log10(omega)
         return si
+    
     #%% PROPERTIES
     def csh_conc(self):    
         csh = self.solid.CSHQ_TobH.c+ self.solid.CSHQ_TobD.c +\
                 self.solid.CSHQ_JenH.c + self.solid.CSHQ_JenD.c
         return csh 
-    #%% MISCELANEOUS
-    def set_feq(self):
-        def get_feq(c,poros):
-            shape = np.shape(c) #(ly, lx)    
-            f = np.zeros((shape[0], shape[1], 5))    
-            f[:,:,0] = c*poros
-            f[:,:,1] = 0
-            f[:,:,2] = 0
-            f[:,:,3] = 0
-            f[:,:,4] = 0
-            return f
-        c = self.fluid.get_attr('c')
-        poros = self.solid.poros
-        f= self.fluid.get_attr('f')
-        for key, value in f.iteritems():
-            f[key] = get_feq(c[key], poros)
-        self.fluid.set_attr('f',f)
-        
-        
- 
-            
+                
