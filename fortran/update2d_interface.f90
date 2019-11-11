@@ -958,7 +958,7 @@ End subroutine
 !==================================================================
 !
 Subroutine reassign_mlvl(nodetype, ly, lx)
-!marks fluid interface node as 0 and solid interface node
+!marks fluid interface node as 2 and solid interface node
 !as 1
     Implicit none
     Real (8), Intent (InOut) :: nodetype (ly, lx)
@@ -981,10 +981,11 @@ Subroutine reassign_mlvl(nodetype, ly, lx)
                 If (next_j < 1) next_j =1
                 If (next_i > ly) next_i = ly
                 If (next_j > lx) next_j = lx
-                If ((nodetype(next_i,next_j) == -5) .AND. (nodetype(i,j) == -1 )) Then
+                ! neighbour multilevel
+                If ( ( ( nodetype(next_i,next_j) == -5)) .AND. (nodetype(i,j) == -1 ) ) Then
                     flag = 1
                     exit check
-                End If
+                End If		
             End Do check
             If (nodetype(i,j) == -1 ) Then
                 If (flag == 1) Then
@@ -1000,10 +1001,9 @@ Subroutine reassign_mlvl(nodetype, ly, lx)
     !      !$OMP END PARALLEL
 End Subroutine reassign_mlvl
 !
-
 !
 Subroutine reassign_mlvl_solid(nodetype, ly, lx)
-!marks fluid interface node as 0 and solid interface node
+!marks fluid interface node as 2 and solid interface node
 !as 1
     Implicit none
     Real (8), Intent (InOut) :: nodetype (ly, lx)
@@ -1016,8 +1016,8 @@ Subroutine reassign_mlvl_solid(nodetype, ly, lx)
     ey=(/0,1,0,-1/)
     !      !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(i,j,next_i,next_j,k,flag)
     !      !$OMP DO
-    Do i = 1, ly
-        Do j = 1, lx
+    Do i = 3, (ly-2)
+        Do j = 3, (lx-2)
             flag = 0
             check: Do k = 1, 4
                 next_i = i+ey(k)
@@ -1026,10 +1026,11 @@ Subroutine reassign_mlvl_solid(nodetype, ly, lx)
                 If (next_j < 1) next_j =1
                 If (next_i > ly) next_i = ly
                 If (next_j > lx) next_j = lx
-                If ((nodetype(next_i,next_j) == 1) .AND. (nodetype(i,j) == -1 )) Then
+                ! neighbour multilevel
+                If ( ( ( nodetype(next_i,next_j) == 1)) .AND. (nodetype(i,j) == -1 ) ) Then
                     flag = 1
                     exit check
-                End If
+                End If		
             End Do check
             If (nodetype(i,j) == -1 ) Then
                 If (flag == 1) Then
