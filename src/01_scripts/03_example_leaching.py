@@ -28,8 +28,8 @@ Default example. Explains possible values
 m = 'CH' #or 'CSH' #TODO case for cement
 
 #%% GEOMETRY
-ll = 1 #liquid lauer in front of portlandite
-l_ch = 25 #length of portlandite
+ll = 2 #liquid lauer in front of portlandite
+l_ch = 5 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
 dx = 1.0e-6
@@ -53,7 +53,7 @@ fn.make_output_dir(root_dir+'\\results\\output\\00_examples\\')
 path = root_dir+'\\results\\output\\00_examples\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'ca_bc':{'type':'conc', 'value': '0.01'}, 
+phrqc_input = {'ca_bc':{'type':'conc', 'value': '0.0'}, 
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
                'ca_liq':{'type':'conc', 'value': '0'}} # another option ca_liq':{'type':'conc', 'value': '0'} or ca_liq':{'type':'eq', 'value': 'portlandite'}
 
@@ -124,8 +124,8 @@ fn.save_phrqc_input(phrqc,root_dir, nn)
 
 #%% VALUES
 scale = 50 # scale of molar volume
-init_porosCH = 0.05 #initial porosity of portlandite nodes
-mvolCH = 0.0331*scale
+init_porosCH = 0.5 #initial porosity of portlandite nodes
+mvolCH =1.0#0.0331*scale
 mvol = [mvolCH]
 max_pqty = fn.get_max_pqty(mvol) #mol/m3
 init_conc = fn.set_init_pqty(mvol, init_porosCH)
@@ -140,21 +140,27 @@ app_tort = 1. * porosity ** app_tort_degree
 settings = {'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'archie', #'archie'/'fixed'
-                           'D_border':D, #diffusivity at border
-                           'D_CH': 1e-12, # fixed diffusivity in portlandite node
+                           #'D_border':D, #diffusivity at border
+                           #'D_CH': 1e-12, # fixed diffusivity in portlandite node
                            },
             'subgrid': {'fraction':None}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'dx': dx, 
             'Dref':D
             }
-               
+          
+bc_params = {'solution_labels':{'left':100001}, 
+            'top':['flux', 0.0],
+            'bottom':['flux', 0.0],
+            'left':['flux', 0.0],
+            'right':['flux', 0.0],}               
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir + \
                                      '\\phreeqc_input\\' + nn + '.phrq')#'CH_CC-nat.phrq'
-bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
+#bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
 solver_params = fn.set_solver_params(tfact = None, smart_thres = 1e-8)# optional values, for time step (if tfact => tfactbased tau)
+solver_params['phrqc_flags']['smart_run']=False
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 fn.save_settings(settings, bc_params, solver_params, path, nn)
 #%% INITIATE THE SOLVER
@@ -172,8 +178,8 @@ pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', #argument list
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
-nitr =10
-Ts =  0.05 #seconds
+nitr =1000
+Ts =  0.5 #seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -185,23 +191,16 @@ it=time.time()
 #%% RUN SOLVER
 itr = 0 
 j = 0
+rt_port = []
+rt_time = []
 while itr < nitr: # rt.time <=Ts: #
-    if(False):
-        if ( (rt.time <= time_points[j]) and \
-            ((rt.time + rt.dt) > time_points[j]) ):  
-            print(time_points[j])
-            fn.save_figures_minerals(rt,  max_pqty, time_points[j], path, nn, ptype=m)  
-            fn.save_figures_mols(rt, time_points[j], path, nn, ptype=m) 
-            #save_vti(rt, phases, time_points[j], path, nn, m)
-            #save_pickle(rt, phases, time_points[j], path, nn)
-            if(j>0):
-                points = [(1,n) for n in np.arange(1,6)]
-                fn.print_points(rt, points, names=['portlandite'])
-                print('Ca %s' %rt.fluid.Ca.c[1,:])
-            j +=1
-        
+            
     rt.advance()    
+    #print('Ca +ss %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
+
     #results = fn.append_results(rt, results, step = S )
+    rt_port.append(np.sum(rt.solid.portlandite.c))
+    rt_time.append(rt.time/3600)
     itr += 1
     
 #%% SIMULATION TIME
@@ -236,3 +235,8 @@ print('phrqc poros %s' %str(np.array(np.array(rt.phrqc.poros[1,:]))))
 
 
 #print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
+#%%
+print('time %s hours' %str(rt.time/3600))
+plt.figure()
+plt.plot(rt_time, rt_port)
+plt.show()

@@ -41,14 +41,16 @@ class LeachingRT(PhrqcReactiveTransport):
         self.nodetype = deepcopy(domain.nodetype) 
         self.apply_settings(settings)  
         self.update_nodetype()
+        self.update_border_and_interface(self.nodetype)
         self.fluid.call('_set_relaxation_params')  
         
     
     def advance(self):
+        #print(self.iters)
         self.update_border_and_interface(self.nodetype)
         self.update_diffusivity() 
         self.fluid.call('_set_relaxation_params')        
-        self.fluid.call('advance')         
+        self.fluid.call('advance')    
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
@@ -63,10 +65,12 @@ class LeachingRT(PhrqcReactiveTransport):
         ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
         pqty=self.solid.update(self.phrqc.dphases)   
         if(self.settings['dissolution']=='subgrid'):
-            ss=self.update_border_solution(c,ss)
-        self.fluid.set_attr('ss',ss)        
-        self.update_solid_params()  
+            ss=self.update_border_solution(c,ss) 
+        self.set_volume()
+        self.set_porosity()        
         self.update_nodetype()
+        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)      
+        self.fluid.set_attr('ss',ss) 
         
     #%% SETTINGS
     def set_volume(self):
@@ -209,6 +213,9 @@ class LeachingRT(PhrqcReactiveTransport):
         for i in np.arange(0, np.sum(self.solid.border)):
             if fraction is None:
                 fraction = 1-phrqc_poros[by[i], bx[i]]
+                if(fraction <= 1e-15):
+                    fraction = 1e-6
+                print(fraction)
             if (self.solid.interface['down'][by[i], bx[i]]):
                 cell_i = df[i]+1-lx
                 cell_m = df[i]+1
@@ -274,7 +281,7 @@ class LeachingRT(PhrqcReactiveTransport):
         modify_str.append("Portlandite 0 %.20e dissolve only" %(m_ch))   
         modify_str.append("END") 
         modify_str.append('MIX %i' % ncell)         
-        modify_str.append('%i %.20e' %( n_int, max(fraction,0.))) #modify_str.append('%i 1' %n_int)  
+        modify_str.append('%i %.20e' %( n_int, fraction)) #modify_str.append('%i 1' %n_int)  
         modify_str.append('SAVE solution %i' % ncell)  
         modify_str.append("END") 
         modify_str.append('USE solution %i' % ncell)  
@@ -285,16 +292,18 @@ class LeachingRT(PhrqcReactiveTransport):
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str) 
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        #print(modify_str)
+        #print(output)
         
         port = output[2][9] 
         modify_str = [] 
         modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
-        modify_str.append("Portlandite 0 %.20e dissolve only" %(port))
+        modify_str.append("Portlandite 0 %.20e" %(port)) # dissolve only
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' %n_int)      
         modify_str.append('MIX %i' % ncell)      
         modify_str.append('%i 1' % ncell)   
-        modify_str.append('%i %.20e' %(n_int, min(1.-fraction,1.))) #modify_str.append('%i 0' %n_int) #TODO check n_ch or n_int    
+        modify_str.append('%i %.20e' %(n_int, 1.-fraction)) #modify_str.append('%i 0' %n_int)   
         modify_str.append('SAVE solution %i' %(n_int))  
         modify_str.append('SAVE equilibrium_phase %i' %n_int)
         modify_str.append('SAVE equilibrium_phase %i' %(n_ch))  

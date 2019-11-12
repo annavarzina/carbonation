@@ -33,7 +33,7 @@ m = 'CH' #or 'CSH'
 
 ll = 2
 l = 5 +ll
-dx = 1.0e-3
+dx = 1.0e-6
 lx = l*dx
 ly = 2*dx
 
@@ -87,7 +87,7 @@ bc_params = {'solution_labels':{'left':100003},
 #%% INITIATE THE SOLVER
 rt= rt2.DissolutionRT('MultilevelAdvectionDiffusion',  domain, 
                           domain_params, bc_params, solver_params) 
-rt.phrqc.phrqc_smart_run_tol = 1e-6
+rt.phrqc.phrqc_smart_run_tol = 1e-8
 #%% PARAMETERS
 #plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
 plist =  [(1,n) for n in np.arange(0, l)]
@@ -100,25 +100,32 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 #%% TIME SETTINGS
 itr = 0 
 j = 0
-nitr = 100
+nitr = 1000
 Ts = 1000*3600
 rt_port = []
 rt_time = []
 #%% RUN SOLVER
 while  itr <= nitr:# rt.time <=Ts: #
     rt.advance()      
+    #print('Ca +ss %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
+
     rt_port.append(np.sum(rt.solid.portlandite.c))
     rt_time.append(rt.time/3600)
     itr += 1
     
 #%% SIMULATION TIME
 #'''
-print('Ca %s' %str(np.array(rt.fluid.Ca.c[1,:])))
-print('Ca +ss/theta %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.fluid.Ca.poros[1,:])))
-print('H +ss %s' %str(np.array(rt.fluid.H.c[1,:]) + np.array(rt.fluid.H._ss[1,:])/np.array(rt.fluid.H.poros[1,:])))
-print('O +ss %s' %str(np.array(rt.fluid.O.c[1,:]) + np.array(rt.fluid.O._ss[1,:])/np.array(rt.fluid.O.poros[1,:])))
+print('Ca %s' %str(np.array(rt.fluid.Ca._c[1,:])))
+print('Ca +ss %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
+print('H +ss %s' %str(np.array(rt.fluid.H.c[1,:]) + np.array(rt.fluid.H._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
+print('O +ss %s' %str(np.array(rt.fluid.O.c[1,:]) + np.array(rt.fluid.O._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
 print('CH %s' %str(np.array(rt.solid.portlandite.c[1,:])))
 print('dCH %s' %str(np.array(rt.phrqc.dphases['portlandite'][1,:])))
+print('Vol %s' %str(np.array(rt.solid.vol[1,:])))
+print('D %s' %str(np.array(rt.fluid.Ca.De[1,:])))
+print('pH %s' %str(np.array(rt.phrqc.selected_output()['pH'][1,:])))
+print('poros %s' %str(np.array(rt.solid.poros[1,:])))
+print('phrqc poros %s' %str(np.array(np.array(rt.phrqc.poros[1,:]))))
 #fn.plot_fields(carb_rt, names={ 'calcite', 'portlandite', 'Ca', 'C'})
 #print(rt.phrqc.selected_output())
 #'''

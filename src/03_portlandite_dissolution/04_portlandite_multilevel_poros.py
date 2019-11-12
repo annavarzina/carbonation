@@ -138,8 +138,8 @@ class DissolutionRT(PhrqcReactiveTransport):
         self.fluid.H.advance()
         self.fluid.O.advance()
         
-        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):            
-            self.update_solid_params()        
+        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):       
+            self.update_solid_params()      
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros) 
@@ -148,7 +148,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         phaseqty=self.solid.update(self.phrqc.dphases)
         if len(phaseqty):
             self.phrqc.modify_solid_phases(phaseqty)
-        self.fluid.set_attr('ss',ss)
+        self.fluid.set_attr('ss',ss)       
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
          
     def set_volume(self):

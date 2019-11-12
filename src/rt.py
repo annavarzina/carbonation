@@ -526,8 +526,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         calc = output[2][12] 
         modify_str = [] 
         modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
-        modify_str.append("Portlandite 0 %.20e dissolve only" %(port))
-        modify_str.append("Calcite 0 %.20e precipitate only" %(calc)) #
+        modify_str.append("Portlandite 0 %.20e" %(port)) #TODO check the difference with dissolve only
+        modify_str.append("Calcite 0 %.20e" %(calc)) #TODO check the difference with  precipitate only
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' %n_int)      
         modify_str.append('MIX %i' % ncell)      
