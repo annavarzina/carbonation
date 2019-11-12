@@ -51,13 +51,14 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_border_and_interface(self.nodetype)
         self.update_target_SI()
         self.update_diffusivity() 
-        self.fluid.call('advance')         
+        self.fluid.call('advance') 
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
+            self.update_solid_params()  
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros)      
         self.phrqc.is_calc = self.solid.calcite.c>0  
-        self.fluid.call('_set_relaxation_params')        
+        #self.fluid.call('_set_relaxation_params')        
         if(self.phrqc.precipitation == 'interface'):
             if(self.phrqc.active != 'interface'):
                 self.phrqc.nodetype = deepcopy(self.nodetype)
@@ -75,7 +76,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         ss = self.update_no_flux(ss)
         self.fluid.set_attr('ss',ss)
         
-        self.update_solid_params()  
         self.solid.phases = self.update_phases()    
         if(self.settings['velocity']):
             self.update_velocity()
@@ -169,7 +169,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.prev_vol = deepcopy(self.solid.vol)
         self.set_volume()
         self.set_porosity()
-        self.set_app_tort() #TODO degree
+        self.set_app_tort() #TODO degree    
         if(self.settings['velocity'] == True):
             self.solid.dvol = self.solid.vol-self.solid.prev_vol
         
@@ -235,16 +235,19 @@ class CarbonationRT(PhrqcReactiveTransport):
         yantra._solvers.update2d.reassign_mlvl(self.solid.nodetype) 
         self.solid.nodetype[prev_nodetype == ct.Type.SOLID] = ct.Type.SOLID
         yantra._solvers.update2d.reassign_mlvl_solid(self.solid.nodetype) 
-        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)                   
         self.solid.prev_calc_c = deepcopy(self.phrqc.solid_phase_conc['calcite'])
         self.nodetype = self.solid.nodetype
+        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)  
+        self.update_n()                 
         #self.phrqc.nodetype = self.solid.nodetype
 
     def update_diffusivity(self):
         if(self.settings['diffusivity']['type']=='fixed'): 
             self.update_diffusivity_fixed()
+            self.fluid.call('_set_relaxation_params')
         elif(self.settings['diffusivity']['type']=='mixed'): 
             self.update_diffusivity_mixed()
+            self.fluid.call('_set_relaxation_params')
         elif(self.settings['diffusivity']['type']=='archie'):
             pass
         else:
@@ -351,6 +354,20 @@ class CarbonationRT(PhrqcReactiveTransport):
         for name in self.fluid.components:
             velocity[name] = np.array((ux,uy))
         self.fluid.set_attr('u',velocity)
+        
+    def update_n(self):
+        c = deepcopy(self.fluid.get_attr('_c'))
+        f = deepcopy(self.fluid.get_attr('_f'))
+        flag = False
+        for comp in self.fluid.components:
+            n = c[comp] < 0
+            if n.any():
+                flag = True            
+                f[comp][n] = f[comp][n] - f[comp][n]*(f[comp][n]<0)
+        if flag: 
+            self.fluid.set_attr('_f',f)
+            self.fluid.set_attr('f',f)
+            self.fluid.call('compute_macro_var')
     
     def update_target_SI(self):
         if (self.ptype == 'CH'):  
@@ -526,8 +543,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         calc = output[2][12] 
         modify_str = [] 
         modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
-        modify_str.append("Portlandite 0 %.20e" %(port)) #TODO check the difference with dissolve only
-        modify_str.append("Calcite 0 %.20e" %(calc)) #TODO check the difference with  precipitate only
+        modify_str.append("Portlandite 0 %.20e dissolve only" %(port)) #TODO check the difference with/wo dissolve only
+        modify_str.append("Calcite 0 %.20e precipitate only" %(calc)) #TODO check the difference with/wo  precipitate only
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' %n_int)      
         modify_str.append('MIX %i' % ncell)      

@@ -281,11 +281,11 @@ print(rt.fluid.Ca.De[1,:])
 print('tau')       
 print(rt.fluid.Ca.tau[1,:])
 
-#'''
+'''
 with open('conc1.txt', 'w') as file:
     file.write(conc_Ca)
     file.write(conc_O)
     file.write(conc_H)
     file.write(pqty_CH)
     file.close()
-#'''
+'''
