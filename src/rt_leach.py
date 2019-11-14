@@ -47,11 +47,10 @@ class LeachingRT(PhrqcReactiveTransport):
     
     def advance(self):
         #print(self.iters)
-        self.update_border_and_interface(self.nodetype)
-        self.update_diffusivity() 
-        self.fluid.call('_set_relaxation_params')        
+        self.update_border_and_interface(self.nodetype) 
         self.fluid.call('advance')    
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
+                  
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros)
@@ -66,6 +65,8 @@ class LeachingRT(PhrqcReactiveTransport):
         pqty=self.solid.update(self.phrqc.dphases)   
         if(self.settings['dissolution']=='subgrid'):
             ss=self.update_border_solution(c,ss) 
+        self.update_diffusivity() 
+        self.fluid.call('_set_relaxation_params') 
         self.set_volume()
         self.set_porosity()        
         self.update_nodetype()
@@ -214,8 +215,8 @@ class LeachingRT(PhrqcReactiveTransport):
             if fraction is None:
                 fraction = 1-phrqc_poros[by[i], bx[i]]
                 if(fraction <= 1e-15):
-                    fraction = 1e-6
-                print(fraction)
+                    fraction = 1e-15
+                #print(fraction)
             if (self.solid.interface['down'][by[i], bx[i]]):
                 cell_i = df[i]+1-lx
                 cell_m = df[i]+1

@@ -31,31 +31,66 @@ sys.path.append(src_dir)
 import yantra
 import numpy as np
 import matplotlib.pylab as plt
+from yantra.physics._phrqc_wrapper import  Phrqc
+from yantra._base import Multicomponent 
+from yantra.physics.PhrqcReactiveTransport import PhrqcReactiveTransport 
+from yantra.physics.PhrqcReactiveTransport import Solid
 
 from copy import deepcopy
 #%%
 
-from yantra.physics.PhrqcReactiveTransport import PhrqcReactiveTransport 
 class DissolutionRT(PhrqcReactiveTransport):
+    def __init__(self,eqn,domain,domain_params,bc_params,solver_params):
+        '''
+        Reactive transport class for carbonation
+        A Lattice Boltzmann method based reactive transport model \
+        where reactions are computed using geochemical solver PHREEQC
+        '''
+        self.auto_time_step = solver_params.get('auto_time_step',True)
+        self.phrqc = CarbonationPhrqc(domain,domain_params,bc_params,solver_params)        
+        components = self.phrqc.components
+        bc = self.phrqc.boundary_conditions 
+        init_c = self.phrqc.initial_conditions         
+        for name in components:
+            if name not in domain_params:
+                domain_params[name]={}
+            domain_params[name]['c']=init_c[name]            
+        for name in bc:
+            for comp in components:
+                if comp not in bc_params:
+                    bc_params[comp]={}
+                bc_params[comp][name]=['c',bc[name][comp]]                
+        self.fluid=Multicomponent(eqn,components,domain,domain_params,
+                                  bc_params,solver_params)
+        self.solid=Solid(domain,domain_params,solver_params)   
+        self.ptype = 'CSH' if hasattr(self.fluid, 'Si') else 'CH'
+        self.set_volume()
+        self.set_porosity()
+        self.nodetype = deepcopy(domain.nodetype)
         
     def advance(self):     
-        if(self.iters==0):             
+        if(self.iters==0):                    
             self.set_volume()
-            self.set_porosity()              
+            self.set_porosity()               
             self.nodetype = deepcopy(domain.nodetype)
-            #self.update_diffusivity()
-            #self.fluid.call('_set_relaxation_params')   
+        #self.update_solid_params()
+        #self.update_diffusivity()  
+        #self.fluid.call('_set_relaxation_params')  
             
         #self.fluid.call('advance')
         
-        #self.fluid.Ca.advance()
-        #'''
+        
+        
+        self.fluid.Ca.advance()
+        '''
         self.fluid.Ca.time +=self.dt
         self.fluid.Ca.iters+=1
         
         print("=======================================")
         print("step %s" %self.fluid.Ca.iters)
         print("=======================================")
+        print('tau')       
+        print(self.fluid.Ca.tau[1,:])
         print("Before transport ")
         print("\tf: \n\t N3 %s \n\t N4 %s \n\t N5 %s" %(self.fluid.Ca.f[1,3,:],
                                           self.fluid.Ca.f[1,4,:],
@@ -132,14 +167,12 @@ class DissolutionRT(PhrqcReactiveTransport):
         print("\tPorosity:\t N3 %s \t N4 %s \t N5 %s" %(self.fluid.Ca.poros[1,3],
                                           self.fluid.Ca.poros[1,4],
                                           self.fluid.Ca.poros[1,5]))
-        #'''
+        '''
         self.fluid.H.advance()
-        self.fluid.O.advance()
-        
-        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0): 
-            self.update_diffusivity()
-            self.fluid.call('_set_relaxation_params')         
-            self.update_solid_params()     
+        self.fluid.O.advance()   
+        self.update_solid_params()      
+        #prev_port = self.solid.portlandite.c[1,4] 
+        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):  
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros) 
@@ -148,6 +181,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         phaseqty=self.solid.update(self.phrqc.dphases)
         if len(phaseqty):
             self.phrqc.modify_solid_phases(phaseqty)
+        #self.solid.portlandite.c[1,4] = prev_port  
         self.fluid.set_attr('ss',ss)       
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
          
@@ -183,6 +217,8 @@ class DissolutionRT(PhrqcReactiveTransport):
         self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)
         
 
+class CarbonationPhrqc(Phrqc):
+    pass
 #%% geometry
 
 ll = 3
@@ -223,7 +259,7 @@ bc_params={'solution_labels':{'left':100001},
            'bottom':['flux', 0.0],
            'left':['conc', 0.0],
            'right':['flux', 0.0]}
-rt= DissolutionRT('MultilevelAdvectionDiffusion', domain,
+rt= DissolutionRT('MultilevelAdvectionDiffusion2', domain,
                                   domain_params,bc_params,solver_params)
 #%% run model
 
@@ -236,7 +272,7 @@ porosity = 'Poros\n'
 time=[]
 TotCa =[]
 TotCH = []
-iters = 5
+iters = 400
 while  rt.iters < iters:#rt.time<=0.1:#
     rt.advance() 
     TotCa.append(np.sum(rt.fluid.Ca.c*rt.fluid.Ca.poros)) 
@@ -280,6 +316,8 @@ print('De')
 print(rt.fluid.Ca.De[1,:])
 print('tau')       
 print(rt.fluid.Ca.tau[1,:])
+print('porosity')       
+print(rt.phrqc.selected_output()['poros'][1,:])
 
 '''
 with open('conc1.txt', 'w') as file:
