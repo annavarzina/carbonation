@@ -108,7 +108,7 @@ tfact = tfact_default * tfact_scale
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
 bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
-solver_params = fn.set_solver_params(tfact = None, smart_thres = 1e-8)
+solver_params = fn.set_solver_params(tfact = tfact, smart_thres = 1e-8)
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 fn.save_settings(settings, bc_params, solver_params, path, nn)
 

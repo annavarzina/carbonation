@@ -17,21 +17,18 @@ import func as cf
 #%% SETTINGS
 Ts =1000.
 scale = 50
-fname = 'dt_p05_cbc'
+fname = 'compare_dt_p005'
 fpath = root_dir+'\\results\\output\\01_time_step\\'
 fn.make_output_dir(fpath)
-if fname == 'dt_p005_cbc':
-    names = np.array(['01_dt1_p005_cbc', '02_dt2_p005_cbc', '03_dt4_p005_cbc', '04_dt8_p005_cbc'])
-elif fname == 'dt_p05_cbc':
-    names = np.array(['01_dt1_p05_cbc', '02_dt2_p05_cbc', '03_dt4_p05_cbc', '04_dt8_p05_cbc'])
-elif fname == 'dt_p05':
-    names = np.array(['01_dt1_p05', '01_dt2_p05', '01_dt4_p05', '01_dt8_p05'])
-else:
-    sys.exit()
 #label = np.array(['f 1', 'f 2', 'f 4', 'f 8'])
-linetype = np.array(['-', '--', '-.', ':'])
-
-ts = np.array([1.667e-04, 8.332e-05, 4.167e-05, 2.082e-05])
+linetype = np.array(['-', '--', '-.', ':', '-', '--', '-.', ':', ])
+colors = np.array([])
+names = np.array(['01_dt1_p005_subgrid', '02_dt2_p005_subgrid', 
+                  '03_dt5_p005_subgrid', '04_dt10_p005_subgrid'])
+#names = np.array(['05_dt1_p005_Dborder', '06_dt2_p005_Dborder',
+#                  '07_dt5_p005_Dborder', '08_dt10_p005_Dborder'])
+ts = np.array([8.334e-06, 1.667e-05, 4.167e-05, 8.334e-05,
+               8.334e-06, 1.667e-05, 4.167e-05, 8.334e-05])
 results = {}
 for nn in names:
     path = root_dir+'\\results\\output\\01_time_step\\' + nn + '\\'
@@ -42,7 +39,7 @@ for i in range(0, len(names)):
     temp *= scale
     results[names[i]]['time']= temp.tolist()
     
-label = ts
+label = names
 #%% CH DISSOLUTION 
 titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon',
           'Average pH', 'Input C', 'Porosity']
@@ -51,7 +48,7 @@ suffix = ['_portlandite', '_calcite', '_calcium', '_carbon',
           '_average ph', '_input_c', '_poros']
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
-    for i in range(0, len(names)):
+    for i in range(0, 4):
         plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
@@ -86,7 +83,7 @@ for k in range(0, len(comp)):
     plt.xlabel('Time (s)')
     plt.ylabel('Rate (mol/s)')
     plt.legend()
-    plt.savefig(fpath + fname + suffix[k])
+    #plt.savefig(fpath + fname + suffix[k])
     plt.show()
 #plt.savefig(fpath + fname + '_CH_rate')
     
@@ -130,7 +127,7 @@ plt.plot(s, npnorm)
 plt.title('L2 norm')
 plt.xlabel('Time step')
 plt.ylabel('Numpy L2 norm')
-plt.savefig(fpath + fname + '_np_l2_norm')
+#plt.savefig(fpath + fname + '_np_l2_norm')
 plt.show()
 
 plt.figure(figsize=(8,4))
@@ -138,7 +135,7 @@ plt.plot(s, l2norm)
 plt.title('Relative error')
 plt.xlabel('Time step')
 plt.ylabel('Relative error')
-plt.savefig(fpath + fname + '_rel_error')
+#plt.savefig(fpath + fname + '_rel_error')
 plt.show()
 
 #%% DIFFERENCE IN PERCENT
@@ -148,16 +145,12 @@ for nn in names:
     e = results[nn][k][0]- results[nn][k][-2]
     e = e/results[nn][k][0]*100
     er = np.append(er, e)
-print(er)
-for i in range(0,len(er)):
-    print(er[i]-er[-1])
 #%% 
 for nn in names:
     ch24 = np.array(results[nn]['portlandite_cells'])==24
     ch23 = np.array(results[nn]['portlandite_cells'])==23
     cross = np.roll(ch24,-1) +ch23
     t = np.array(results[nn]['time'])[~cross]
-    print(t)
     
 #%%
     
