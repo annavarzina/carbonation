@@ -57,7 +57,7 @@ fn.make_output_dir(root_dir+'\\results\\output\\02_molar_volume\\')
 path = root_dir+'\\results\\output\\02_molar_volume\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'conc', 'value': 2.77E-02}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -65,7 +65,7 @@ phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-scale = 100 # scale of molar volume
+scale = 5, # scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
@@ -138,13 +138,13 @@ ni = 100
 nitr = 100
 Ts = 1000.
 Ts = Ts/scale + 0.001#1.001#1.01
-step = max(int(Ts/10.),1)
+step = max(int(Ts/10.),1.)
 #time_points = np.arange(0, Ts+step, step)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step)))
 it=time.time()
 
 N = Ts/carb_rt.dt
-N_res = 1e+4
+N_res = 1.0e+4
 S = max(1,int(N/N_res))
 
 #%% RUN SOLVER

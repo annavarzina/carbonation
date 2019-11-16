@@ -53,8 +53,8 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\01_time_step\\')
-path = root_dir+'\\results\\output\\01_time_step\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\02_molar_volume\\')
+path = root_dir+'\\results\\output\\02_molar_volume\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
