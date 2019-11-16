@@ -15,16 +15,18 @@ np.set_printoptions(precision=5, threshold=np.inf)
 import misc_func as fn
 import func as cf
 #%% SETTINGS
-Ts =100.
-fname = 'mvol'
+Ts =1000.
+fname = 'compare_mvol'
 fpath = root_dir+'\\results\\output\\02_molar_volume\\'
 fn.make_output_dir(fpath)
-#names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
-#label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
-#linetype = np.array(['-', '--', '-.', ':', '-'])
-names = np.array(['05_mvol_100_cbc', '04_mvol_50_cbc', '03_mvol_10_cbc', 
-                  '02_mvol_5_cbc', '01_mvol_1_cbc'])
-label = np.array(['100','50', '10', '5', '1'])
+names = np.array([#'01_mvol1_subgrid',
+                  '02_mvol5_subgrid',
+                  '03_mvol10_subgrid', 
+                  '04_mvol50_subgrid', 
+                  '05_mvol100_subgrid', 
+                   ])
+label = np.array([# '1', 
+                  '5', '10', '50', '100'])
 linetype = np.array(['-', '--', '-.', ':', '-'])
 
 results = {}
@@ -33,7 +35,7 @@ for nn in names:
     results[nn] = fn.load_obj(path + nn +'_results')
 
 #%% SCALE
-scale = [100,50, 10, 5, 1]
+scale = [5., 10, 50, 100]
 #dtime = [350,350,350,350,200,0]
 keys = ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'time',
         'C (1, 0)', 'C (1, 1)', 'avg_poros', 
@@ -54,6 +56,7 @@ for i in range(0, len(names)):
     temp['calcite'] *=scale[i]
     sres[names[i]] = temp
 #%%   
+    '''
 plt.figure(figsize=(8,4))
 for i in range(0, len(names)):
     plt.plot(sres[names[i]]['time'], sres[names[i]]['Ca (1, 1)'],
@@ -80,7 +83,8 @@ for i in range(0, len(names)):
     plt.plot(sres[names[i]]['time'], sres[names[i]]['vol_CC (1, 1)'],
              ls=linetype[i], label = label[i])
 plt.legend()
-plt.show() 
+plt.show()
+''' 
 #%% CH DISSOLUTION 
 titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon',
           'Average pH', 'Input C', 'Porosity']
@@ -121,13 +125,13 @@ for k in range(0, len(comp)):
 
 #%% INTERPOLATION
 from scipy.interpolate import interp1d
-
+name = '02_mvol5_subgrid'
 t = {}
 p = {}
 for n in names:
     t[n] = sres[n]['time']
     p[n] = sres[n]['portlandite']
-f = interp1d(t['01_mvol_1_cbc'], p['01_mvol_1_cbc'], kind = 'cubic', fill_value="extrapolate")
+f = interp1d(t[name], p[name], kind = 'cubic', fill_value="extrapolate")
 pi = {}
 diff = {}
 for i in range(0, len(names)-1):
