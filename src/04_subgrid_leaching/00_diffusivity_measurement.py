@@ -60,14 +60,14 @@ solver_params['cphi_fact']=1./3.
 ade_trt=yantra.AdvectionDiffusion(domain,domain_params,bc_params,solver_params)
 #%% run models
 #%% TIME SETTINGS
-nitr =1000
+nitr =2000
 tf =  1.0 #seconds
 tf = tf + 0.001
 step = tf/20.
 time_points = np.arange(0, tf+step, step)
 #%% RUN SOLVER
 itr = 0 
-l = 20
+l = 1
 j = 0
 conc_step_srt = []
 while  ade_srt.time <=tf: # itr < nitr: #            
@@ -99,12 +99,14 @@ from math import erf
 def equation(d, x, t, cm, c):
     return (c - cm*(1.-erf(x/2./np.sqrt(d*t))))
 
+diffusivity1 = []
 for i in np.arange(0, len(conc_step_srt)):
-    res = root(equation, 0, args = (x, time_points[i], cm, conc_step_srt[i]))
-    k = res.x[0]
-    print('Time %s' %time_points[i])
-    print('Concentration %s' %conc_step_srt[i])
-    print('Diffusivity %s' %k)
+    res = root(equation, D, args = (x, time_points[i], cm, conc_step_srt[i]))
+    #k = res.x[0]
+    diffusivity1.append(res.x[0])
+    #print('Time %s' %time_points[i])
+    #print('Concentration %s' %conc_step_srt[i])
+    #print('Diffusivity %s' %k)
 
 #%% Compute diffusivcity TRT
 print('================================')
@@ -112,12 +114,19 @@ print('================================')
 def equation(d, x, t, cm, c):
     return (c - cm*(1.-erf(x/2./np.sqrt(d*t))))
 
+diffusivity2 = []
 for i in np.arange(0, len(conc_step_trt)):
-    res = root(equation, 0, args = (x, time_points[i], cm, conc_step_trt[i]))
-    k = res.x[0]
+    res = root(equation, D, args = (x, time_points[i], cm, conc_step_trt[i]))
+    #k = res.x[0]
+    diffusivity2.append(res.x[0])
     #print('Time %s' %time_points[i])
     #print('Concentration %s' %conc_step_trt[i])
-    print('Diffusivity %s' %k)
+    #print('Diffusivity %s' %k)
+#%%
+plt.figure()
+plt.loglog(diffusivity1)
+plt.loglog(diffusivity2)
+plt.show()
 #%% CHECK
 t = 10
 x = 20e-6

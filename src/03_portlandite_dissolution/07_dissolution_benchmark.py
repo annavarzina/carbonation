@@ -44,14 +44,14 @@ plt.show()
 
 #%%
 
-cm = 0.95 #mol/l
+cm = 0.199999 #mol/l
 ceq = 0.01949 #mol/l
 c0 = 0 #mol/l
 res = root(equation, 0, args = (ceq, cm, c0))
 k = res.x[0]
 print(k)
-time = np.arange(0, 0.2 ,0.001) #minutes
-time_s = time*60#seconds
+time = np.arange(0, 1.0 ,0.001) #minutes
+time_s = time#*60#seconds
 D = 1e-9*1e+12 #um2/s
 #D = 1e-9*1e+6 # mm2/s 
 plt.figure()
@@ -64,5 +64,17 @@ plt.show()
 plt.figure()
 plt.plot(time_s, np.abs(2*k*np.sqrt(D*time_s)))
 plt.xlabel('Time (sec)')
+plt.ylabel('dr (um)')
+plt.show()
+#%%
+print(np.abs(2*k*np.sqrt(D*0.09074999999999936)))
+print(np.abs(2*k*np.sqrt(D*0.3688500000000422)))
+print(np.abs(2*k*np.sqrt(D*0.8334000000002864)))
+dissolution_time = np.array([0.,0.09074999999999936, 0.3688500000000422, 0.8334000000002864])
+results = np.array([0, 1.,2.,3.])
+plt.figure()
+plt.plot(time, np.abs(2*k*np.sqrt(D*time_s)))
+plt.plot(dissolution_time, results)
+plt.xlabel('Time (min)')
 plt.ylabel('dr (um)')
 plt.show()

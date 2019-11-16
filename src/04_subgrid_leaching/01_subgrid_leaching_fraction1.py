@@ -124,29 +124,35 @@ fn.save_phrqc_input(phrqc,root_dir, nn)
 
 #%% VALUES
 scale = 50 # scale of molar volume
-init_porosCH = 0.1 #initial porosity of portlandite nodes
+init_porosCH = 0.01 #initial porosity of portlandite nodes
 mvolCH =0.0331*scale
 mvol = [mvolCH]
 max_pqty = fn.get_max_pqty(mvol) #mol/m3
 init_conc = fn.set_init_pqty(mvol, init_porosCH)
 pqty = fn.get_pqty(init_conc, domain)
 
-slabels = fn.set_labels(domain, m)          
-D = 1.0e-09 # default diffusion coefficient in pure liquid
+slabels = fn.set_labels(domain, m) 
+D_CH =    1e-12
+D_border = 1e-12 # 5.e-10#8*1.e-12
+D_high = 1.e-9
+#D = D_high*(domain.nodetype==-1) + D_CH*(domain.nodetype!=-1) 
+#D[1,ll+1] = D_border # default diffusion coefficient in pure liquid
+D = D_high
 porosity = fn.get_porosity(domain, pqty, mvol, m)
-app_tort_degree = 1./3.
+app_tort_degree = 1.#1./3.
 app_tort = 1. * porosity ** app_tort_degree
 
 settings = {'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'archie', #'archie'/'fixed'
-                           'D_border': 1e-15, #diffusivity at border
-                           'D_CH': 1e-15, # fixed diffusivity in portlandite node
+                           'D_border': D_border, #diffusivity at border
+                           'D_CH': D_CH, # fixed diffusivity in portlandite node
                            },
-            'subgrid': {'fraction':0.05}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':0.3,
+                        'poros': True}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'dx': dx, 
-            'Dref':D
+            'Dref':D_high
             }
           
 bc_params = {#'solution_labels':{'left':100001}, 
@@ -159,7 +165,7 @@ domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir + \
                                      '\\phreeqc_input\\' + nn + '.phrq')#'CH_CC-nat.phrq'
 #bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
-solver_params = fn.set_solver_params(tfact = 1./6./1., smart_thres = 1e-8)# optional values, for time step (if tfact => tfactbased tau)
+solver_params = fn.set_solver_params(tfact = 1./6./10., smart_thres = 1e-8)# optional values, for time step (if tfact => tfactbased tau)
 solver_params['phrqc_flags']['smart_run']=False
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 fn.save_settings(settings, bc_params, solver_params, path, nn)
@@ -179,7 +185,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  0.5*scale #seconds
+Ts =  0.1*scale #seconds
 Ts = Ts/scale + 0.001
 N = Ts/rt.dt
 N_res = 1e+4
@@ -187,7 +193,7 @@ S = max(1,int(N/N_res))
 it=time.time()
 
 
-step = Ts/50.
+step = Ts/20.
 time_points = np.arange(0, Ts+step, step)
 #%% RUN SOLVER
 itr = 0 
@@ -196,12 +202,16 @@ l = ll
 rt_port = []
 rt_time = []
 conc_step = []
-while  rt.time <=Ts: # itr < nitr: #
-            
+conc_step2 = []
+while  itr < nitr: #rt.time <=Ts: # 
+    '''       
     if ( (rt.time <= time_points[j]) and ((rt.time + rt.dt) > time_points[j]) ):  
         conc_step.append(rt.fluid.Ca.c[1,l])            
         j +=1
+    '''
     rt.advance() 
+    conc_step.append(rt.fluid.Ca.c[1,l])  
+    conc_step2.append(rt.fluid.Ca.c[1,l-2])  
     rt_port.append(np.sum(rt.solid.portlandite.c))
     rt_time.append(rt.time)
     itr += 1
@@ -242,35 +252,65 @@ plt.plot(rt_time, rt_port)
 plt.show()
 
 #%% DIFFUSION COEFFICIENT
-
+print('Dborder %s' %settings['diffusivity']['D_border'])
 #l = 20
-x = (1)*dx #m
+x = 1. #m
 print('Length %s' %x)
 c = rt.fluid.Ca.c[1,l] #mol/l
 print('Concentration %s' %c)
 cm = rt.fluid.Ca.c[1,-2] #mol/l
-t = Ts#rt.time #s
+t = rt.time #s
 
 from math import erf
 def equation(d, x, t, cm, c):
     return (c - cm*(1.-erf(x/2./np.sqrt(d*t))))
 
-
+diffusivity1 = []
 from scipy.optimize import root
 for i in np.arange(1, len(conc_step)):
-    res = root(equation, 1e-10, args = (x, time_points[i], cm, conc_step[i]))
-    k = res.x[0]
-    print('Diffusivity %s' %k)
+    res = root(equation, settings['Dref'] /dx**2, args = (x, rt_time[i], cm, conc_step[i]), method='lm')
+    #print(res.x[0])
+    diffusivity1.append(res.x[0]*dx**2)
+#print(diffusivity1)
+print('Diffusivity %s' %np.mean(diffusivity1))
+x = 2.0
+diffusivity2 = []
+from scipy.optimize import root
+for i in np.arange(1, len(conc_step)):
+    res = root(equation, settings['Dref'] /dx**2, args = (x, rt_time[i], cm, conc_step2[i]), method='lm')
+    #print(res.x[0])
+    diffusivity2.append(res.x[0]*dx**2)
+#print(diffusivity2)
+print('Diffusivity %s' %np.mean(diffusivity2))
+x = domain.meshgrid()[0]
+#%%
+plt.figure()
+#plt.loglog(diffusivity1)
+plt.loglog(diffusivity2)
+plt.show()
 
+
+plt.figure()
+plt.plot(diffusivity2[500:-1])
+plt.show()
+
+print(diffusivity1[-1])
+print(diffusivity2[-1])
 #%% CHECK
-t = Ts
-x = (1)*dx
-d = 1e-10
+t = rt.time
+x = 1.
+d = 1e+2
 cm = 0.01923
 print(cm*(1.-erf(x/2./np.sqrt(d*t))))
 
+t = rt.time
+x = 1.*dx
+d = 1e-10
+cm = 0.01923
+print(cm*(1.-erf(x/2./np.sqrt(d*t))))
 #%%
 x = domain.meshgrid()[0]
 plt.figure()
 plt.plot(x[1,:], np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:]))
+plt.plot(x[1,:], np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.selected_output()['poros'][1,:]))
 plt.show()

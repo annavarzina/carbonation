@@ -17,7 +17,13 @@ class LeachingRT(PhrqcReactiveTransport):
         Reactive transport class for carbonation
         A Lattice Boltzmann method based reactive transport model \
         where reactions are computed using geochemical solver PHREEQC
-        '''
+        ''' 
+        if(settings['diffusivity']['type']=='fixed'):
+            print("newMlvl")
+            eqn = 'MultilevelAdvectionDiffusion2'
+            #solver_params['tauref'] = 1
+            #domain_params['Deref'] = settings['diffusivity']['D_border']
+            #solver_params['tauref'] = 0.5*np.max(settings['Dref'])/domain_params['Deref']+0.5#5.5 for 1e-10
         self.auto_time_step = solver_params.get('auto_time_step',True)
         self.phrqc = Phrqc(domain,domain_params,bc_params,solver_params)    
         components = self.phrqc.components
@@ -32,25 +38,26 @@ class LeachingRT(PhrqcReactiveTransport):
             for comp in components:
                 if comp not in bc_params:
                     bc_params[comp]={}
-                bc_params[comp][name]=['c',bc[name][comp]]                
+                bc_params[comp][name]=['c',bc[name][comp]]  
+            
         self.fluid=Multicomponent(eqn,components,domain,domain_params,
                                   bc_params,solver_params)
         self.solid=Solid(domain,domain_params,solver_params)        
         self.ptype = 'CSH' if hasattr(self.fluid, 'Si') else 'CH'
+        self.app_tort_degree = settings['app_tort']['degree']
         self.update_solid_params()    
         self.nodetype = deepcopy(domain.nodetype) 
         self.apply_settings(settings)  
         self.update_nodetype()
         self.update_border_and_interface(self.nodetype)
-        self.fluid.call('_set_relaxation_params')  
+        #self.fluid.call("_set_relaxation_params")
         
     
     def advance(self):
         #print(self.iters)
         self.update_border_and_interface(self.nodetype) 
         self.fluid.call('advance')    
-        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
-                  
+        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):                  
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros)
@@ -65,13 +72,13 @@ class LeachingRT(PhrqcReactiveTransport):
         pqty=self.solid.update(self.phrqc.dphases)   
         if(self.settings['dissolution']=='subgrid'):
             ss=self.update_border_solution(c,ss) 
-        self.update_diffusivity() 
-        self.fluid.call('_set_relaxation_params') 
         self.set_volume()
-        self.set_porosity()        
+        self.set_porosity()  
+        self.set_app_tort()        
         self.update_nodetype()
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)      
         self.fluid.set_attr('ss',ss) 
+        #self.fluid.call("_set_relaxation_params")
         
     #%% SETTINGS
     def set_volume(self):
@@ -86,7 +93,8 @@ class LeachingRT(PhrqcReactiveTransport):
         if np.any(self.solid.poros<=1e-10):
             sys.exit('Negative or zero porosity')
         
-    def set_app_tort(self, d = 1./3.):  
+    def set_app_tort(self):  
+        d = self.app_tort_degree
         self.solid.app_tort = 1. * self.solid.poros ** d
         
     def set_boundary_cells(self):
@@ -99,7 +107,6 @@ class LeachingRT(PhrqcReactiveTransport):
      
     def apply_settings(self, settings):
         self.settings = settings
-        self.Dref = settings['Dref']
         self.dx =  settings['dx']
                 
     #%% UPDATES
@@ -134,41 +141,6 @@ class LeachingRT(PhrqcReactiveTransport):
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)      
         self.nodetype = self.solid.nodetype
 
-    def update_diffusivity(self):
-        if(self.settings['diffusivity']['type']=='fixed'): 
-            self.update_diffusivity_fixed()
-        elif(self.settings['diffusivity']['type']=='archie'):
-            pass
-        else:
-            print('Incorrect diffusivity type. Archie\'s relationship is used.')
-            
-    def update_diffusivity_fixed(self):
-        Dref = self.Dref
-        D_border = self.Dref
-        D_CH = None
-        if('D_border' in self.settings['diffusivity']):
-            D_border = self.settings['diffusivity']['D_border']
-        if('D_CH' in self.settings['diffusivity']):
-            D_CH = self.settings['diffusivity']['D_CH']
-        
-        is_border = self.solid.border
-        is_port = (self.solid.portlandite.c >0) & (~is_border)
-        is_liquid = np.logical_and(~is_port, ~is_border)
-        
-        Dnew_lb = Dref*np.ones(np.shape(self.nodetype))
-        if(D_CH is None): 
-            De = D_border*is_border + Dref*is_liquid 
-            Dnew_lb = De/self.solid.poros/self.solid.app_tort
-            Dnew_lb = Dref*is_port + Dnew_lb*(~is_port)
-        elif(D_CH is not None):
-            De = D_CH*is_port+ D_border*is_border + Dref*is_liquid 
-            Dnew_lb = De/self.solid.poros/self.solid.app_tort
-            
-        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
-        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
-        #self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)  
-        
-        
     def update_no_flux(self, ss):        
         ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
         return(ss)
@@ -209,17 +181,20 @@ class LeachingRT(PhrqcReactiveTransport):
         result = {}
         by = np.where(self.solid.border)[0]
         bx = np.where(self.solid.border)[1]
-        df = np.where(self.solid.border.flatten())[0]
+        bf = np.where(self.solid.border.flatten())[0]
         lx = self.nodetype.shape[1]
         for i in np.arange(0, np.sum(self.solid.border)):
             if fraction is None:
                 fraction = 1-phrqc_poros[by[i], bx[i]]
-                if(fraction <= 1e-15):
-                    fraction = 1e-15
-                #print(fraction)
+            else:
+                if (self.settings['subgrid']['poros']):
+                    fraction = fraction - phrqc_poros[by[i], bx[i]]
+                    if(fraction <= 1e-6):
+                        fraction = 1e-6
+                print(fraction)
             if (self.solid.interface['down'][by[i], bx[i]]):
-                cell_i = df[i]+1-lx
-                cell_m = df[i]+1
+                cell_i = bf[i]+1-lx
+                cell_m = bf[i]+1
                 result  = self.update_neighbour_solution(result,cell_i, cell_m,  
                                       self.solid.portlandite.c[by[i], bx[i]],
                                       fraction)
@@ -229,8 +204,8 @@ class LeachingRT(PhrqcReactiveTransport):
                     ssnew[name] *= phrqc_poros[by[i]-1, bx[i]]
                     ss[name][by[i]-1, bx[i]] = ssnew[name]
             if (self.solid.interface['up'][by[i], bx[i]]):
-                cell_i = df[i]+1+lx
-                cell_m = df[i]+1
+                cell_i = bf[i]+1+lx
+                cell_m = bf[i]+1
                 result  = self.update_neighbour_solution(result,cell_i, cell_m,  
                                       self.solid.portlandite.c[by[i], bx[i]],
                                       fraction)#self.solid.poros[1,1])
@@ -240,8 +215,8 @@ class LeachingRT(PhrqcReactiveTransport):
                     ssnew[name] *= phrqc_poros[by[i]+1, bx[i]]
                     ss[name][by[i]+1, bx[i]] = ssnew[name]
             if (self.solid.interface['left'][by[i], bx[i]]):
-                cell_i = df[i]
-                cell_m = df[i]+1
+                cell_i = bf[i]
+                cell_m = bf[i]+1
                 result  = self.update_neighbour_solution(result,cell_i, cell_m,  
                                       self.solid.portlandite.c[by[i], bx[i]],
                                       fraction)
@@ -252,8 +227,8 @@ class LeachingRT(PhrqcReactiveTransport):
                     ss[name][by[i], bx[i]-1] = ssnew[name]
                
             if (self.solid.interface['right'][by[i], bx[i]]):
-                cell_i = df[i]+2
-                cell_m = df[i] +1
+                cell_i = bf[i]+2
+                cell_m = bf[i] +1
                 result  = self.update_neighbour_solution(result,cell_i, cell_m,  
                                       self.solid.portlandite.c[by[i], bx[i]],
                                       fraction)
@@ -265,13 +240,13 @@ class LeachingRT(PhrqcReactiveTransport):
         
         for i in np.arange(0, np.sum(self.solid.border)):
             if (self.solid.interface['down'][by[i], bx[i]]):
-                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['portlandite_m']
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(bf[i]+1) + ' ' +str(bf[i]-lx+1)]['portlandite_m']
             if (self.solid.interface['up'][by[i], bx[i]]):
-                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['portlandite_m']
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(bf[i]+1) + ' ' +str(bf[i]+lx+1)]['portlandite_m']
             if (self.solid.interface['left'][by[i], bx[i]]):
-                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['portlandite_m']  
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(bf[i]+1) + ' ' +str(bf[i])]['portlandite_m']  
             if (self.solid.interface['right'][by[i], bx[i]]):
-                self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['portlandite_m'] 
+                self.solid.portlandite.c[by[i], bx[i]] = result[str(bf[i]+1) + ' ' +str(bf[i]+2)]['portlandite_m'] 
        
         return ss
         

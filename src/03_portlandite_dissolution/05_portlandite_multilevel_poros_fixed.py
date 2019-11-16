@@ -78,6 +78,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         #self.fluid.call('_set_relaxation_params')  
             
         #self.fluid.call('advance')
+        #self.fluid.set_attr('Deref', self.Deref,component_dict=False)  
         
         
         
@@ -172,7 +173,7 @@ class DissolutionRT(PhrqcReactiveTransport):
         self.fluid.O.advance()   
         self.update_solid_params()      
         #prev_port = self.solid.portlandite.c[1,4] 
-        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):  
+        if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros) 
@@ -203,25 +204,13 @@ class DissolutionRT(PhrqcReactiveTransport):
         self.set_volume()
         self.set_porosity()
   
-    def update_diffusivity(self):
-        
-        D_CH= 1e-9
-        Dref = 1e-9        
-        is_port = self.solid.portlandite.c >0
-        is_liquid = ~is_port
-        De = D_CH *is_port+ Dref * is_liquid 
-        Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        #print(Dnew_lb)
-        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
-        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
-        self.fluid.set_attr('Dr',Dnew_lb,component_dict=False)
         
 
 class CarbonationPhrqc(Phrqc):
     pass
 #%% geometry
 
-ll = 3
+ll = 20
 l = 5 +ll
 lx = l*1.0e-6
 ly = 2.0e-6
@@ -233,11 +222,14 @@ domain.nodetype[:, ll+1:l+ll+1] = -5
 slabels =  100003*(domain.nodetype== -1) + 100002*(domain.nodetype!= -1)
 pqty =  0.95*(domain.nodetype==-5)
 porosity = 1.0*(domain.nodetype!=-5) + 0.05*(domain.nodetype==-5)
-D = 1e-9#*(domain.nodetype== -1)+1e-09*(domain.nodetype!= -1) #1e-15
+Dref = 1.*1.e-11
+Dhigh = 1e-9
+D = 1e-9#*(domain.nodetype== -1)+1e-15*(domain.nodetype!= -1) #1e-15
+#D[:, ll+1]=Dref
 #domain params
-
 domain_params={}
 domain_params['D0']=D
+domain_params['Deref']=Dref
 domain_params['database']='cemdata07.dat'
 domain_params['phrqc_input_file']='portlandite_mlvl.phrq'
 domain_params['solution_labels']=slabels
@@ -248,13 +240,15 @@ domain_params['poros']=porosity
 #solver parameters
 solver_params={}
 solver_params['collision_model']='trt'
-solver_params['tauref']=1
+solver_params['tauref']=1#0.2*Dhigh/Dref+0.5#5.5 for 1e-10
+#solver_params['Deref']=Dref
 solver_params['magic_para']= 1./4.
 solver_params['cphi_fact']= 1./3.
+#solver_params['cphi']=1./3.
 #solver_params['tfact']= 1./6.
 #['tfactbased']= True
 
-bc_params={'solution_labels':{'left':100001}, 
+bc_params={#'solution_labels':{'left':100001}, 
            'top':['flux', 0.0],
            'bottom':['flux', 0.0],
            'left':['conc', 0.0],
@@ -272,7 +266,7 @@ porosity = 'Poros\n'
 time=[]
 TotCa =[]
 TotCH = []
-iters = 400
+iters = 500
 while  rt.iters < iters:#rt.time<=0.1:#
     rt.advance() 
     TotCa.append(np.sum(rt.fluid.Ca.c*rt.fluid.Ca.poros)) 
@@ -300,8 +294,7 @@ plt.ylabel('Total CH mass [mM]')
 plt.show()
 
 plt.figure()
-plt.imshow(rt.fluid.Ca.c)
-plt.colorbar()
+plt.plot(rt.fluid.Ca.c[1,:])
 plt.title('Ca concentarion [mol/l]')
 plt.show()
 
