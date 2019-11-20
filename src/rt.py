@@ -53,7 +53,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_diffusivity() 
         self.fluid.call('advance') 
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
-            self.update_solid_params()  
+            self.update_solid_params()   
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros)      
@@ -75,7 +75,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             ss=self.update_border_solution(c,ss)
         ss = self.update_no_flux(ss)
         self.fluid.set_attr('ss',ss)
-        
+               
         self.solid.phases = self.update_phases()    
         if(self.settings['velocity']):
             self.update_velocity()
@@ -170,6 +170,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.set_volume()
         self.set_porosity()
         self.set_app_tort() #TODO degree    
+        self.update_n()
         if(self.settings['velocity'] == True):
             self.solid.dvol = self.solid.vol-self.solid.prev_vol
         
@@ -238,7 +239,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.prev_calc_c = deepcopy(self.phrqc.solid_phase_conc['calcite'])
         self.nodetype = self.solid.nodetype
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)  
-        self.update_n()                 
+        #self.update_n()                 
         #self.phrqc.nodetype = self.solid.nodetype
 
     def update_diffusivity(self):
@@ -446,6 +447,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             if fraction is None:
                 fraction = 1-phrqc_poros[by[i], bx[i]]
                 #fraction = fraction - phrqc_poros[by[i], bx[i]]
+            #print(fraction)
             if (self.solid.interface['down'][by[i], bx[i]]):
                 cell_i = df[i]+1-lx
                 cell_m = df[i]+1
@@ -503,20 +505,20 @@ class CarbonationRT(PhrqcReactiveTransport):
         for i in np.arange(0, np.sum(self.solid.border)):
             if (self.solid.interface['down'][by[i], bx[i]]):
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['portlandite_m']
-                #self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['calcite_m']
-                #self.solid.calcite.c[by[i]-1, bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['calcite_i']
+                self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['calcite_m']
+                self.solid.calcite.c[by[i]-1, bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]-lx+1)]['calcite_i']
             if (self.solid.interface['up'][by[i], bx[i]]):
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['portlandite_m']
-                #self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_m']
-                #self.solid.calcite.c[by[i]+1, bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_i']
+                self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_m']
+                self.solid.calcite.c[by[i]+1, bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+lx+1)]['calcite_i']
             if (self.solid.interface['left'][by[i], bx[i]]):
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['portlandite_m']  
                 self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i])]['calcite_m']  
                 self.solid.calcite.c[by[i], bx[i]-1] = result[str(df[i]+1) + ' ' +str(df[i])]['calcite_i']    
             if (self.solid.interface['right'][by[i], bx[i]]):
                 self.solid.portlandite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['portlandite_m'] 
-                #self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_m']  
-                #self.solid.calcite.c[by[i], bx[i]+1] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_i']    
+                self.solid.calcite.c[by[i], bx[i]] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_m']  
+                self.solid.calcite.c[by[i], bx[i]+1] = result[str(df[i]+1) + ' ' +str(df[i]+2)]['calcite_i']    
         
         return ss
         

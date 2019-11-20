@@ -19,23 +19,30 @@ Ts =1000.
 fname = 'compare_mvol'
 fpath = root_dir+'\\results\\output\\02_molar_volume\\'
 fn.make_output_dir(fpath)
-names = np.array([#'01_mvol1_subgrid',
+'''
+names = np.array(['01_mvol1_subgrid',
                   '02_mvol5_subgrid',
                   '03_mvol10_subgrid', 
                   '04_mvol50_subgrid', 
                   '05_mvol100_subgrid', 
                    ])
-label = np.array([# '1', 
-                  '5', '10', '50', '100'])
+label = np.array([ '1', '5', '10', '50', '100'])
+'''
+names = np.array(['01_mvol1_subgrid_constbc',
+                  '02_mvol5_subgrid_constbc',
+                  '03_mvol10_subgrid _constbc', 
+                  '04_mvol50_subgrid_constbc',
+                  '05_mvol100_subgrid_constbc',
+                   ])
+label = np.array([ '1', '5', '10', '50', '100'])
 linetype = np.array(['-', '--', '-.', ':', '-'])
-
 results = {}
 for nn in names:
     path = root_dir+'\\results\\output\\02_molar_volume\\' + nn + '\\'
     results[nn] = fn.load_obj(path + nn +'_results')
 
 #%% SCALE
-scale = [5., 10, 50, 100]
+scale = [ 1.,5., 10, 50,100]
 #dtime = [350,350,350,350,200,0]
 keys = ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'time',
         'C (1, 0)', 'C (1, 1)', 'avg_poros', 
@@ -122,10 +129,23 @@ for k in range(0, len(comp)):
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
 #plt.savefig(fpath + fname + '_CH_rate')
-
+#%%
+#'''
+titles = ['Volume CH in (1,1)', 'Volume CH in (1,2)', 'Volume CH in (1,3)']
+comp =  ['vol_CH (1, 1)', 'vol_CH (1, 2)', 'vol_CH (1, 3)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        plt.plot(sres[names[i]]['time'], sres[names[i]][comp[k]],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 
+#'''
 #%% INTERPOLATION
 from scipy.interpolate import interp1d
-name = '02_mvol5_subgrid'
+name = names[0]#'02_mvol5_subgrid'
 t = {}
 p = {}
 for n in names:
@@ -134,7 +154,7 @@ for n in names:
 f = interp1d(t[name], p[name], kind = 'cubic', fill_value="extrapolate")
 pi = {}
 diff = {}
-for i in range(0, len(names)-1):
+for i in range(1, len(names)):
     pi[names[i]] = f(t[names[i]])
     diff[names[i]] = np.abs(p[names[i]] - pi[names[i]])
 
@@ -149,7 +169,7 @@ def l2_norm(v, o):
 s = []
 npnorm = []
 l2norm = []
-for i in range(0, len(names)-1):
+for i in range(1, len(names)):
     #print('Scale %s' %scale[i])
     s.append(scale[i])
     npnorm.append(np.linalg.norm(diff[names[i]], ord = 1))
@@ -174,33 +194,22 @@ plt.show()
 #%%
 k = 'calcite'# 'avg_poros' #'portlandite''calcite'
 er = np.array([])
+di = np.array([])
 for nn in names:
     d_ch = sres[nn][k][0]- sres[nn][k][-2]
     er = np.append(er, d_ch)
-print(er)
+    di = np.append(di,  (results[nn][k][0]-results[nn][k][-1])/results[nn][k][0])
+print(di)
 for i in range(0,len(er)):
-    e = (er[i]-er[-1])/er[-1] * 100    
+    e = (er[i]-er[0])/er[0] * 100    
     print('%s, %s ' %(names[i], str(e)))
     
- 
+
 #%% 
 for nn in names:
     ch24 = np.array(sres[nn]['portlandite_cells'])==24
     ch23 = np.array(sres[nn]['portlandite_cells'])==23
     cross = np.roll(ch24,-1) + ch23
     t = np.array(sres[nn]['time'])[~cross]
-    print(t)
+    #print(t)
     
-#%%
-    
-titles = ['Volume CH in (1,1)', 'Volume CH in (1,2)', 'Volume CH in (1,3)']
-comp =  ['vol_CH (1, 1)', 'vol_CH (1, 2)', 'vol_CH (1, 3)']
-for k in range(0, len(comp)):
-    plt.figure(figsize=(8,4))
-    for i in range(0, len(names)):
-        plt.plot(sres[names[i]]['time'], sres[names[i]][comp[k]],
-                 ls=linetype[i], label = label[i])
-    plt.title(titles[k])
-    plt.xlabel('Time (s)')
-    plt.legend()
-    plt.show() 

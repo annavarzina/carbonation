@@ -65,7 +65,7 @@ phrqc_input = {'c_bc':{'type':'conc', 'value': 2.77E-02}, #3.05E-02, 3.74E-02, 4
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-scale = 5, # scale of molar volume
+scale = 5. # scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
@@ -136,7 +136,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 1000.
+Ts = 100.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1.)
 #time_points = np.arange(0, Ts+step, step)

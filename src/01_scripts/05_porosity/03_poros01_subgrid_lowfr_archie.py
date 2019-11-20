@@ -86,9 +86,7 @@ app_tort = 1. * porosity ** app_tort_degree
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'fixed', #'archie'/'fixed'/'mixed'
-                           'D_border':1e-12, #diffusivity at border
-                           'D_CH': 1e-12, # fixed diffusivity in portlandite node
+            'diffusivity':{'type':'archie', #'archie'/'fixed'/'mixed'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -97,7 +95,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
-            'subgrid': {'fraction':1.}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':0.01}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'velocity': False, 
             'bc': phrqc_input['c_bc'],

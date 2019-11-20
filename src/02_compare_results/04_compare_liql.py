@@ -22,9 +22,9 @@ fn.make_output_dir(fpath)
 #names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
 #label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
 #linetype = np.array(['-', '--', '-.', ':', '-'])
-names = np.array(['01_ll0_p05', '01_ll2_p05', '01_ll4_p05'])
+names = np.array(['01_ll1_p005_subgrid', '01_ll3_p005_subgrid', '01_ll5_p005_subgrid'])
 #names = np.array(['01_ll0_p05_Dfix', '01_ll2_p05_Dfix', '01_ll4_p05_Dfix'])
-label = np.array(['0', '2','4'])
+label = np.array(['1', '3','5'])
 linetype = np.array(['-', '--', '-.'])
 
 results = {}
@@ -73,3 +73,34 @@ for k in range(0, len(comp)):
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
 #plt.savefig(fpath + fname + '_CH_rate')
+#%%
+    
+titles = [ 'Volume CH in (1,2)', 'Volume CH in (1,3)','Volume CH in (1,4)',
+          'Volume CH in (1,5)', 'Volume CH in (1,6)','Volume CH in (1,7)',]
+comp =  [ 'vol_CH (1, 2)', 'vol_CH (1, 3)',  'vol_CH (1, 4)','vol_CH (1, 5)', 
+         'vol_CH (1, 6)',  'vol_CH (1, 7)']
+
+for i in range(0, len(names)):
+    plt.figure(figsize=(8,4))    
+    for k in range(0, len(comp)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = titles[k])
+    plt.title(label[i])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 
+#%%
+titles = [ 'Volume CC in (1,1)','Volume CC in (1,2)', 'Volume CC in (1,3)','Volume CC in (1,4)',
+          'Volume CC in (1,5)', 'Volume CC in (1,6)','Volume CC in (1,7)']
+comp =  [ 'vol_CC (1, 1)','vol_CC (1, 2)', 'vol_CC (1, 3)',  'vol_CC (1, 4)',
+         'vol_CC (1, 5)', 'vol_CC (1, 6)',  'vol_CC (1, 7)']
+
+for i in range(0, len(names)):
+    plt.figure(figsize=(8,4))    
+    for k in range(0, len(comp)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = titles[k])
+    plt.title(label[i])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 

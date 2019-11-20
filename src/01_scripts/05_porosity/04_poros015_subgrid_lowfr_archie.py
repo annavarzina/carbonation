@@ -66,7 +66,7 @@ phrqc = fn.set_phrqc_input(phrqc_input)
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
 scale = 50. # scale of molar volume
-init_porosCH = 0.1 #initial porosity of portlandite nodes
+init_porosCH = 0.15 #initial porosity of portlandite nodes
 default_porosCH = 0.01
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale* (1-init_porosCH) / (1-default_porosCH)
@@ -86,9 +86,7 @@ app_tort = 1. * porosity ** app_tort_degree
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'fixed', #'archie'/'fixed'/'mixed'
-                           'D_border':1e-12, #diffusivity at border
-                           'D_CH': 1e-12, # fixed diffusivity in portlandite node
+            'diffusivity':{'type':'archie', #'archie'/'fixed'/'mixed'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -97,7 +95,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
-            'subgrid': {'fraction':1.}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':0.01}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'velocity': False, 
             'bc': phrqc_input['c_bc'],
@@ -175,6 +173,25 @@ np.save(path + 'De', carb_rt.fluid.Ca.De )
 np.save(path + 'poros', carb_rt.fluid.Ca.poros)
 #%% PLOT
 fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
+
 #%% PRINT
+print('Ca %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
+print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
+print('C %s' %str(np.array(carb_rt.fluid.C._c[1,:])))
+print('C +ss %s' %str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
+print('H +ss %s' %str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
+print('O +ss %s' %str(np.array(carb_rt.fluid.O.c[1,:]) + np.array(carb_rt.fluid.O._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
+print('CH %s' %str(np.array(carb_rt.solid.portlandite.c[1,:])))
+print('dCH %s' %str(np.array(carb_rt.phrqc.dphases['portlandite'][1,:])))
+print('CC %s' %str(np.array(carb_rt.solid.calcite.c[1,:])))
+print('dCC %s' %str(np.array(carb_rt.phrqc.dphases['calcite'][1,:])))
+print('Vol %s' %str(np.array(carb_rt.solid.vol[1,:])))
+print('D %s' %str(np.array(carb_rt.fluid.C.De[1,:])))
+print('SI %s' %str(np.array(carb_rt.solid.target_SI[1,:])))
+print('pH %s' %str(np.array(carb_rt.phrqc.selected_output()['pH'][1,:])))
+print('poros %s' %str(np.array(carb_rt.solid.poros[1,:])))
+print('phrqc poros %s' %str(np.array(np.array(carb_rt.phrqc.poros[1,:]))))
+
+
 print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
 print('Total CC precipitated %s' %(results['calcite'][-1]-results['calcite'][0]))

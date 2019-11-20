@@ -178,6 +178,7 @@ class LeachingRT(PhrqcReactiveTransport):
     def update_border_solution(self,c,ss):
         phrqc_poros = self.phrqc.selected_output()['poros']
         fraction = self.settings['subgrid']['fraction']
+        #print(fraction)
         result = {}
         by = np.where(self.solid.border)[0]
         bx = np.where(self.solid.border)[1]
@@ -191,7 +192,8 @@ class LeachingRT(PhrqcReactiveTransport):
                     fraction = fraction - phrqc_poros[by[i], bx[i]]
                     if(fraction <= 1e-6):
                         fraction = 1e-6
-                print(fraction)
+                        #print(fraction)
+                
             if (self.solid.interface['down'][by[i], bx[i]]):
                 cell_i = bf[i]+1-lx
                 cell_m = bf[i]+1

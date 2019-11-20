@@ -53,8 +53,8 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\02_molar_volume\\')
-path = root_dir+'\\results\\output\\02_molar_volume\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\05_porosity\\')
+path = root_dir+'\\results\\output\\05_porosity\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
@@ -67,8 +67,9 @@ fn.save_phrqc_input(phrqc,root_dir, nn)
 
 scale = 50. # scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
+default_porosCH = 0.01
 mvol_ratio = 3.69/3.31
-mvolCH = 0.0331*scale
+mvolCH = 0.0331*scale* (1-init_porosCH) / (1-default_porosCH)
 mvol = [mvolCH, mvolCH*mvol_ratio]
 mvol = fn.set_mvols(mvol, ptype = m) #m3/mol
 max_pqty = fn.get_max_pqty(mvol) #mol/m3
@@ -85,10 +86,9 @@ app_tort = 1. * porosity ** app_tort_degree
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'archie', #'archie'/'fixed'/'mixed'
-                           #'D_border':D, #diffusivity at border
-                           #'D_CC': 9e-12, # fixed diffusivity in calcite node
-                           #'D_CH': 1e-12, # fixed diffusivity in portlandite node
+            'diffusivity':{'type':'fixed', #'archie'/'fixed'/'mixed'
+                           'D_border':1e-12, #diffusivity at border
+                           'D_CH': 1e-12, # fixed diffusivity in portlandite node
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -97,7 +97,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
-            'subgrid': {'fraction':None}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':1.}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'velocity': False, 
             'bc': phrqc_input['c_bc'],

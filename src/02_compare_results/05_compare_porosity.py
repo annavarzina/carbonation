@@ -19,12 +19,41 @@ Ts =100.
 fname = 'poros_Dfix'
 fpath = root_dir+'\\results\\output\\05_porosity\\'
 fn.make_output_dir(fpath)
-#names = np.array(['01_porosity_0.05', '02_porosity_0.1', 
-#                  '03_porosity_0.25', '04_porosity_0.5'])
-names = np.array(['01_porosity_0.05archie', '02_porosity_0.1archie', 
-                  '03_porosity_0.25archie', '04_porosity_0.5archie'])
-label = np.array(['0.05', '0.1','0.25', '0.5'])
-linetype = np.array(['-', '--', '-.', ':'])
+'''
+names = np.array(['01_poros001_subgrid', '02_poros005_subgrid',
+                  '03_poros01_subgrid', '04_poros015_subgrid'])
+names = np.array(['01_poros001_subgrid_poros', '02_poros005_subgrid_poros',
+                  '03_poros01_subgrid_poros', '04_poros015_subgrid_poros'])
+names = np.array([ '01_poros001_subgrid_lowfr','02_poros005_subgrid_lowfr',#
+                  '03_poros01_subgrid_lowfr', '04_poros015_subgrid_lowfr'])
+names = np.array([ '01_poros001_subgrid_lowfr_archie','02_poros005_subgrid_lowfr_archie',
+                  '03_poros01_subgrid_lowfr_archie', '04_poros015_subgrid_lowfr_archie'])
+
+names = np.array([ '02_poros005_subgrid_lowfr', '02_poros005_subgrid_lowfr_archie',
+                   '02_poros005_subgrid', '02_poros005_subgrid_poros',
+                   '02_poros005_Dborder11'])
+label = np.array(['0.01','0.05', '0.1', '1.'])
+
+names = np.array([ '03_poros01_subgrid_lowfr', '03_poros01_subgrid_lowfr_archie',
+                   '03_poros01_subgrid', '03_poros01_subgrid_lowfr04'])
+names = np.array([ '04_poros015_subgrid_lowfr', '04_poros015_subgrid_lowfr_archie',
+                   '04_poros015_subgrid', '04_poros015_subgrid_lowfr04'])
+names = np.array(['01_poros001_subgrid', '02_poros005_subgrid',
+                  '03_poros01_subgrid', '04_poros015_subgrid'])
+#label = np.array(['fr 0.01', 'fr 0.01 + A','fr 1.0', 'dyn fr', 'Dbord'])
+label = np.array(['fr 0.01', 'fr 0.01 + A','fr 1.0', 'fr 0.004' ])
+names = np.array([ '03_poros01_subgrid_lowfr',#, '03_poros01_subgrid_lowfr_archie',
+                   '03_poros01_subgrid', '03_poros01_subgrid_lowfr04'])
+names = np.array([ '02_poros005_subgrid_lowfr',# '02_poros005_subgrid_lowfr_archie',
+                   '02_poros005_subgrid', '02_poros005_subgrid_lowfr04'])
+label = np.array(['fr 0.01','fr 1.0', 'fr 0.004' ])
+label = np.array(['fr 0.01', 'fr 0.01 + A','fr 1.0', 'fr 0.004' ])
+'''
+
+names = np.array([ '01_poros001_subgrid_lowfr','02_poros005_subgrid_lowfr',#
+                  '03_poros01_subgrid_lowfr', '04_poros015_subgrid_lowfr'])
+label = np.array(['0.01','0.05', '0.1', '0.15'])
+linetype = np.array(['-', '--', '-.', ':', '-'])
 
 results = {}
 for nn in names:
@@ -60,12 +89,13 @@ for k in range(0, len(comp)):
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
+r = 500
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(results[names[i]]['time'], 
+        plt.plot(results[names[i]]['time'][r:-1], 
                  cf.get_rate(results[names[i]][comp[k]],
-                             results[names[i]]['time'][2] - results[names[i]]['time'][1]),
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1])[r:-1],
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
     plt.xlabel('Time (s)')
@@ -74,3 +104,101 @@ for k in range(0, len(comp)):
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
 #plt.savefig(fpath + fname + '_CH_rate')
+#%%
+titles = [ 'Porosity in (1,1)','Porosity in (1,2)', 'Porosityin (1,3)','Porosity in (1,4)']
+comp =  [ 'poros (1, 1)','poros (1, 2)', 'poros (1, 3)',  'poros (1, 4)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 
+#%%
+titles = [ 'Volume CH in (1,2)', 'Volume CH in (1,3)','Volume CH in (1,4)']
+comp =  [ 'vol_CH (1, 2)', 'vol_CH (1, 3)',  'vol_CH (1, 4)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 
+#%%
+titles = [ 'Volume CC in (1,1)','Volume CC in (1,2)', 'Volume CC in (1,3)','Volume CC in (1,4)']
+comp =  [ 'vol_CC (1, 1)','vol_CC (1, 2)', 'vol_CC (1, 3)',  'vol_CC (1, 4)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 
+       
+#%%
+#'''
+titles = [' Ca in (1,0)',' Ca in (1,1)' ,' Ca in (1,2)', 'Ca in (1,3)']
+comp =  ['Ca (1, 0)','Ca (1, 1)' ,'Ca (1, 2)', 'Ca (1, 3)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 
+    
+    
+titles = [' C in (1,0)',' C in (1,1)' ,' C in (1,2)', 'C in (1,3)']
+comp =  ['C (1, 0)','C (1, 1)' ,'C (1, 2)', 'C (1, 3)']
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))
+    for i in range(0, len(names)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = label[i])
+    plt.title(titles[k])
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.show() 
+#'''
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['vol_CC (1, 1)'][0:500],
+             ls=linetype[i], label = label[i])
+plt.title('CC (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['Ca (1, 1)'][0:500],
+             ls=linetype[i], label = label[i])
+plt.title('Ca (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+mvol = np.array([0.01, 0.05, 0.1, 0.15])
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['vol_CH (1, 2)'][0:500],
+             ls=linetype[i], label = label[i])
+plt.title('CH (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+#%%
+for i in range(0, len(names)):
+    print(results[names[i]]['De (1, 1)'][-1])
+for i in range(0, len(names)):
+    print(results[names[i]]['poros (1, 1)'][-1])

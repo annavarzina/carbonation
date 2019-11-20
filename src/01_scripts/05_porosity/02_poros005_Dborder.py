@@ -23,7 +23,7 @@ import rt
 #%% PROBLEM DEFINITION
 __doc__= """ 
 Reference:
-    Lime solution \theta = 0.1
+    Lime solution \theta = 0.05
     PCO2 = 3.4
     IE = 0.5
     Archies relation for diffusivity
@@ -66,7 +66,7 @@ phrqc = fn.set_phrqc_input(phrqc_input)
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
 scale = 50. # scale of molar volume
-init_porosCH = 0.1 #initial porosity of portlandite nodes
+init_porosCH = 0.05 #initial porosity of portlandite nodes
 default_porosCH = 0.01
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale* (1-init_porosCH) / (1-default_porosCH)
@@ -84,10 +84,10 @@ app_tort = 1. * porosity ** app_tort_degree
 
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'subgrid', #'multilevel'/'subgrid'
+            'dissolution':'multilevel', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'archie'/'fixed'/'mixed'
-                           'D_border':1e-12, #diffusivity at border
+                           'D_border':1e-10, #diffusivity at border
                            'D_CH': 1e-12, # fixed diffusivity in portlandite node
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
