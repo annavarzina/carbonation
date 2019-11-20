@@ -138,3 +138,9 @@ x = domain.meshgrid()[0]
 plt.figure()
 plt.plot(x[1,:], ade_trt.c[1,:])
 plt.show()
+#%% CHECK
+t = 100.*3600
+x = 2.0e-3
+d = 1.17e-10
+cm = 800.
+print(cm*(1.-erf(x/2./np.sqrt(d*t))))
