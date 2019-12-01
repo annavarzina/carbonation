@@ -30,7 +30,7 @@ import yantra
 import matplotlib.pylab as plt
     
 #%% generate domain instance
-length = 100
+length = 200
 dx = 1e-6
 lx = length*dx
 ly = 3*dx
@@ -41,7 +41,7 @@ domain = yantra.Domain2D((0,0), (lx, ly), dx, grid_type = 'nodal')
 #Dhigh = 2000 * Dlow
 #D = Dlow * (x<=0.02) + Dhigh*(x>0.02)*(x<0.08) +  Dlow * (x>=0.08)
 #domain params
-D = 1e-10
+D = 1e-9
 domain_params={}
 domain_params['D']=D
 domain_params['c']=0.0 
@@ -60,7 +60,7 @@ solver_params['cphi_fact']=1./3.
 ade_trt=yantra.AdvectionDiffusion(domain,domain_params,bc_params,solver_params)
 #%% run models
 #%% TIME SETTINGS
-nitr =2000
+nitr =1000
 tf =  1.0 #seconds
 tf = tf + 0.001
 step = tf/20.
@@ -69,6 +69,7 @@ time_points = np.arange(0, tf+step, step)
 itr = 0 
 l = 1
 j = 0
+'''
 conc_step_srt = []
 while  ade_srt.time <=tf: # itr < nitr: #            
     if ( (ade_srt.time <= time_points[j]) and ((ade_srt.time + ade_srt.dt) > time_points[j]) ):  
@@ -76,18 +77,22 @@ while  ade_srt.time <=tf: # itr < nitr: #
         j +=1
     ade_srt.advance() 
     itr += 1
-   
+'''   
 j = 0 
 conc_step_trt = []
-    
-while  ade_trt.time <=tf: # itr < nitr: #            
-    if ( (ade_trt.time <= time_points[j]) and ((ade_trt.time + ade_trt.dt) > time_points[j]) ):  
-        conc_step_trt.append(ade_trt.c[1,l])            
-        j +=1
+conc_step_trt1 = []
+conc_step_trt2 = []
+time = []
+while   itr < nitr: #            ade_trt.time <=tf: #
+          
     ade_trt.advance() 
+    conc_step_trt.append(ade_trt.c[1,l])            
+    conc_step_trt1.append(ade_trt.c[1,l+1])       
+    conc_step_trt2.append(ade_trt.c[1,l+2])   
+    time.append(ade_trt.time)
     itr += 1
 #%% Compute diffusivcity SRT
-    
+''' 
 print('================================')
 #l = 20
 x = l*dx #m
@@ -107,27 +112,57 @@ for i in np.arange(0, len(conc_step_srt)):
     #print('Time %s' %time_points[i])
     #print('Concentration %s' %conc_step_srt[i])
     #print('Diffusivity %s' %k)
-
+'''
 #%% Compute diffusivcity TRT
 print('================================')
 
+x = l*dx #m
+print('Length %s' %x)
+cm = 1.0
+
+
+from scipy.optimize import root
+from math import erf
 def equation(d, x, t, cm, c):
     return (c - cm*(1.-erf(x/2./np.sqrt(d*t))))
 
+diffusivity0 = []
+diffusivity1 = []
 diffusivity2 = []
 for i in np.arange(0, len(conc_step_trt)):
-    res = root(equation, D, args = (x, time_points[i], cm, conc_step_trt[i]))
-    #k = res.x[0]
+    res = root(equation, D, args = (x, time[i], cm, conc_step_trt[i]))
+    diffusivity0.append(res.x[0])
+x = x+dx
+for i in np.arange(0, len(conc_step_trt1)):
+    res = root(equation, D, args = (x, time[i], cm, conc_step_trt1[i]))
+    diffusivity1.append(res.x[0])
+x = x+dx
+for i in np.arange(0, len(conc_step_trt2)):
+    res = root(equation, D, args = (x, time[i], cm, conc_step_trt2[i]))
     diffusivity2.append(res.x[0])
-    #print('Time %s' %time_points[i])
-    #print('Concentration %s' %conc_step_trt[i])
-    #print('Diffusivity %s' %k)
 #%%
 plt.figure()
-plt.loglog(diffusivity1)
-plt.loglog(diffusivity2)
+plt.loglog(diffusivity0, label = "1")
+plt.loglog(diffusivity1, label = "2")
+plt.loglog(diffusivity2, label = "3")
+plt.legend()
 plt.show()
+
+plt.figure()
+plt.plot(diffusivity0, label = "1")
+plt.plot(diffusivity1, label = "2")
+plt.plot(diffusivity2, label = "3")
+plt.legend()
+plt.show()
+
+print(diffusivity0[-1])
+print(diffusivity1[-1])
+print(diffusivity2[-1])
+print(diffusivity0[0])
+print(diffusivity1[0])
+print(diffusivity2[0])
 #%% CHECK
+'''
 t = 10
 x = 20e-6
 d = 1e-9
@@ -144,3 +179,4 @@ x = 2.0e-3
 d = 1.17e-10
 cm = 800.
 print(cm*(1.-erf(x/2./np.sqrt(d*t))))
+'''

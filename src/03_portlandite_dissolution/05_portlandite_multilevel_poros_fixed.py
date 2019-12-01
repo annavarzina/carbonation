@@ -37,6 +37,7 @@ from yantra.physics.PhrqcReactiveTransport import PhrqcReactiveTransport
 from yantra.physics.PhrqcReactiveTransport import Solid
 
 from copy import deepcopy
+np.set_printoptions(precision=5)
 #%%
 
 class DissolutionRT(PhrqcReactiveTransport):
@@ -80,10 +81,9 @@ class DissolutionRT(PhrqcReactiveTransport):
         #self.fluid.call('advance')
         #self.fluid.set_attr('Deref', self.Deref,component_dict=False)  
         
-        
-        
-        self.fluid.Ca.advance()
-        '''
+               
+        #self.fluid.Ca.advance()
+        #'''
         self.fluid.Ca.time +=self.dt
         self.fluid.Ca.iters+=1
         
@@ -126,6 +126,9 @@ class DissolutionRT(PhrqcReactiveTransport):
         print("\tPorosity:\t N3 %s \t N4 %s \t N5 %s" %(self.fluid.Ca.poros[1,3],
                                           self.fluid.Ca.poros[1,4],
                                           self.fluid.Ca.poros[1,5]))
+        print("\tPorosity:\t N3 %s \t N4 %s \t N5 %s" %(self.fluid.Ca.poros[1,3],
+                                          self.phrqc.poros[1,4],
+                                          self.phrqc.poros[1,5]))
         self.fluid.Ca.stream()
         print("Stream")
         print("\tf: \n\t N3 %s \n\t N4 %s \n\t N5 %s" %(self.fluid.Ca.f[1,3,:],
@@ -168,15 +171,16 @@ class DissolutionRT(PhrqcReactiveTransport):
         print("\tPorosity:\t N3 %s \t N4 %s \t N5 %s" %(self.fluid.Ca.poros[1,3],
                                           self.fluid.Ca.poros[1,4],
                                           self.fluid.Ca.poros[1,5]))
-        '''
+        #'''
         self.fluid.H.advance()
         self.fluid.O.advance()   
-        self.update_solid_params()      
         #prev_port = self.solid.portlandite.c[1,4] 
+        self.update_solid_params()      
         if  ('Multilevel' in self.fluid.eqn) and (self.solid.n_diffusive_phases>0):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros) 
+        
         c=deepcopy( self.fluid.get_attr('c'))
         ss=self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
         phaseqty=self.solid.update(self.phrqc.dphases)
@@ -185,7 +189,6 @@ class DissolutionRT(PhrqcReactiveTransport):
         #self.solid.portlandite.c[1,4] = prev_port  
         self.fluid.set_attr('ss',ss)       
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)
-         
     def set_volume(self):
         self.solid.vol = np.zeros(self.solid.shape)
         phase_list = deepcopy(self.solid.diffusive_phase_list)
@@ -210,7 +213,7 @@ class CarbonationPhrqc(Phrqc):
     pass
 #%% geometry
 
-ll = 20
+ll = 3
 l = 5 +ll
 lx = l*1.0e-6
 ly = 2.0e-6
@@ -222,14 +225,14 @@ domain.nodetype[:, ll+1:l+ll+1] = -5
 slabels =  100003*(domain.nodetype== -1) + 100002*(domain.nodetype!= -1)
 pqty =  0.95*(domain.nodetype==-5)
 porosity = 1.0*(domain.nodetype!=-5) + 0.05*(domain.nodetype==-5)
-Dref = 1.*1.e-11
+Dref = 1.e-9
 Dhigh = 1e-9
-D = 1e-9#*(domain.nodetype== -1)+1e-15*(domain.nodetype!= -1) #1e-15
+Dlow  = 1e-9
+D = Dhigh*(domain.nodetype== -1)+Dlow*(domain.nodetype!= -1) #1e-15
 #D[:, ll+1]=Dref
 #domain params
 domain_params={}
 domain_params['D0']=D
-domain_params['Deref']=Dref
 domain_params['database']='cemdata07.dat'
 domain_params['phrqc_input_file']='portlandite_mlvl.phrq'
 domain_params['solution_labels']=slabels
@@ -240,11 +243,11 @@ domain_params['poros']=porosity
 #solver parameters
 solver_params={}
 solver_params['collision_model']='trt'
-solver_params['tauref']=1#0.2*Dhigh/Dref+0.5#5.5 for 1e-10
-#solver_params['Deref']=Dref
+solver_params['tauref']=1#0.1*Dhigh/Dref#5.5 for 1e-10
+solver_params['Deref']=Dref
 solver_params['magic_para']= 1./4.
 solver_params['cphi_fact']= 1./3.
-#solver_params['cphi']=1./3.
+#solver_params['cphi']=1./3.*01
 #solver_params['tfact']= 1./6.
 #['tfactbased']= True
 
@@ -266,8 +269,8 @@ porosity = 'Poros\n'
 time=[]
 TotCa =[]
 TotCH = []
-iters = 500
-while  rt.iters < iters:#rt.time<=0.1:#
+iters = 3
+while  rt.iters < iters:#rt.time<=0.001:#
     rt.advance() 
     TotCa.append(np.sum(rt.fluid.Ca.c*rt.fluid.Ca.poros)) 
     TotCH.append(np.sum(rt.solid.portlandite.c))

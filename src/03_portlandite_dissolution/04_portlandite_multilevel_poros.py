@@ -236,7 +236,7 @@ porosity = 'Poros\n'
 time=[]
 TotCa =[]
 TotCH = []
-iters = 5
+iters = 3
 while  rt.iters < iters:#rt.time<=0.1:#
     rt.advance() 
     TotCa.append(np.sum(rt.fluid.Ca.c*rt.fluid.Ca.poros)) 

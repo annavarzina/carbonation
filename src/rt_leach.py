@@ -21,10 +21,11 @@ class LeachingRT(PhrqcReactiveTransport):
         if(settings['diffusivity']['type']=='fixed'):
             print("newMlvl")
             eqn = 'MultilevelAdvectionDiffusion2'
-            #solver_params['tauref'] = 1
-            #domain_params['Deref'] = settings['diffusivity']['D_border']
+            solver_params['tauref'] = 1
+            #domain_params['Deref'] = settings['Dref']
+            #solver_params['Deref'] = settings['Dref']
             #solver_params['tauref'] = 0.5*np.max(settings['Dref'])/domain_params['Deref']+0.5#5.5 for 1e-10
-        self.auto_time_step = solver_params.get('auto_time_step',True)
+        self.auto_time_step = solver_params.get('auto_time_step',False)
         self.phrqc = Phrqc(domain,domain_params,bc_params,solver_params)    
         components = self.phrqc.components
         bc = self.phrqc.boundary_conditions 
