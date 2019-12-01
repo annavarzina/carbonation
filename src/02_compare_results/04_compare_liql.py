@@ -19,14 +19,12 @@ Ts =1000.
 fname = 'liql_arch'
 fpath = root_dir+'\\results\\output\\04_liquid_layer\\'
 fn.make_output_dir(fpath)
-#names = np.array(['05_mvol_40', '01_reference', '05_mvol_10', '05_mvol_2', '05_mvol_1'])
-#label = np.array(['0.331*40', '0.331*20','0.331*10', '0.331*2', '0.331'])
-#linetype = np.array(['-', '--', '-.', ':', '-'])
-names = np.array(['01_ll1_p005_subgrid', '01_ll3_p005_subgrid', '01_ll5_p005_subgrid'])
-#names = np.array(['01_ll0_p05_Dfix', '01_ll2_p05_Dfix', '01_ll4_p05_Dfix'])
+
+#names = np.array(['01_ll1_p005_subgrid', '01_ll3_p005_subgrid', '01_ll5_p005_subgrid'])
+names = np.array(['01_ll1_p005_Db09', '02_ll3_p005_Db09', '03_ll5_p005_Db09'])
 label = np.array(['1', '3','5'])
 linetype = np.array(['-', '--', '-.'])
-
+linetype = np.array(['-', '--', '-.', ':', '-'])
 results = {}
 for nn in names:
     path = root_dir+'\\results\\output\\04_liquid_layer\\' + nn + '\\'

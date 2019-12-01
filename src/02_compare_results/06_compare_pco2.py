@@ -23,7 +23,10 @@ fn.make_output_dir(fpath)
 #                  '02_pco2_2', '02_pco2_3', '01_reference'])
 names = np.array(['02_pco2_1_p005', '03_pco2_2_p005', 
                   '04_pco2_3_p005', '05_pco2_34_p005'])
-label = np.array(['10%', '1%', '0.1%', '0.03%'])
+names = np.array(['02_pco2_1_p005', '03_pco2_2_p005', 
+                  '04_pco2_3_p005', '05_pco2_34_p005'])
+names = np.array(['01_p005_c34', '02_p005_c3', '03_p005_c252', '04_p005_c2', '05_p005_c1'])
+label = np.array(['0.04%', '0.1%', '0.3%', '1%', '10%'])
 linetype = np.array(['-', '--', '-.', ':', '-'])
 
 results = {}
@@ -173,3 +176,22 @@ text = ''
 for i in range(1,6):
     text += eval('text'+str(i))
 np.save(fpath +fname, text)
+
+#%%
+mm_CH = 74
+mm_CC = 100
+mass0 = results[names[0]]['portlandite'][0]*mm_CH + results[names[0]]['calcite'][0]*mm_CC
+mass_f = results[names[0]]['portlandite'][-1]*mm_CH + results[names[0]]['calcite'][-1]*mm_CC
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'], 
+             ((np.array(results[names[i]]['portlandite'])*mm_CH + \
+              np.array(results[names[i]]['calcite'])*mm_CC)- \
+              results[names[i]]['portlandite'][0]*mm_CH)*1e-15,
+             label = label[i], ls = linetype[i])
+plt.title('Degree of carbonation')
+plt.xlabel('Time (h)')
+plt.ylabel('Mass increase (g)')
+plt.legend()
+plt.show
