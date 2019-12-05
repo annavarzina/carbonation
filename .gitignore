@@ -6,6 +6,9 @@ results/
 *.inp
 *.phrq
 *.out
+*.xlsx
+*.csv
+*.xls
 phreeqc_input/bc.phrq
 src/01_scripts/12_lime_paste/modity_solution.txt
 src/01_scripts/12_lime_paste/modify_eq.txt

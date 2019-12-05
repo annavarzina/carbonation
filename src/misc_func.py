@@ -155,11 +155,13 @@ def set_domain_params(D, mvol, pqty, poros, app_tort, slabels, input_file = 'CH_
     return dp
 
 
-def set_solver_params(tfact = None, smart_thres = 1e-8, cphi_fact = 1./3.):
+def set_solver_params(tfact = None, smart_thres = 1e-8, cphi_fact = 1./3., cphi = 0):
     sp={}
     sp['collision_model']= 'trt' #'diff_vel' #
     sp['magic_para']=1.0/4.0
     sp['cphi_fact']= cphi_fact
+    if cphi>0:        
+        sp['cphi']= cphi
     
     sp['phrqc_flags'] = {}
     sp['phrqc_flags']['smart_run']=True

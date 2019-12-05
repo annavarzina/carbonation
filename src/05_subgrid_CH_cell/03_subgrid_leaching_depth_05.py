@@ -29,8 +29,8 @@ Default example. Explains possible values
 m = 'CH' #or 'CSH' #TODO case for cement
 
 #%% GEOMETRY
-ll = 10 #liquid lauer in front of portlandite
-l_ch = 10 #length of portlandite
+ll = 1 #liquid lauer in front of portlandite
+l_ch = 40 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
 dx = 1.0e-6
@@ -49,14 +49,15 @@ plt.imshow(domain.nodetype)
 plt.show()
 
 #%%  PHREEQC
-nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\')
-path = root_dir+'\\results\\output' + nn + '\\'
+nn=os.path.basename(__file__)[:-3] 
+fn.make_output_dir(root_dir+'\\results\\temp')
+path = root_dir+'\\results\\temp\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'ca_bc':{'type':'conc', 'value': '0.0'}, 
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'conc', 'value': '0'}} # another option ca_liq':{'type':'conc', 'value': '0'} or ca_liq':{'type':'eq', 'value': 'portlandite'}
+               'ca_liq':{'type':'conc', 'value': '0'}} # {'type':'eq', 'value': 'portlandite'}}
+
 
 def set_phrqc_input(p, ptype ='CH'):
     def set_phrqc_bc(ca):
@@ -124,8 +125,8 @@ phrqc = set_phrqc_input(phrqc_input)
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
 #%% VALUES
-scale = 50 # scale of molar volume
-init_porosCH = 0.5 #initial porosity of portlandite nodes
+scale = 100 # scale of molar volume
+init_porosCH = 0.05 #initial porosity of portlandite nodes
 mvolCH =0.0331*scale
 mvol = [mvolCH]
 max_pqty = fn.get_max_pqty(mvol) #mol/m3
@@ -149,7 +150,7 @@ settings = {'dissolution':'subgrid', #'multilevel'/'subgrid'
                            'D_border': D_border, #diffusivity at border
                            'D_CH': D_CH, # fixed diffusivity in portlandite node
                            },
-            'subgrid': {'fraction':0.5,
+            'subgrid': {'fraction':1.,
                         'poros': False}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'dx': dx, 
@@ -186,7 +187,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =5000#2000
-Ts =  0.1*scale #seconds
+Ts =  50. #seconds
 Ts = Ts/scale + 0.001
 N = Ts/rt.dt
 N_res = 1e+4
@@ -196,6 +197,7 @@ it=time.time()
 
 step = Ts/20.
 time_points = np.arange(0, Ts+step, step)
+
 #%% RUN SOLVER
 itr = 0 
 j = 0
@@ -208,28 +210,35 @@ dport = []
 conc_step = []
 conc_step1 = []
 conc_step2 = []
-while  itr < nitr: #rt.time <=Ts: # 
+while  rt.time <=Ts: # itr < nitr: #
     rt.advance() 
-    conc_step.append(rt.fluid.Ca.c[1,l+1]+ np.array(rt.fluid.Ca._ss[1,l+1])/np.array(rt.phrqc.poros[1,l+1]))  
-    conc_step1.append(rt.fluid.Ca.c[1,l-0]+ np.array(rt.fluid.Ca._ss[1,l])/np.array(rt.phrqc.poros[1,l]))
-    rt_port.append(np.sum(rt.solid.portlandite.c))
-    if(rt.iters<2):
-        dport.append(0)
-    else:
-        dport.append((rt_port[-1]-rt_port[-2])/rt.dt)
-    rt_time.append(rt.time)
+    if (rt.iters%S == 0):
+        conc_step.append(rt.fluid.Ca.c[1,l+1]+ np.array(rt.fluid.Ca._ss[1,l+1])/np.array(rt.phrqc.poros[1,l+1]))  
+        conc_step1.append(rt.fluid.Ca.c[1,l-0]+ np.array(rt.fluid.Ca._ss[1,l])/np.array(rt.phrqc.poros[1,l]))
+        rt_port.append(np.sum(rt.solid.portlandite.c))
+        if(len(rt_port)<2):
+            dport.append(0)
+        else:
+            dport.append((rt_port[-1]-rt_port[-2])/rt.dt)
+        rt_time.append(rt.time)
     if (~np.all(rt.nodetype == prev_nodetype)):
         prev_nodetype = deepcopy(rt.nodetype)
         rt.dissolution_time.append(rt.time)
     itr += 1
-    
+
+rt_time = np.array(rt_time)*scale    
 #%% SIMULATION TIME
 simulation_time = time.time()-it
 fn.print_time(simulation_time, rt)
   
 #%%  SAVE
-#fn.save_obj(results, path + str(nn) +'_results')
-
+'''
+np.save(path + 'dis_time', rt.dissolution_time )
+np.save(path + 'dCH', dport)
+np.save(path + 'time', rt_time)
+np.save(path + 'CH', rt_port)
+np.save(path + 'Ca_prof', rt.fluid.Ca.c[1,:]+ np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:]))
+'''
 #%% PLOT 
 #fn.plot_species(results, names=[])#['calcite']
 #fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
@@ -266,7 +275,7 @@ plt.plot(rt_time[2:-1], np.abs(dport[2:-1]))
 plt.xlabel("Time")
 plt.ylabel("Portlandite rate")
 plt.show()
-
+'''
 plt.figure()
 plt.plot(rt_time, conc_step)
 plt.xscale("log")
@@ -281,13 +290,28 @@ plt.ylabel("Concentration cell 2")
 plt.xlabel("Time")
 plt.xscale("log")
 plt.show()
-
+'''
 
 plt.figure()
-plt.plot( rt.fluid.Ca.c[1,:]+ np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:]))
+plt.plot( rt.fluid.Ca.c[1,:]+ np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.solid.poros[1,:]))
 plt.ylabel("Concentration")
 plt.xlabel("X")
 plt.show()
 
 #%%
-print(rt.dissolution_time)
+#print(rt.dissolution_time)
+t = np.array(rt.dissolution_time)*scale
+x = np.arange(1,len(rt.dissolution_time)+1)
+plt.figure()
+plt.plot(t, x)
+plt.ylabel("Dissolved length (um)")
+plt.xlabel("Time")
+plt.show()
+
+x = x*1e-6
+plt.figure()
+D = x**2/2/t
+plt.plot(t, D)
+plt.ylabel("D (m2/s)")
+plt.xlabel("Time (s)")
+plt.show()

@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 #%% DATA
 
-alpha = np.array([0.,0.3,0.55,1.05,1.3,1.6])
+alpha = np.array([0.,0.3,0.55,1.05,1.25,1.55])
 time = np.array([0.,2.,4.5,10.,12.,20.]) #days
 time_new = np.arange(0.,100.,1.)
 #%% PREDICTION 1
@@ -49,61 +49,85 @@ plt.ylabel('Degree of carbonation (%)')
 plt.legend()
 plt.show()
 
-time_new = np.arange(0.,1000.,1.)  /24/3600
+time_new = np.arange(0.,1.e-2,1.e-5) 
 a=degree_predict(time_new, c[0],c[1])
 
 mass0 = 22.977 
 mass = (a-1)*mass0
 
-plt.plot(time_new*24*3600, (mass - mass0), 'b-')
+plt.plot(time_new*24.*3600, (mass - mass0), 'b-')
 plt.xlabel('Time (seconds)')
 plt.ylabel('Mass increase (mg)')
 plt.legend()
 plt.show()
 
-sa  = 29.19e+6
-print((mass[-1]- mass0)*10e-3/sa)
+print((mass[-1]- mass0)*10e-3)
 #%% MASS Predict
-def mass_predict(t, c0, c1):
-    m = c0*(1 - np.exp(-t*c1))
-    return m
+def d_predict(t, c0, c1):
+    d = c0*(1 - np.exp(-t*c1))
+    return d
 
 mass0 = 22.977 *1e-3 #g
-dmass = (alpha)*mass0/sa #delta mass per 1 um2
+dmass = alpha*mass0/100 #delta mass per 1 um2
+xmol = dmass/26.812 #constant = rho_CC/C_CC - rho_CH/C_CH
 
-
-c, cov = curve_fit(mass_predict, time, dmass)
+sa  = 29.19e+6
+d = xmol*0.0331*1e+15/sa
+c, cov = curve_fit(d_predict, time, d)
 print(c)
 
-dm1 = mass_predict(time, c[0],c[1])
+dnew = d_predict(time, c[0],c[1])
 
-f = 0.476*1e-12
+f = 0.476*1e-12 #surface area?
 
-plt.loglog(time, dmass, 'r.', label = "Result")
-plt.loglog(time, dm1, 'b-', label = "Fitting")
-plt.xlabel('Time (days)')
-plt.ylabel('Mass increase (g)')
-plt.legend()
-plt.show()
-
-
-plt.plot(time, (dmass/f)**(1./3.), 'r.', label = "Result")
-plt.plot(time, (dm1/f)**(1./3.), 'b-', label = "Fitting")
+plt.plot(time, d, 'r.', label = "Result")
+plt.plot(time, dnew, 'b-', label = "Fitting")
 plt.xlabel('Time (days)')
 plt.ylabel('Depth (um)')
 plt.legend()
 plt.show()
+
+
 #%%
 
-time_new = np.arange(0.,0.01,0.001) 
-dm2 = mass_predict(time_new, c[0],c[1])
+time_new = np.arange(0.,1.,0.001) 
+dm2 = d_predict(time_new, c[0],c[1])
 
 
 
-plt.plot(time_new*24*60, (dm2/f)**(1./3.), 'b-', label = "Fitting")
-plt.xlabel('Time (mins)')
+plt.plot(time_new*24, dm2, 'b-', label = "Fitting")
+plt.xlabel('Time (hour)')
 plt.ylabel('Depth (um)')
 plt.legend()
 plt.show()
 
+#%%
+
+time_new = np.arange(0.,100.,1.)
+dm2 = d_predict(time_new, c[0],c[1])
+
+plt.plot(time, d, 'r.', label = "Result")
+plt.plot(time_new, dm2, 'b-', label = "Fitting")
+plt.xlabel('Time (day)')
+plt.ylabel('Depth (um)')
+plt.legend()
+plt.show()
+
+#%%
+
+plt.plot(time, d, 'r.')
+plt.plot(time, d, 'b-')
+plt.xlabel('Time (days)')
+plt.ylabel('Depth (um)')
+plt.legend()
+plt.show()
+
+
+plt.plot(time*24, d, 'b-')
+plt.xlabel('Time (hours)')
+plt.ylabel('Depth (um)')
+plt.xlim(0,16.5)
+plt.ylim(0,1)
+plt.legend()
+plt.show()
 
