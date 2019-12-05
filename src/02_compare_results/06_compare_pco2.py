@@ -195,3 +195,120 @@ plt.xlabel('Time (h)')
 plt.ylabel('Mass increase (g)')
 plt.legend()
 plt.show
+
+#%% ADDITIONAL
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:10], results[names[i]]['Ca (1, 1)'][0:10],
+             ls=linetype[i], label = label[i])
+plt.title('Ca (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:10], results[names[i]]['C (1, 1)'][0:10],
+             ls=linetype[i], label = label[i])
+plt.title('C (1, 1)')
+plt.ylim(8e-6,1.1e-5)
+plt.yscale("log")
+plt.xlabel('Time (s)')
+plt.legend()
+plt
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][5:500], results[names[i]]['vol_CH (1, 2)'][5:500],
+             ls=linetype[i], label = label[i])
+plt.title('CH (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][5:100], results[names[i]]['vol_CC (1, 1)'][5:100],
+             ls=linetype[i], label = label[i])
+plt.title('CC (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:50], results[names[i]]['vol_CC (1, 2)'][0:50],
+             ls=linetype[i], label = label[i])
+plt.title('CC (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][5:100], results[names[i]]['pH (1, 0)'][5:100],
+             ls=linetype[i], label = label[i])
+#plt.ylim(11,12.2)
+plt.title('pH (1, 0)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][5:100], results[names[i]]['pH (1, 1)'][5:100],
+             ls=linetype[i], label = label[i])
+plt.ylim(11,12.2)
+plt.title('pH (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][150:300], results[names[i]]['pH (1, 2)'][150:300],
+             ls=linetype[i], label = label[i])
+
+plt.title('pH (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][150:300], results[names[i]]['Ca (1, 2)'][150:300],
+             ls=linetype[i], label = label[i])
+plt.title('Ca (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][150:300], results[names[i]]['vol_CC (1, 2)'][150:300],
+             ls=linetype[i], label = label[i])
+plt.title('CC (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][150:300], results[names[i]]['vol_CH (1, 2)'][150:300],
+             ls=linetype[i], label = label[i])
+plt.title('CH (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][150:300], 
+             cf.get_rate(results[names[i]]['vol_CC (1, 2)'][150:300], dt),
+             label = label[i], ls = linetype[i])
+plt.title('Precipitation rate')
+plt.xlabel('Time (h)')
+plt.ylabel('Rate (mol/s)')
+plt.legend()
+plt.show

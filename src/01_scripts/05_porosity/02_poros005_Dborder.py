@@ -87,7 +87,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'multilevel', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'archie'/'fixed'/'mixed'
-                           'D_border':1e-10, #diffusivity at border
+                           'D_border':1e-9, #diffusivity at border
                            'D_CH': 1e-12, # fixed diffusivity in portlandite node
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
@@ -105,8 +105,8 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'Dref':D
             }
  
-tfact_default = 1./6.*init_porosCH
-tfact_scale = 10.
+tfact_default = 1./6.#*init_porosCH
+tfact_scale = 0.5#10.
 tfact = tfact_default * tfact_scale
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)

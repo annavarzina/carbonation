@@ -56,7 +56,7 @@ label = np.array(['fr 1.0','fr 0.01', 'D 09', 'D 11' ])
 '''
 
 names = np.array([ '01_poros001_Dborder09', '02_poros005_Dborder09',
-                    '03_poros01_Dborder09','03_poros015_Dborder09', ])
+                    '03_poros01_Dborder09','04_poros015_Dborder09', ])
 label = np.array(['0.01','0.05', '0.1', '0.15'])
 linetype = np.array(['-', '--', '-.', ':', '-'])
 
@@ -94,17 +94,19 @@ for k in range(0, len(comp)):
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
-r = 500
+r1 = 1
+r2 = -1
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(results[names[i]]['time'][r:-1], 
-                 cf.get_rate(results[names[i]][comp[k]],
-                             results[names[i]]['time'][2] - results[names[i]]['time'][1])[r:-1],
+        plt.plot(results[names[i]]['time'][r1:r2], 
+                 np.abs(cf.get_rate(results[names[i]][comp[k]],
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1])[r1:r2]),
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
     plt.xlabel('Time (s)')
     plt.ylabel('Rate (mol/s)')
+    plt.yscale("log")
     plt.legend()
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
@@ -221,3 +223,128 @@ for i in range(0, len(names)):
     print(results[names[i]]['De (1, 1)'][-1])
 for i in range(0, len(names)):
     print(results[names[i]]['poros (1, 1)'][-1])
+
+#%% ADDITIONAL
+r1= 20
+r2 =100
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['C (1, 0)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('C (1, 0)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+#%%
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['Ca (1, 2)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('Ca (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+#%%
+r1=0
+r2 = 500
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['vol_CH (1, 2)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('CH volume (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['portlandite (1, 2)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('CH (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+#%%
+r1=0
+r2 = 500
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['calcite (1, 1)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('CC (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['vol_CC (1, 1)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('CC volume (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['vol_CC (1, 2)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('CC volume (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['Ca (1, 2)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('Ca (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['C (1, 2)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('C (1, 2)')
+plt.ylim(0,1e-4)
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+#%%
+r1=0
+r2 = 20
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['poros (1, 2)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('Porosity (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], 
+             np.array(results[names[i]]['poros (1, 2)'][r1:r2])-results[names[i]]['poros (1, 2)'][0],
+             ls=linetype[i], label = label[i])
+plt.title('Porosity (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]]['poros (1, 1)'][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title('Porosity (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 

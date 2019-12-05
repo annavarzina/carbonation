@@ -105,8 +105,8 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'Dref':D
             }
  
-tfact_default = 1./6.*init_porosCH
-tfact_scale = 10.
+tfact_default = 1./6.#*init_porosCH
+tfact_scale = 0.5#10.
 tfact = tfact_default * tfact_scale
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)

@@ -154,35 +154,68 @@ for k in range(0, len(comp)):
     plt.show() 
 #'''
 #%%
+#%%
+r1=0
+r2 = 500
+p = 'vol_CH (1, 5)'
+p = 'portlandite (1, 5)'
 plt.figure(figsize=(8,4))
 for i in range(0, len(names)):
-    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['vol_CC (1, 1)'][0:500],
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]][p][r1:r2],
              ls=linetype[i], label = label[i])
-plt.title('CC (1, 1)')
+plt.title(p)
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+#%%
+r1=0
+r2 = -1
+
+#p = 'calcite (1, 4)'
+p = 'C (1, 2)'
+p = 'pH (1, 1)'
+p = 'Ca (1, 4)'
+p = 'vol_CH (1, 8)'
+#p = 'vol_CC (1, 6)'
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]][p][r1:r2],
+             ls=linetype[i], label = label[i])
+plt.title(p)
 plt.xlabel('Time (s)')
 plt.legend()
 plt.show() 
 
+
+#%%
+r1=1
+r2 = -1
+
+#p = 'calcite (1, 1)'
+p = 'poros (1, 4)'
+
 plt.figure(figsize=(8,4))
 for i in range(0, len(names)):
-    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['Ca (1, 1)'][0:500],
+    plt.plot(results[names[i]]['time'][r1:r2], results[names[i]][p][r1:r2],
              ls=linetype[i], label = label[i])
-plt.title('Ca (1, 1)')
+plt.title(p)
 plt.xlabel('Time (s)')
+plt.yscale("log")
 plt.legend()
 plt.show() 
 
-mvol = np.array([0.01, 0.05, 0.1, 0.15])
-plt.figure(figsize=(8,4))
-for i in range(0, len(names)):
-    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['vol_CH (1, 2)'][0:500],
-             ls=linetype[i], label = label[i])
-plt.title('CH (1, 2)')
-plt.xlabel('Time (s)')
-plt.legend()
-plt.show()     
-'''
+
+#%% SI
+
+resSI = {}
+for nn in names:
+    path = root_dir+'\\results\\output\\08_pore_size\\' + nn + '\\'
+    resSI[nn] = np.load(path +'SI.npy')
+    print(nn)
+    print(resSI[nn][1,:])
+
 #%% CH DISSOLUTION 
+'''
 #label = np.array(['0.03%', '10%', '1%', '0.1%', '0.01%'])) 
 cf.plot_results(results, names, 'time', 'portlandite', label, linetype,
              'Portlandite', 'Time (s)', 'Portlandite', fpath, fname, '_CH',

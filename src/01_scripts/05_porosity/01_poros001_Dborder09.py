@@ -105,9 +105,9 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'Dref':D
             }
  
-tfact_default = 1./6.*init_porosCH
-tfact_scale = 10.
-tfact = tfact_default * tfact_scale
+tfact_default = 1./6.#*init_porosCH
+tfact_scale = 0.1#10.
+tfact =  tfact_default * tfact_scale
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,

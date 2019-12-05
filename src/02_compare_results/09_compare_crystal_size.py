@@ -180,7 +180,17 @@ for i in range(0, len(names)):
 plt.title('CH (1, 2)')
 plt.xlabel('Time (s)')
 plt.legend()
-plt.show()     
+plt.show() 
+
+#%% SI
+
+resSI = {}
+for nn in names:
+    path = root_dir+'\\results\\output\\09_crystal_size\\' + nn + '\\'
+    resSI[nn] = np.load(path +'SI.npy')
+    print(nn)
+    print(resSI[nn][1,:])
+#%%    
 '''
 #%% CH DISSOLUTION 
 #label = np.array(['0.03%', '10%', '1%', '0.1%', '0.01%'])) 

@@ -57,16 +57,19 @@ for k in range(0, len(comp)):
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
+r1 = 1
+r2 = -1
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(results[names[i]]['time'], 
-                 cf.get_rate(results[names[i]][comp[k]],
-                             results[names[i]]['time'][2] - results[names[i]]['time'][1]),
+        plt.plot(results[names[i]]['time'][r1:r2], 
+                 np.abs(cf.get_rate(results[names[i]][comp[k]],
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1])[r1:r2]),
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
     plt.xlabel('Time (s)')
     plt.ylabel('Rate (mol/s)')
+    plt.yscale("log")
     plt.legend()
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
