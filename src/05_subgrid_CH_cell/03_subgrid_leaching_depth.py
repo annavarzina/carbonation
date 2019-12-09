@@ -92,11 +92,13 @@ def set_phrqc_input(p, ptype ='CH'):
 #%% LOOP
 fractions = np.array([1., 0.7, 0.5, 0.3, 0.2, 0.1, 0.07, 0.05, 0.03, 
                       0.02, 0.01, 0.007, 0.005, 0.003, 0.002, 0.001 ])
-final_time = np.array([500, 500, 500, 1000, 1000, 1000, 1000, 1500, 1500,
-                       1500, 2000, 2000, 2500, 3000, 3500, 4000])  
-#fractions = np.array([1., 0.7 ])
+#final_time = np.array([500, 500, 500, 1000, 1000, 1000, 1000, 1500, 1500,
+#                       1500, 2000, 2000, 2500, 3000, 3500, 4000])  
+fractions = np.array([0.007, 0.005, 0.003, 0.002, 0.001 ])
+dl = 20
 #final_time = np.array([10, 20])
-for f, ft in zip(fractions, final_time):
+#for f, ft in zip(fractions, final_time):
+for f in fractions:
     #%% GEOMETRY
     ll = 1 #liquid lauer in front of portlandite
     l_ch = 40 #length of portlandite
@@ -181,58 +183,36 @@ for f, ft in zip(fractions, final_time):
                               domain_params, bc_params, solver_params,
                               settings) 
     
-    #%% PARAMETERS
-    
-    plist =  [(1,n) for n in np.arange(1, 6)] #points list
-    pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', #argument list
-                'dissolution', 'portlandite_cells'] 
-    #'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
-    #'calcite_cells', 'active_cells','dt', 'pH', 'avg_poros',  'avg_D_eff', 'sum_vol'
-    results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
-    
-    #%% TIME SETTINGS
-    nitr =5000#2000
-    Ts =  ft#500. #seconds
-    Ts = Ts/scale + 0.001
-    N = Ts/rt.dt
-    N_res = 1e+4
-    S = max(1,int(N/N_res))
-    it=time.time()
-    
-    
-    step = Ts/20.
-    time_points = np.arange(0, Ts+step, step)
-    
     #%% RUN SOLVER
+    nitr =5000#2000
+    it=time.time()
     itr = 0 
     j = 0
     l = ll
     prev_nodetype = deepcopy(rt.nodetype)
     rt.dissolution_time = []
-    rt_port = []
+    rt_port = [] 
+    rt_port.append(np.sum(rt.solid.portlandite.c))
     rt_time = []
+    rt_time.append(rt.time)
     dport = []
-    conc_step = []
-    conc_step1 = []
-    conc_step2 = []
-    while  rt.time <=Ts: # itr < nitr: #
-        rt.advance() 
-        if (rt.iters%S == 0):
-            conc_step.append(rt.fluid.Ca.c[1,l+1]+ np.array(rt.fluid.Ca._ss[1,l+1])/np.array(rt.phrqc.poros[1,l+1]))  
-            conc_step1.append(rt.fluid.Ca.c[1,l-0]+ np.array(rt.fluid.Ca._ss[1,l])/np.array(rt.phrqc.poros[1,l]))
+    dport.append(0)
+    while  len(rt.dissolution_time)<dl:#rt.time <=Ts: # itr < nitr: #
+        rt.advance()             
+        if (~np.all(rt.nodetype == prev_nodetype)):
+            prev_nodetype = deepcopy(rt.nodetype)
+            rt_time.append(rt.time*scale)
+            rt.dissolution_time.append(rt.time)
             rt_port.append(np.sum(rt.solid.portlandite.c))
             if(len(rt_port)<2):
                 dport.append(0)
             else:
-                dport.append((rt_port[-1]-rt_port[-2])/rt.dt)
-            rt_time.append(rt.time)
-        if (~np.all(rt.nodetype == prev_nodetype)):
-            prev_nodetype = deepcopy(rt.nodetype)
-            rt.dissolution_time.append(rt.time)
-        itr += 1
-    
-    rt_time = np.array(rt_time)*scale    
+                dport.append((rt_port[-1]-rt_port[-2])/(rt_time[-1]-rt_time[-2]))
+        itr += 1 
+
     #%% SIMULATION TIME
+    print("Fraction %s done" %str(f))
+    print("Time to dissolve %s" %str(rt.time*scale))
     simulation_time = time.time()-it
     fn.print_time(simulation_time, rt)
       
@@ -263,7 +243,7 @@ for f, ft in zip(fractions, final_time):
       
     
     plt.figure()
-    plt.plot(rt_time[2:-1], np.abs(dport[2:-1]))
+    plt.plot(rt_time[2:-1], np.abs(dport[2:-1]), "r.")
     plt.xlabel("Time")
     plt.ylabel("Portlandite rate")
     plt.show()
@@ -273,10 +253,11 @@ for f, ft in zip(fractions, final_time):
     
     plt.figure()
     D = x**2/2/t
-    plt.plot(t, D)
+    plt.plot(t, D, "r.")
     plt.ylabel("D (m2/s)")
     plt.xlabel("Time (s)")
     plt.show()
+    print("Leaching diffusion %s" %str(D[-1]))
     
     
     '''
@@ -286,4 +267,129 @@ for f, ft in zip(fractions, final_time):
     plt.xlabel("Time")
     plt.show()
     '''
+
+#%% COMPARE    
+fractions = np.array([1., 0.7, 0.5, 0.3, 0.2, 0.1,
+                      0.07, 0.05, 0.03,0.02, 0.01,
+                      0.007, 0.005, 0.003, 0.002, 0.001 ])
+time = {}
+ch = {}
+ca ={}
+dch = {}
+dissolution = {}
+nn="03_subgrid_leaching_depth"#os.path.basename(__file__)[:-3] 
+for f in fractions:
+    path = root_dir+'\\results\\output\\10_subgrid_leaching\\' + nn + str(f)+'\\'
+    dissolution[nn+ str(f)] = np.load(path +'dis_time'+'.npy')
+    ch[nn+ str(f)] = np.load(path +'CH'+'.npy')
+    ca[nn+ str(f)] = np.load(path +'Ca_prof'+'.npy')
+    dch[nn+ str(f)] = np.load(path +'dCH'+'.npy')
+    time[nn+ str(f)] = np.load(path +'time'+'.npy')
     
+#%% PLOT  
+plt.figure()
+for f in fractions:    
+    t = np.array(dissolution[nn + str(f)])*scale
+    x = np.arange(1,len(dissolution[nn + str(f)])+1)
+    plt.plot(t, x, label = f)
+plt.ylabel("Dissolved length (um)")
+plt.xlabel("Time")
+plt.legend()
+plt.show()
+
+plt.figure()
+for f in fractions:  
+    t = np.array(dissolution[nn + str(f)])*scale
+    x = np.arange(1,len(dissolution[nn + str(f)])+1)*1e-6
+    D = (x**2)/2/t
+    plt.plot(t, D, label = f)
+plt.ylabel("D (m2/s)")
+plt.xlabel("Time (s)")
+plt.legend()
+plt.show()
+
+#%%
+d1 = []
+dn = []
+for f in fractions:
+    t = np.array(dissolution[nn + str(f)])*scale
+    x = np.arange(1,len(dissolution[nn + str(f)])+1)*1e-6
+    D = (x**2)/2/t
+    d1.append(D[0])
+    dn.append(D[-1])
+    
+plt.figure()
+plt.plot(fractions, d1, label = "1")
+plt.plot(fractions, dn, label = "20")
+plt.ylabel("D (m2/s)")
+plt.xlabel("Time (s)")
+plt.yscale("log")
+plt.legend()
+plt.show()
+#%% CH    
+plt.figure()
+for f in fractions:  
+    plt.plot(np.array(time[nn + str(f)]), ch[nn + str(f)], label = f)
+plt.ylabel("CH (mol/l)")
+plt.xlabel("Time")
+plt.legend()
+plt.show()
+
+#%% CH rate    
+plt.figure()
+for f in fractions:  
+    plt.plot(np.array(time[nn + str(f)])[1:-1], np.abs(dch[nn + str(f)])[1:-1], label = f)
+plt.ylabel("CH rate (*10^-15 mol/s)")
+plt.xlabel("Time")
+plt.yscale("log")
+plt.legend()
+plt.show()
+
+plt.figure()
+for f in fractions:  
+    plt.plot( ca[nn + str(f)], label = f)
+plt.ylabel("Ca (mol/l)")
+plt.xlabel("X (um)")
+plt.legend()
+plt.show()
+#%% CH rate
+r1 = []
+rn = []
+for f in fractions:    
+    r1.append(dch[nn + str(f)][1])
+    rn.append(dch[nn + str(f)][-11])
+    
+    
+plt.figure()
+plt.plot(fractions, np.abs(r1), label = "1")
+plt.plot(fractions, np.abs(rn), label = "20")
+plt.ylabel("dCH (mol/s)")
+plt.xlabel("Time (s)")
+plt.yscale("log")
+plt.legend()
+plt.show()
+#%%
+
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
+def diff_predict(f, c0, c1, c2):
+    d = c0-c1/(f+c2)
+    #d = c0*(1-np.exp(-f*c1))
+    return d
+f = 0.1
+t = np.array(dissolution[nn + str(f)])*scale
+x = np.arange(1,len(dissolution[nn + str(f)])+1)*1e-6
+D = x**2/2/t
+c, cov = curve_fit(diff_predict, t, D)
+print(c)
+
+diff_opt = diff_predict(t, c[0],c[1],c[2])
+print('R2: ', r2_score(diff_opt, D))
+
+
+plt.plot(t, D, 'r.', label = "Result")
+plt.plot(t, diff_opt, 'b-', label = "Fitting")
+plt.xlabel('Time')
+plt.ylabel(r'Diffusivity ($m^2/s$)')
+plt.legend()
+plt.show()
