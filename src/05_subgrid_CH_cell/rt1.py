@@ -306,53 +306,6 @@ class LeachingRT(PhrqcReactiveTransport):
         return ss
         
     
-    def update_neighbour_solution(self, result, n_int, n_ch, m_ch, fraction=1):
-        ncell = 123456
-        modify_str = []
-        modify_str.append("EQUILIBRIUM_PHASES %i" % ncell)
-        modify_str.append("Portlandite 0 %.20e dissolve only" %(m_ch))   
-        modify_str.append("END") 
-        modify_str.append('MIX %i' % ncell)         
-        modify_str.append('%i %.20e' %( n_int, fraction)) #modify_str.append('%i 1' %n_int)  
-        modify_str.append('SAVE solution %i' % ncell)  
-        modify_str.append("END") 
-        modify_str.append('USE solution %i' % ncell)  
-        modify_str.append('USE equilibrium_phase %i' % ncell)
-        modify_str.append('SAVE solution %i' % ncell)   
-        modify_str.append("END") 
-        modify_str.append("END") 
-        modify_str ='\n'.join(modify_str)
-        self.phrqc.IPhreeqc.RunString(modify_str) 
-        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
-        
-        port = output[2][9] 
-        modify_str = [] 
-        modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
-        modify_str.append("Portlandite 0 %.20e" %(port)) # dissolve only
-        modify_str.append("END") 
-        modify_str.append('USE equilibrium_phase %i' %n_int)      
-        modify_str.append('MIX %i' % ncell)      
-        modify_str.append('%i 1' % ncell)   
-        modify_str.append('%i %.20e' %(n_int, 1.-fraction)) #modify_str.append('%i 0' %n_int)   
-        modify_str.append('SAVE solution %i' %(n_int))  
-        modify_str.append('SAVE equilibrium_phase %i' %n_int)
-        modify_str.append('SAVE equilibrium_phase %i' %(n_ch))  
-        modify_str.append("END") 
-        modify_str ='\n'.join(modify_str)
-        self.phrqc.IPhreeqc.RunString(modify_str)  
-        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
-        comp = {}        
-        comp['portlandite_m'] = port
-        comp['Ca'] = output[1][6]
-        comp['H'] = (output[1][7] - self.phrqc.H_norm)
-        comp['O'] = (output[1][8] - self.phrqc.O_norm)
-        result[str(n_ch) + ' ' + str(n_int)] = comp        
-        return(result)     
-    
     def update_portlandite_eq(self,c,ss):
         phrqc_poros = self.phrqc.selected_output()['poros']
         fr = np.zeros(phrqc_poros.shape)
@@ -402,8 +355,8 @@ class LeachingRT(PhrqcReactiveTransport):
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str) 
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
+        print(modify_str)
+        print(output)
         
         port = output[2][9] 
         modify_str = [] 
@@ -420,8 +373,8 @@ class LeachingRT(PhrqcReactiveTransport):
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str)  
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
+        print(modify_str)
+        print(output)
         comp = {}        
         comp['portlandite_m'] = port
         comp['Ca'] = output[1][6]

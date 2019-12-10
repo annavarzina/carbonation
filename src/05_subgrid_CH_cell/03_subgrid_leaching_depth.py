@@ -94,7 +94,7 @@ fractions = np.array([1., 0.7, 0.5, 0.3, 0.2, 0.1, 0.07, 0.05, 0.03,
                       0.02, 0.01, 0.007, 0.005, 0.003, 0.002, 0.001 ])
 #final_time = np.array([500, 500, 500, 1000, 1000, 1000, 1000, 1500, 1500,
 #                       1500, 2000, 2000, 2500, 3000, 3500, 4000])  
-fractions = np.array([0.007, 0.005, 0.003, 0.002, 0.001 ])
+#fractions = np.array([0.007, 0.005, 0.003, 0.002, 0.001 ])
 dl = 20
 #final_time = np.array([10, 20])
 #for f, ft in zip(fractions, final_time):
@@ -203,7 +203,7 @@ for f in fractions:
             prev_nodetype = deepcopy(rt.nodetype)
             rt_time.append(rt.time*scale)
             rt.dissolution_time.append(rt.time)
-            rt_port.append(np.sum(rt.solid.portlandite.c))
+            rt_port.append(np.sum(rt.solid.portlandite.c)*scale)
             if(len(rt_port)<2):
                 dport.append(0)
             else:
@@ -356,15 +356,15 @@ plt.show()
 r1 = []
 rn = []
 for f in fractions:    
-    r1.append(dch[nn + str(f)][1])
-    rn.append(dch[nn + str(f)][-11])
+    r1.append(dch[nn + str(f)][1]*scale)
+    rn.append(dch[nn + str(f)][-11]*scale)
     
     
 plt.figure()
 plt.plot(fractions, np.abs(r1), label = "1")
 plt.plot(fractions, np.abs(rn), label = "20")
-plt.ylabel("dCH (mol/s)")
-plt.xlabel("Time (s)")
+plt.ylabel("dCH (mol/l/s/um2)")
+plt.xlabel("Fraction")
 plt.yscale("log")
 plt.legend()
 plt.show()
@@ -393,3 +393,32 @@ plt.xlabel('Time')
 plt.ylabel(r'Diffusivity ($m^2/s$)')
 plt.legend()
 plt.show()
+
+#%% Portlandite to ppm
+amCH = 74.093 #mol/l
+amCa = 40.078 #g/mol
+def mol2ppm(c, am):
+    p = c * am * 1000
+    return p #ppm
+#ppm/s/um2
+rate = mol2ppm(np.abs(r1), amCH)*3600 *10**6 *10**-15
+print(rate)
+rate_n = mol2ppm(np.abs(rn), amCH)*3600 *10**6 *10**-15
+print(rate_n)
+plt.figure()
+plt.loglog(fractions, rate, label = "1")
+plt.loglog(fractions, rate_n, label = "20")
+plt.ylabel("dCH (ppm/h/mm2)")
+plt.xlabel("Fraction")
+plt.legend()
+plt.show()
+
+#%% Ca to ppm 
+ca_n = []
+for f in fractions:    
+    ca_n.append(ca[nn + str(f)][-21])
+print(ca_n)
+
+ca_ppm = mol2ppm(np.abs(ca_n), amCa)
+print(ca_ppm)
+    

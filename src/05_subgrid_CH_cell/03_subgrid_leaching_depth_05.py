@@ -186,7 +186,7 @@ pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', #argument list
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
-nitr =5000#2000
+nitr =4#2000
 Ts =  50. #seconds
 Ts = Ts/scale + 0.001
 N = Ts/rt.dt
@@ -210,7 +210,7 @@ dport = []
 conc_step = []
 conc_step1 = []
 conc_step2 = []
-while  rt.time <=Ts: # itr < nitr: #
+while  itr < nitr: #rt.time <=Ts: # 
     rt.advance() 
     if (rt.iters%S == 0):
         conc_step.append(rt.fluid.Ca.c[1,l+1]+ np.array(rt.fluid.Ca._ss[1,l+1])/np.array(rt.phrqc.poros[1,l+1]))  
