@@ -320,17 +320,17 @@ for f in fractions:
     
 plt.figure()
 plt.plot(fractions, d1, label = "1")
-plt.plot(fractions, dn, label = "20")
+#plt.plot(fractions, dn, label = "20")
 plt.ylabel("D (m2/s)")
-plt.xlabel("Time (s)")
+plt.xlabel("Fraction")
 plt.yscale("log")
 plt.legend()
 plt.show()
 #%% CH    
 plt.figure()
 for f in fractions:  
-    plt.plot(np.array(time[nn + str(f)]), ch[nn + str(f)], label = f)
-plt.ylabel("CH (mol/l)")
+    plt.plot(np.array(time[nn + str(f)]), ch[nn + str(f)]*scale, label = f)
+plt.ylabel("CH mol/l")
 plt.xlabel("Time")
 plt.legend()
 plt.show()
@@ -338,7 +338,7 @@ plt.show()
 #%% CH rate    
 plt.figure()
 for f in fractions:  
-    plt.plot(np.array(time[nn + str(f)])[1:-1], np.abs(dch[nn + str(f)])[1:-1], label = f)
+    plt.plot(np.array(time[nn + str(f)])[1:-1], np.abs(dch[nn + str(f)])[1:-1]*scale, label = f)
 plt.ylabel("CH rate (*10^-15 mol/s)")
 plt.xlabel("Time")
 plt.yscale("log")
@@ -362,10 +362,11 @@ for f in fractions:
     
 plt.figure()
 plt.plot(fractions, np.abs(r1), label = "1")
-plt.plot(fractions, np.abs(rn), label = "20")
-plt.ylabel("dCH (mol/l/s/um2)")
+#plt.plot(fractions, np.abs(rn), label = "20")
+plt.ylabel("dCH (*10^-15 mol/s)")
 plt.xlabel("Fraction")
 plt.yscale("log")
+plt.xscale("log")
 plt.legend()
 plt.show()
 #%%

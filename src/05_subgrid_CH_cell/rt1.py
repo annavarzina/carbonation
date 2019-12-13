@@ -355,8 +355,8 @@ class LeachingRT(PhrqcReactiveTransport):
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str) 
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        print(modify_str)
-        print(output)
+        #print(modify_str)
+        #print(output)
         
         port = output[2][9] 
         modify_str = [] 
@@ -373,8 +373,8 @@ class LeachingRT(PhrqcReactiveTransport):
         modify_str ='\n'.join(modify_str)
         self.phrqc.IPhreeqc.RunString(modify_str)  
         output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        print(modify_str)
-        print(output)
+        #print(modify_str)
+        #print(output)
         comp = {}        
         comp['portlandite_m'] = port
         comp['Ca'] = output[1][6]

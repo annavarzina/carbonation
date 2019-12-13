@@ -72,10 +72,7 @@ class CarbonationPhrqc(Phrqc):
                             if (key == 'calcite'):
                                 if (self.pcs == False):
                                     modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))
-                                elif(self.pcs == True and self.precipitation == 'interface' and self.active == 'interface'):
-                                    modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
-                                    modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))
-                                elif(self.pcs == True and self.precipitation == 'interface' and self.active != 'interface'):                            
+                                elif(self.pcs == True and self.precipitation == 'interface'):                            
                                     if (is_liquid[cell-1]):                                   
                                         modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
                                     else:

@@ -7,8 +7,8 @@ Fixed PCO2 at the boundary
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
-root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+src_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(root_dir)
 sys.path.append(src_dir)
 import matplotlib.pylab as plt
@@ -18,11 +18,8 @@ import time
 import yantra
 import cell_type as ct # change the path to cell_type file
 import misc_func as fn
-import rt_carb as rt 
-#import rt
-#import rt_carb
-#import cProfile
-#import phrqc
+import rt
+
 #%% PROBLEM DEFINITION
 __doc__= """ 
  
@@ -31,7 +28,7 @@ __doc__= """
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 1 #liquid lauer in front of portlandite
+ll = 3 #liquid lauer in front of portlandite
 l_ch = 10 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
@@ -52,21 +49,21 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\05_porosity\\')
-path = root_dir+'\\results\\output\\05_porosity\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\temp\\')
+path = root_dir+'\\results\\temp\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'conc', 'value': '0'}}#calcite'type':'eq', 'value': 'portlandite'
+               'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite'type':'eq', 'value': 'portlandite'
 phrqc = fn.set_phrqc_input(phrqc_input) 
 #phrqc = rt_carb.set_phrqc_input(phrqc_input)              
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-scale = 200. # scale of molar volume
-init_porosCH = 0.1 #initial porosity of portlandite nodes
+scale = 100. # scale of molar volume
+init_porosCH = 0.05 #initial porosity of portlandite nodes
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
 mvol = [mvolCH, mvolCH*mvol_ratio]
@@ -84,19 +81,19 @@ app_tort = 1. * porosity ** app_tort_degree
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'subgrid', #'multilevel'/'subgrid'
-            'active_nodes': 'all', # 'all'/'smart'/'interface'
-            'diffusivity':{'type':'fixed', #'archie'/'fixed'/'mixed'
-                           'D_border':1e-09, #diffusivity at border
-                           'D_CH': 1e-12, # fixed diffusivity in portlandite node
+            'active_nodes': 'smart', # 'all'/'smart'/
+            'diffusivity':{'border': D, ##diffusivity at border
+                           'CH': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
-                         'int_energy': 1.0, # internal energy
+                         'int_energy': 0.5, # internal energy
                          'pore_size': 0.01*dx, # threshold radius or distance/2
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
-            'subgrid': {'fraction':1.}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':0.005}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'velocity': False, 
             'bc': phrqc_input['c_bc'],
@@ -105,14 +102,12 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             }
  
 tfact_default = 1./6.#*init_porosCH
-tfact_scale = 0.1#10.
-tfact =  tfact_default * tfact_scale
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
 bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
-solver_params = fn.set_solver_params(tfact = tfact)
+solver_params = fn.set_solver_params(tfact = tfact_default, smart_thres = 1e-8, cphi_fact = 1/3/0.5)
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 fn.save_settings(settings, bc_params, solver_params, path, nn)
 
@@ -134,7 +129,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 itr = 0 
 j = 0
 nitr = 50.#100
-Ts = 10.
+Ts = 12.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -161,4 +156,4 @@ fn.print_time(simulation_time, carb_rt)
             
 
 #%% PLOT
-fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
+#fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'poros'],fsize=(15,1))

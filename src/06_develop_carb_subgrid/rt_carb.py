@@ -21,6 +21,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         '''
         if(settings['diffusivity']['type']=='fixed'):
             eqn = 'MultilevelAdvectionDiffusion2'
+            pass
         self.auto_time_step = solver_params.get('auto_time_step',True)
         self.phrqc = phrqc.CarbonationPhrqc(domain,domain_params,bc_params,solver_params)        
         components = self.phrqc.components
@@ -71,7 +72,11 @@ class CarbonationRT(PhrqcReactiveTransport):
         phaseqty=self.solid.phaseqty_for_phrqc()
         phase_list = deepcopy(self.solid.diffusive_phase_list)
         for num, phase in enumerate(phase_list, start=1):
-            phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])        
+            phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1]) 
+        if(self.settings['dissolution']=='subgrid'):
+            phaseqty['portlandite'][np.where(self.solid.border)]=0
+        #print(phaseqty)
+        self.phrqc.modify_solid_phases(phaseqty)        
         ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
         if (self.settings['dissolution']=='multilevel'): 
             pqty=self.solid.update(self.phrqc.dphases)  
@@ -179,10 +184,10 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.solid.prev_vol = deepcopy(self.solid.vol)
         self.set_volume()
         self.set_porosity()
-        self.set_app_tort() #TODO degree    
-        self.update_n()
+        self.set_app_tort()
         if(self.settings['velocity'] == True):
-            self.solid.dvol = self.solid.vol-self.solid.prev_vol
+            self.solid.dvol = self.solid.vol-self.solid.prev_vol  
+        self.update_n()
         
     def update_phases(self, thres = 1.0e-3):
         ch = self.solid.portlandite.c * self.solid.portlandite.mvol
@@ -262,7 +267,48 @@ class CarbonationRT(PhrqcReactiveTransport):
             pass
         else:
             print('Incorrect diffusivity type. Archie\'s relationship is used.')
+    
+        
+    def update_diffusivity_fixed1(self):
+        Dref = self.Dref
+        D_border = self.Dref
+        D_CC = None
+        D_CH = None
+        if('D_border' in self.settings['diffusivity']):
+            D_border = self.settings['diffusivity']['D_border']
+        if('D_CC' in self.settings['diffusivity']):
+            D_CC = self.settings['diffusivity']['D_CC']
+        if('D_CH' in self.settings['diffusivity']):
+            D_CH = self.settings['diffusivity']['D_CH']
+        
+        is_border = self.solid.border
+        is_port = (self.solid.portlandite.c >0) & (~is_border)
+        is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
+        is_calc = np.logical_and(is_calc,~is_border)
+        is_liquid = np.logical_and(~is_port, ~is_calc)
+        is_liquid = np.logical_and(is_liquid, ~is_border)
+        
+        Dnew_lb = Dref*np.ones(np.shape(self.nodetype))
+        if(D_CC is None and D_CH is None): 
+            De = D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            Dnew_lb = Dref*is_port + Dref*is_calc + Dnew_lb*np.logical_or(~is_port, ~is_calc)
+        elif(D_CC is None and D_CH is not None):
+            De = D_CH*is_port+ D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            Dnew_lb = Dref*is_calc + Dnew_lb*(~is_calc)
+        elif(D_CC is not None and D_CH is None):            
+            De = D_CC*is_calc+ D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
+            Dnew_lb = Dref*is_port + Dnew_lb*(~is_port)
+        else:
+            De = D_CH*is_port + D_CC*is_calc + D_border*is_border + Dref*is_liquid 
+            Dnew_lb = De/self.solid.poros/self.solid.app_tort
             
+        self.fluid.set_attr('D0',Dnew_lb,component_dict=False)
+        self.fluid.set_attr('Deref',np.max(Dnew_lb),component_dict=False)
+        self.fluid.call("_set_relaxation_params")
+        
     def update_diffusivity_fixed(self):
         Dref = self.Dref
         D_border = self.Dref
@@ -508,7 +554,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         comp['H'] = (output[1][8] - self.phrqc.H_norm)
         comp['O'] = (output[1][9] - self.phrqc.O_norm)
         result[str(n_ch)] = comp   
-        print(comp)     
+        #print(comp)     
         return(result)     
         
     def update_eq(self, result, n_int, n_ch, m_ch, m_cc, i_cc, fraction=1):

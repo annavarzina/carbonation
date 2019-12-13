@@ -600,10 +600,11 @@ def print_time(st, rt):
     print('==========================')
     hours = int(st/3600)
     minutes = int((st/3600 - hours)*60)
+    seconds = int(((st/3600 - hours)*60 - minutes)*60)
     print ('time :%s' %(rt.time))
     #print ('real time taken for simulation:%s seconds' %(simulation_time))
     print ('iterations :%s' %(rt.iters))
-    print ('real time taken for simulation:%s hours %s min' %(hours,minutes))
+    print ('real time taken for simulation:%s hours %s min %s sec' %(hours, minutes, seconds))
     print('==========================') 
    
 def print_points(rt, points, names=[]):    
