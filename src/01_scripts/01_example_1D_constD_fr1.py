@@ -133,7 +133,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  36. #seconds
+Ts =  3600. #seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
