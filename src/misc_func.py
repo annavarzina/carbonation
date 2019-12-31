@@ -436,7 +436,7 @@ def append_results(rt, results, step = 1e+2):
         for num, phase in enumerate(rt.solid.diffusive_phase_list, start=1):
             results[phase].append(np.sum(rt.solid._diffusive_phaseqty[num-1]))        
         for num, comp in enumerate(rt.fluid.components, start=1):
-            results[comp].append(np.sum((getattr(rt.fluid, comp)._c+getattr(rt.fluid, comp)._ss)/getattr(rt.fluid, comp).poros))        
+            results[comp].append(np.sum((getattr(rt.fluid, comp)._c)))#+getattr(rt.fluid, comp)._ss)/getattr(rt.fluid, comp).poros))        
         if (ptype == 'CSH'):
             results['csh'].append(get_sum_csh(rt))
         # average

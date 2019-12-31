@@ -115,8 +115,8 @@ plt.show()
 
 #%%
 
-plt.plot(time, d, 'r.')
-plt.plot(time, d, 'b-')
+plt.plot(time, d, 'b.')
+#plt.plot(time, d, 'b-')
 plt.xlabel('Time (days)')
 plt.ylabel('Depth (um)')
 plt.legend()

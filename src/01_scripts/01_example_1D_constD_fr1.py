@@ -90,7 +90,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -99,7 +99,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
-            'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':1.0}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'velocity': False, 
             'bc': phrqc_input['c_bc'],
@@ -107,7 +107,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'Dref':D
             }
                
-tfact_default = 1./6./8#*init_porosCH
+tfact_default = 1./6./2.#*init_porosCH
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
@@ -133,7 +133,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  3600. #seconds
+Ts =  36. #seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -196,6 +196,7 @@ print('SI %s' %str(np.array(carb_rt.solid.target_SI[1,:])))
 print('pH %s' %str(np.array(carb_rt.phrqc.selected_output()['pH'][1,:])))
 print('poros %s' %str(np.array(carb_rt.solid.poros[1,:])))
 print('phrqc poros %s' %str(np.array(np.array(carb_rt.phrqc.poros[1,:]))))
+print('D %s' %str(np.array(carb_rt.fluid.C.tau[1,:])))
 
 
 print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
