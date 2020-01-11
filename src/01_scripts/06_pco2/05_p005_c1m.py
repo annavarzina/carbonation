@@ -57,7 +57,7 @@ fn.make_output_dir(root_dir+'\\results\\output\\06_pco2\\')
 path = root_dir+'\\results\\output\\06_pco2\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 2.0}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 1.0}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -84,7 +84,7 @@ app_tort = 1. * porosity ** app_tort_degree
 
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'subgrid', #'multilevel'/'subgrid'
+            'dissolution':'multilevel', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'

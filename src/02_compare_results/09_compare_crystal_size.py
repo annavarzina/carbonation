@@ -60,13 +60,14 @@ for k in range(0, len(comp)):
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
-r = 500
+r1 = 1
+r2 = 100#-1
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(results[names[i]]['time'][r:-1], 
+        plt.plot(results[names[i]]['time'][r1:r2], 
                  cf.get_rate(results[names[i]][comp[k]],
-                             results[names[i]]['time'][2] - results[names[i]]['time'][1])[r:-1],
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1])[r1:r2],
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
     plt.xlabel('Time (s)')

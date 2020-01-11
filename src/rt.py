@@ -52,10 +52,10 @@ class CarbonationRT(PhrqcReactiveTransport):
     
     def advance(self):
         self.update_target_SI()
-        self.update_solid_params()   
+        #self.update_solid_params()   
         self.update_diffusivity() 
         self.fluid.call('advance') 
-        #self.update_solid_params()   
+        self.update_solid_params()   
         self.update_phrqc() 
         self.update_source()       
         self.update_phases()    
@@ -151,7 +151,8 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.phrqc.ppt = False
             
             
-    def update_source(self):
+    def update_source(self):        
+        # '''
         c=deepcopy( self.fluid.get_attr('c'))
         f = deepcopy(self.fluid.get_attr('_f'))
         flag = False
@@ -164,6 +165,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.fluid.set_attr('_f',f)
             self.fluid.set_attr('f',f)
             self.fluid.call('compute_macro_var')
+        #'''
         c=deepcopy( self.fluid.get_attr('c'))
         phaseqty=self.solid.phaseqty_for_phrqc()
         phase_list = deepcopy(self.solid.diffusive_phase_list)
@@ -178,7 +180,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         else:
             self.solid.calcite.c = self.phrqc.selected_output()['calcite']
             ss=self.update_border_solution(c,ss)
-            #self.solid.calcite.c = self.phrqc.selected_output()['calcite']
         ss = self.update_no_flux(ss)
         self.fluid.set_attr('ss',ss)
                 
@@ -193,7 +194,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_app_tort()
         if(self.settings['velocity'] == True):
             self.solid.dvol = self.solid.vol-self.solid.prev_vol
-            
         self.fluid.call('update_transport_params',self.solid.poros, #move to solid params function
                             self.solid.app_tort,self.auto_time_step)
         
@@ -219,12 +219,18 @@ class CarbonationRT(PhrqcReactiveTransport):
             is_csh = (csh==np.maximum.reduce([cc,ch,csh])) * ~is_liq * ~is_cl
             phases += is_csh*(-5) + is_ch*(-10) + is_cc*(-15)
         self.solid.phases = phases
+        self.solid.transition_time = []
+        #self.c = []
+        self.solid.trans_port = []
+        self.solid.trans_calc = []
+        self.solid.prev_calc = deepcopy(self.solid.calcite.c > 1e-4)
+        self.solid.prev_port = deepcopy(self.solid.portlandite.c > 0)
     
     def update_nodetype(self):
         '''
         find neighbous of the multilevel cells
         '''
-        prev_nodetype = self.nodetype
+        prev_nodetype = deepcopy(self.nodetype)
         is_port = (self.solid.portlandite.c>0)
         is_calc = (self.solid.calcite.c>0)
         is_solid = self.solid.nodetype == ct.Type.SOLID
@@ -263,6 +269,12 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.nodetype = self.solid.nodetype
         self.update_border()
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)  
+        if (~np.all(self.nodetype == prev_nodetype)):
+            self.solid.transition_time.append(self.time)
+        if (~np.all(self.solid.prev_calc == (self.solid.calcite.c > 1e-4))):
+            self.solid.trans_calc.append(self.time)
+        if (~np.all(self.solid.prev_port == is_port)):
+            self.solid.trans_port.append(self.time)
 
     def update_diffusivity(self):
         Dref = self.Dref
@@ -298,8 +310,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             
         self.fluid.set_attr('D0',De,component_dict=False)
         self.fluid.set_attr('Deref',np.max(De),component_dict=False)
-        self.fluid.call("_set_relaxation_params")
-            
+        self.fluid.call("_set_relaxation_params")           
         
         
     def update_velocity(self):
@@ -385,7 +396,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         return interfaces
     
     def update_border_solution(self,c,ss):
-        phrqc_poros =  self.phrqc.selected_output()['poros'] #self.solid.poros#
+        poros = self.solid.poros#
+        phrqc_poros =  poros#self.phrqc.selected_output()['poros'] #
         fraction = self.settings['subgrid']['fraction']
         result = {}
         by = np.where(self.solid.border)[0]
@@ -410,10 +422,10 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.solid.calcite.c[by[i], bx[i]] = result[str(bf[i]+1)]['calcite_m']
         return ss
     
-    def update_neighbour_solution(self, result, n_ch, m_ch,m_cc, porosity, fraction=1):
+    def update_neighbour_solution(self, result, n_ch, m_ch,m_cc, porosity, fraction=1.):
         ncell = 123456
         fract = fraction/porosity
-        if fract>1: fract =1
+        if fract>1.: fract =1.
         #print(fract)
         modify_str = []
         modify_str.append("EQUILIBRIUM_PHASES %i" % ncell)
@@ -439,13 +451,13 @@ class CarbonationRT(PhrqcReactiveTransport):
         calc = output[2][12] 
         modify_str = [] 
         modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
-        modify_str.append("Portlandite 0 %.20e" %(0)) 
+        modify_str.append("Portlandite 0 %.20e dissolve only" %(0)) 
         modify_str.append("Calcite 0 %.20e precipitate only" %(calc)) 
         modify_str.append("END") 
         modify_str.append('USE equilibrium_phase %i' %n_ch)      
         modify_str.append('MIX %i' % ncell)      
         modify_str.append('%i 1' % ncell)   
-        modify_str.append('%i %.20e' %(n_ch, 1.-fract))  
+        modify_str.append('%i %.20e' %(n_ch, 1.- fract))  
         modify_str.append('SAVE solution %i' %(n_ch))  
         modify_str.append('SAVE equilibrium_phase %i' %(n_ch))    
         modify_str.append("END") 

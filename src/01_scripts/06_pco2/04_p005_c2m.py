@@ -84,7 +84,7 @@ app_tort = 1. * porosity ** app_tort_degree
 
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'subgrid', #'multilevel'/'subgrid'
+            'dissolution':'multilevel', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'

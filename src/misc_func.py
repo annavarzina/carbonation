@@ -272,33 +272,6 @@ def save_phrqc_input(phrqc,root_dir, name):
         for item in phrqc:
             f.write("%s\n" % item)
 #%% PARAMETERS
-    
-
-def get_average_aperture(rt):
-    '''
-    Aperture = average between top cells and mineral conteining cells
-    '''
-    phases = rt.solid.phases
-    #ptype = rt.ptype
-    nx = rt.fluid.Ca.nx -1
-    
-    mineral_cells = np.where((phases<=-5) + (phases >0))
-    widths = list()
-    for i in np.arange(1,nx):
-        width = 0
-        mineral = np.array([])
-        if (mineral_cells[0].size != 0):
-            # idx cells containing calcite (CC)
-            mineral = np.any(mineral_cells[1] ==i)    
-        if (not mineral):
-            #no CC and no CH
-            width = rt.fluid.Ca.ny
-        else:
-            # only CC
-            width = np.min(mineral_cells[0][np.where(mineral_cells[1] ==i)])
-        widths.append(width-1)
-    return np.mean(widths)
-
    
 def get_sum_mineral_volume(rt):
     '''
@@ -318,14 +291,14 @@ def get_average_poros(rt):
     poros = np.mean(rt.solid.poros[not_boundary])
     return(poros)
     
-def get_average_Archie_D(rt):
+def get_average_D(rt):
+    #TODO change
     '''
     Avarage effective diffusivity calculated by Archie's formula
     '''
-    D0 = rt.fluid.H.D0
-    Dnew = rt.solid.poros * rt.solid.app_tort * D0    
+    De = rt.fluid.H.De
     not_boundary = (rt.phrqc.boundcells !=1)  
-    return np.mean(Dnew[not_boundary])
+    return np.mean(De[not_boundary])
 
 def get_delta_portlandite(rt):
     '''
@@ -379,6 +352,9 @@ def get_average_pH(rt):
     ny = rt.fluid.Ca.ny -1
     s = np.mean(rt.phrqc.selected_output()['pH'][1:ny,1:nx])
     return(s)
+    
+def get_co2_uptake(rt):
+    return(np.sum(rt.fluid.C._ss[:,0]))
 
 def get_active(rt):
     '''
@@ -436,13 +412,12 @@ def append_results(rt, results, step = 1e+2):
         for num, phase in enumerate(rt.solid.diffusive_phase_list, start=1):
             results[phase].append(np.sum(rt.solid._diffusive_phaseqty[num-1]))        
         for num, comp in enumerate(rt.fluid.components, start=1):
-            results[comp].append(np.sum((getattr(rt.fluid, comp)._c)))#+getattr(rt.fluid, comp)._ss)/getattr(rt.fluid, comp).poros))        
+            results[comp].append(np.sum(getattr(rt.fluid, comp)._c*getattr(rt.fluid, comp).poros))       
         if (ptype == 'CSH'):
             results['csh'].append(get_sum_csh(rt))
         # average
-        favgall = {'avg_aperture': get_average_aperture,
-                'sum_vol':get_sum_mineral_volume,
-                'avg_D_eff':get_average_Archie_D,
+        favgall = {'sum_vol':get_sum_mineral_volume,
+                'avg_D_eff':get_average_D,
                 'avg_poros':get_average_poros,
                 'precipitation':get_precipitation,
                 'dissolution':get_dissolution,
@@ -452,7 +427,8 @@ def append_results(rt, results, step = 1e+2):
                 'dt':get_dt,
                 'pH':get_average_pH,
                 'delta_ch': get_delta_portlandite,
-                'delta_cc': get_delta_calcite}
+                'delta_cc': get_delta_calcite,
+                'co2_uptake': get_co2_uptake}
         favg = {k: favgall[k] for k in results['pavg_list']}
         for key, value in favg.iteritems():
             if key in ['delta_ch', 'delta_cc']:

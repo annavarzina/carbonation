@@ -53,10 +53,10 @@ label = np.array(['0.01','0.05', '0.1', '0.15'])
 names = np.array([ '02_poros005_subgrid', '02_poros005_subgrid_lowfr',
                    '02_poros005_Dborder09', '02_poros005_Dborder'])
 label = np.array(['fr 1.0','fr 0.01', 'D 09', 'D 11' ])
-'''
-
 names = np.array([ '02_poros005_Dborder09', #'01_poros001_Dborder09', 
                     '03_poros01_Dborder09','04_poros015_Dborder09', ])
+'''
+names = np.array(['01_p005_fr04_constD12','02_p01_fr04_constD12', '03_p015_fr04_constD12' ])
 label = np.array(['0.05', '0.1', '0.15'])
 linetype = np.array(['-', '--', '-.', ':', '-'])
 
@@ -66,7 +66,7 @@ for nn in names:
     results[nn] = fn.load_obj(path + nn +'_results')
 #%% SCALE
     
-scale = 50
+scale = 100
 for i in range(0, len(names)):
     temp = np.array(results[names[i]]['time'])
     temp *= scale
@@ -103,21 +103,25 @@ plt.show()
 
 #%% DISSOLUTION RATE
 
+#%% DISSOLUTION RATE
+
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
-r1 = 1
-r2 = 1000
+s =2
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(results[names[i]]['time'][r1:r2], 
-                 np.abs(cf.get_rate(results[names[i]][comp[k]],
-                             results[names[i]]['time'][2] - results[names[i]]['time'][1])[r1:r2]),
+        rate = np.abs(cf.get_rate(results[names[i]][comp[k]],
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1],
+                             step = s ))
+        #print(len(rate))
+        plt.plot(results[names[i]]['time'][::s], 
+                 rate,
                  ls=linetype[i], label = label[i])
-    #plt.title(titles[k])
+    plt.title(titles[k])
     plt.xlabel('Time (s)')
-    plt.ylabel(r'Precipitation rate $\cdot 10^{-12} $ (mol/s)')
+    plt.ylabel('Rate (mol/s)')
     plt.yscale("log")
     plt.legend()
     plt.savefig(fpath + fname + suffix[k])
@@ -213,12 +217,40 @@ plt.show()
 
 plt.figure(figsize=(8,4))
 for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['vol_CC (1, 2)'][0:500],
+             ls=linetype[i], label = label[i])
+plt.title('CC (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
     plt.plot(results[names[i]]['time'][0:500], results[names[i]]['Ca (1, 1)'][0:500],
              ls=linetype[i], label = label[i])
 plt.title('Ca (1, 1)')
 plt.xlabel('Time (s)')
 plt.legend()
 plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['Ca (1, 2)'][0:500],
+             ls=linetype[i], label = label[i])
+plt.title('Ca (1, 2)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    plt.plot(results[names[i]]['time'][0:500], results[names[i]]['C (1, 1)'][0:500],
+             ls=linetype[i], label = label[i])
+plt.title('C (1, 1)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.show() 
+
 
 mvol = np.array([0.01, 0.05, 0.1, 0.15])
 plt.figure(figsize=(8,4))

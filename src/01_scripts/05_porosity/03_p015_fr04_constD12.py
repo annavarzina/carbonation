@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Example with precipitation everywhere
+Porosity
 Fixed PCO2 at the boundary
 '''
 
@@ -23,7 +23,7 @@ import rt
 #%% PROBLEM DEFINITION
 __doc__= """ 
 Reference:
-    Lime solution \theta = 0.05
+    Lime solution \theta = 0.15
     PCO2 = 3.4
     IE = 0.5
     Archies relation for diffusivity
@@ -53,11 +53,11 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\06_pco2\\')
-path = root_dir+'\\results\\output\\06_pco2\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\05_porosity\\')
+path = root_dir+'\\results\\output\\05_porosity\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 2.0}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -66,10 +66,9 @@ phrqc = fn.set_phrqc_input(phrqc_input)
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
 scale = 100. # scale of molar volume
-init_porosCH = 0.05 #initial porosity of portlandite nodes
-default_porosCH = 0.05
+init_porosCH = 0.15 #initial porosity of portlandite nodes
 mvol_ratio = 3.69/3.31
-mvolCH = 0.0331*scale* (1-init_porosCH) / (1-default_porosCH)
+mvolCH = 0.0331*scale
 mvol = [mvolCH, mvolCH*mvol_ratio]
 mvol = fn.set_mvols(mvol, ptype = m) #m3/mol
 max_pqty = fn.get_max_pqty(mvol) #mol/m3
@@ -105,9 +104,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'Dref':D
             }
  
-tfact_default = 1./6.*init_porosCH
-tfact_scale = 10.
-tfact = tfact_default * tfact_scale
+tfact = 1./6.
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,

@@ -47,8 +47,9 @@ def get_val_at_time(res, field, t, dt):
     else:
         return 'Error' #raise error
     
-def get_rate(res, dt):
-    ch = np.array(res)
+def get_rate(res, dt, step = 1.):
+    ch = np.array(res[::step])
     dCH = np.zeros(ch.shape,np.float)
+    dt = dt*step
     dCH[0:-1] = np.diff(ch)/dt
     return dCH

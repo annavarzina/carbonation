@@ -67,8 +67,8 @@ class CarbonationPhrqc(Phrqc):
                             modifystr.append("\t -component %s" %(key))
                             modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
                             if key == 'portlandite': 
-                                pass
-                                #modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+                                #pass
+                                modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
                             if (key == 'calcite'):
                                 if (self.pcs == False):
                                     modifystr.append("\t\t%s\t%s" %('-precipitate_only', 1))
@@ -113,18 +113,10 @@ class CarbonationPhrqc(Phrqc):
         modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
         modifystr.append("\t -component\tO2(g)") 
         modifystr.append("\t\tsi\t-3")
-        #modifystr.append("\t -component\tH2(g)") 
-        #modifystr.append("\t\tsi\t-3")
         
-        #modifystr.append("\t\t%s\t%.20e" %('-si', 10))
         if(self.pinput['type']=='pco2'):
             modifystr.append("\t -component\tCO2(g)") 
             modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
-            #modifystr.append("\t -component\tO2(g)") 
-            #modifystr.append("\t\tsi\t-3")
-            #modifystr.append("\t -component\tH2(g)") 
-            #modifystr.append("\t\tsi\t-3")
-            #print(self.pinput['value'])
     
          
     def modify_solid_phases(self,phaseqty):#, c, nodetype):

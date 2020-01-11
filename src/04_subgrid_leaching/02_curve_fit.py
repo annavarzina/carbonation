@@ -53,8 +53,8 @@ diff_opt = diff_predict(fraction, c[0],c[1])
 diff_opt2=diff_predict(fr, c[0],c[1])
 '''
 
-plt.loglog(fraction, diffusivity, 'r.')
-plt.loglog(fr, diff_opt2, 'b-')
+plt.loglog(fraction, diffusivity, 'b.')
+#plt.loglog(fr, diff_opt2, 'b-')
 plt.xlabel('Fraction')
 plt.ylabel('D')
 plt.show()
