@@ -110,9 +110,13 @@ class CarbonationPhrqc(Phrqc):
         modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
         modifystr.append("\t -component portlandite")
         modifystr.append("\t\t%s\t%.20e" %('-moles', 0))  
-        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))       
         modifystr.append("\t -component\tO2(g)") 
         modifystr.append("\t\tsi\t-3")
+        '''
+        modifystr.append("\t -component\tH2(g)") 
+        modifystr.append("\t\tsi\t-3")
+        '''
         
         if(self.pinput['type']=='pco2'):
             modifystr.append("\t -component\tCO2(g)") 

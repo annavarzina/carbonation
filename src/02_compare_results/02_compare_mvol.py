@@ -27,7 +27,7 @@ names = np.array(['01_mvol1_subgrid',
                   '05_mvol100_subgrid', 
                    ])
 label = np.array([ '1', '5', '10', '50', '100'])
-'''
+
 names = np.array(['01_mvol1_subgrid_constbc',
                   '02_mvol5_subgrid_constbc',
                   '03_mvol10_subgrid _constbc', 
@@ -35,6 +35,14 @@ names = np.array(['01_mvol1_subgrid_constbc',
                   '05_mvol100_subgrid_constbc',
                    ])
 label = np.array([ '1', '5', '10', '50', '100'])
+'''
+names = np.array(['02_mvol1_fr04_ll5_Ca0', '02_mvol10_fr04_ll5_Ca0', '02_mvol50_fr04_ll5_Ca0','02_mvol100_fr04_ll5_Ca0'])
+#names = np.array(['03_mvol1_fr04_ll5', '03_mvol10_fr04_ll5', '03_mvol50_fr04_ll5','03_mvol100_fr04_ll5'])
+#names = np.array(['04_mvol1_fr04_ll1', '04_mvol10_fr04_ll1', '04_mvol50_fr04_ll1','04_mvol100_fr04_ll1'])
+#names = np.array([ '05_mvol50_fr04_ll5_Di','05_mvol100_fr04_ll5_Di'])
+#names = np.array(['06_mvol1_fr04_ll1_a', '06_mvol50_fr04_ll1_a','06_mvol100_fr04_ll1_a'])
+label = np.array([ '1', '10','50', '100'])
+
 linetype = np.array(['-', '--', '-.', ':', '-'])
 results = {}
 for nn in names:
@@ -42,7 +50,8 @@ for nn in names:
     results[nn] = fn.load_obj(path + nn +'_results')
 
 #%% SCALE
-scale = [ 1.,5., 10, 50,100]
+#scale = [ 1.,5., 10, 50,100]
+scale = [1.,10., 50., 100.]
 #dtime = [350,350,350,350,200,0]
 keys = ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'time',
         'C (1, 0)', 'C (1, 1)', 'avg_poros', 
@@ -115,16 +124,21 @@ for k in range(0, len(comp)):
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
+s =2
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(sres[names[i]]['time'], 
-                 cf.get_rate(sres[names[i]][comp[k]],
-                             sres[names[i]]['time'][2] - sres[names[i]]['time'][1]),
+        rate = np.abs(cf.get_rate(results[names[i]][comp[k]],
+                             results[names[i]]['time'][2] - results[names[i]]['time'][1],
+                             step = s ))
+        #print(len(rate))
+        plt.plot(results[names[i]]['time'][::s], 
+                 rate,
                  ls=linetype[i], label = label[i])
     plt.title(titles[k])
     plt.xlabel('Time (s)')
     plt.ylabel('Rate (mol/s)')
+    plt.yscale("log")
     plt.legend()
     plt.savefig(fpath + fname + suffix[k])
     plt.show()
@@ -213,3 +227,16 @@ for nn in names:
     t = np.array(sres[nn]['time'])[~cross]
     #print(t)
     
+#%% Ca
+comp = ['Ca (1, %s)'%i for i in range(1,9)]
+title = ['Ca in %s'%i for i in range(1,9)]
+
+for i in range(0, len(names)):
+    plt.figure(figsize=(8,4))    
+    for k in range(0, len(comp)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = title[k])
+    plt.xlabel('Time (s)')
+    plt.title(label[i])
+    plt.legend()
+    plt.show() 
