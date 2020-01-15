@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Molar volume = 50
+Molar volume = 100
 Liquid layer = 5 um
 Fraction = 0.004
 '''
@@ -8,8 +8,8 @@ Fraction = 0.004
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
-root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_dir)
 sys.path.append(src_dir)
 import matplotlib.pylab as plt
@@ -26,7 +26,7 @@ __doc__= """
 Reference:
     Lime solution \theta = 0.05
     PCO2 = 3.4
-    Molar volume = 50
+    Molar volume = 100
     Liquid layer = 5 um
     Fraction = 0.004
 """
@@ -55,11 +55,11 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\02_molar_volume\\')
-path = root_dir+'\\results\\output\\02_molar_volume\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\temp\\01_develop\\')
+path = root_dir+'\\results\\temp\\01_develop\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'conc', 'value': 2.77E-02}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'conc', 'value': 1E-01}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -67,7 +67,7 @@ phrqc_input = {'c_bc':{'type':'conc', 'value': 2.77E-02}, #3.05E-02, 3.74E-02, 4
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-scale = 50. # scale of molar volume
+scale = 100. # scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
 default_porosCH = 0.05
 mvol_ratio = 3.69/3.31
@@ -90,7 +90,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('archie', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -106,7 +106,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dx': dx, 
             'Dref':D
             }
- 
+            
 tfact = 1/6.
             
             

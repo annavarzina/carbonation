@@ -36,7 +36,8 @@ names = np.array(['01_mvol1_subgrid_constbc',
                    ])
 label = np.array([ '1', '5', '10', '50', '100'])
 '''
-names = np.array(['02_mvol1_fr04_ll5_Ca0', '02_mvol10_fr04_ll5_Ca0', '02_mvol50_fr04_ll5_Ca0','02_mvol100_fr04_ll5_Ca0'])
+names = np.array(['01_mvol1_mlvl_ll5', '01_mvol10_mlvl_ll5', '01_mvol50_mlvl_ll5','01_mvol100_mlvl_ll5'])
+#names = np.array(['02_mvol1_fr04_ll5_Ca0', '02_mvol10_fr04_ll5_Ca0', '02_mvol50_fr04_ll5_Ca0','02_mvol100_fr04_ll5_Ca0'])
 #names = np.array(['03_mvol1_fr04_ll5', '03_mvol10_fr04_ll5', '03_mvol50_fr04_ll5','03_mvol100_fr04_ll5'])
 #names = np.array(['04_mvol1_fr04_ll1', '04_mvol10_fr04_ll1', '04_mvol50_fr04_ll1','04_mvol100_fr04_ll1'])
 #names = np.array([ '05_mvol50_fr04_ll5_Di','05_mvol100_fr04_ll5_Di'])
