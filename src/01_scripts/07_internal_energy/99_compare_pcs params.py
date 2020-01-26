@@ -32,7 +32,7 @@ Reference:
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 5 #liquid lauer in front of portlandite
+ll = 1 #liquid lauer in front of portlandite
 l_ch = 25 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
@@ -53,15 +53,15 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\09_crystal_size\\')
-path = root_dir+'\\results\\output\\09_crystal_size\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\07_internal_energy\\')
+path = root_dir+'\\results\\output\\07_internal_energy\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 2}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
-               'c_liq':{'type':'eq', 'value': 'calcite'},
+               'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'eq', 'value': 'calcite'}}#calcite
+               'ca_liq':{'type':'conc', 'value': '0'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
@@ -84,7 +84,7 @@ app_tort = 1. * porosity ** app_tort_degree
 
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'subgrid', #'multilevel'/'subgrid'
+            'dissolution':'multilevel', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
@@ -92,9 +92,9 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
-                         'int_energy': 1.0, # internal energy
-                         'pore_size': 0.01*dx, # threshold radius or distance/2
-                         'crystal_size': 0.7*dx, # crystal or pore length
+                         'int_energy': 0.1, # internal energy
+                         'pore_size': 0.005*dx, # threshold radius or distance/2
+                         'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
             'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
@@ -104,8 +104,8 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dx': dx, 
             'Dref':D
             }
- 
-tfact= 1./6.
+            
+tfact = 1./6.
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
@@ -134,7 +134,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 3600*3.
+Ts = 1000.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -163,16 +163,21 @@ while  carb_rt.time <=Ts: #itr <= nitr: #
 simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
             
-#%%  SAVE
-fn.save_obj(results, path + str(nn) +'_results')
-np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
-np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
-np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
-np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
-np.save(path + 'De', carb_rt.fluid.Ca.De )
-np.save(path + 'poros', carb_rt.fluid.Ca.poros)
 #%% PLOT
 fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
 #%% PRINT
 print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
 print('Total CC precipitated %s' %(results['calcite'][-1]-results['calcite'][0]))
+#%%
+f = 'poros (1, 1)'
+plt.figure(figsize=(8,4))  
+plt.plot(results['time'], results[f])
+plt.xlabel('Time (s)')
+plt.ylabel('Porosity in voxel 5')
+plt.yscale("log")
+plt.legend()
+plt.show() 
+
+print()
+print(settings['pcs_mode'])
+print(results[f][-1])

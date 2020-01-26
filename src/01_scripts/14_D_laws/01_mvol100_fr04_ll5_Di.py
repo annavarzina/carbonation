@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
-Example with precipitation everywhere
-Fixed PCO2 at the boundary
+Molar volume = 100
+Liquid layer = 5 um
+Fraction = 0.004
 '''
 
 #%% PYTHON MODULES
@@ -25,8 +26,9 @@ __doc__= """
 Reference:
     Lime solution \theta = 0.05
     PCO2 = 3.4
-    IE = 0.5
-    Archies relation for diffusivity
+    Molar volume = 100
+    Liquid layer = 5 um
+    Fraction = 0.004
 """
 #problem type
 m = 'CH' #or 'CSH'
@@ -53,19 +55,19 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\09_crystal_size\\')
-path = root_dir+'\\results\\output\\09_crystal_size\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\14_dlaw\\')
+path = root_dir+'\\results\\output\\14_dlaw\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
-               'c_liq':{'type':'eq', 'value': 'calcite'},
+               'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'eq', 'value': 'calcite'}}#calcite
+               'ca_liq':{'type':'conc', 'value': '0'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
-scale = 100. # scale of molar volume
+scale = 50. # scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
 default_porosCH = 0.05
 mvol_ratio = 3.69/3.31
@@ -92,9 +94,9 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
-                         'int_energy': 1.0, # internal energy
-                         'pore_size': 0.01*dx, # threshold radius or distance/2
-                         'crystal_size': 0.7*dx, # crystal or pore length
+                         'int_energy': 0.1, # internal energy
+                         'pore_size': 0.005*dx, # threshold radius or distance/2
+                         'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
             'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
@@ -104,8 +106,9 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dx': dx, 
             'Dref':D
             }
- 
-tfact= 1./6.
+            
+tfact = 1/6.
+            
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
@@ -134,7 +137,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 3600*3.
+Ts = 1000.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -150,8 +153,8 @@ while  carb_rt.time <=Ts: #itr <= nitr: #
     if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
-            fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path, nn, ptype=m)  
-            fn.save_figures_mols(carb_rt, time_points[j], path, nn, ptype=m) 
+            #fn.save_figures_minerals(carb_rt,  max_pqty, time_points[j], path, nn, ptype=m)  
+            #fn.save_figures_mols(carb_rt, time_points[j], path, nn, ptype=m) 
             j +=1
         
     carb_rt.advance()    
@@ -173,6 +176,7 @@ np.save(path + 'De', carb_rt.fluid.Ca.De )
 np.save(path + 'poros', carb_rt.fluid.Ca.poros)
 #%% PLOT
 fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
+fn.plot_species(results, names=[])#['calcite']
 #%% PRINT
 print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
 print('Total CC precipitated %s' %(results['calcite'][-1]-results['calcite'][0]))

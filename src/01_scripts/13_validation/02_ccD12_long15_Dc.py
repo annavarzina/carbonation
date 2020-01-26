@@ -32,7 +32,7 @@ Reference:
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 5 #liquid lauer in front of portlandite
+ll = 15 #liquid lauer in front of portlandite
 l_ch = 25 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
@@ -53,8 +53,8 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\09_crystal_size\\')
-path = root_dir+'\\results\\output\\09_crystal_size\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\13_validation\\')
+path = root_dir+'\\results\\output\\13_validation\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
@@ -88,13 +88,13 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
                          'int_energy': 1.0, # internal energy
                          'pore_size': 0.01*dx, # threshold radius or distance/2
-                         'crystal_size': 0.7*dx, # crystal or pore length
+                         'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
             'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
@@ -134,7 +134,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 3600*3.
+Ts = 3600*24*2.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)

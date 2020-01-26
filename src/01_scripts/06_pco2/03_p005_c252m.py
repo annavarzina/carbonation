@@ -61,7 +61,7 @@ phrqc_input = {'c_bc':{'type':'pco2', 'value': 2.52}, #3.05E-02, 3.74E-02, 4.30E
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'eq', 'value': 'portlandite'}}#calcite
+               'ca_liq':{'type':'conc', 'value': '0'}}#calcite
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
@@ -88,7 +88,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -104,10 +104,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dx': dx, 
             'Dref':D
             }
- 
-tfact_default = 1./6.*init_porosCH
-tfact_scale = 10.
-tfact = tfact_default * tfact_scale
+tfact = 1./6.
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,

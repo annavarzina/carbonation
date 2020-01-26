@@ -59,7 +59,7 @@ fn.make_output_dir(root_dir+'\\results\\temp\\01_develop\\')
 path = root_dir+'\\results\\temp\\01_develop\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'conc', 'value': 1E-01}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'conc', 'value': 2.77E-02}, #2.77E-02, 3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 

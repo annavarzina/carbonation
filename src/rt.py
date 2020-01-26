@@ -48,11 +48,10 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_bc(settings)
         self.update_phases()
         self.update_nodetype()
+        self.update_target_SI() 
         
     
     def advance(self):
-        self.update_solid_params()  
-        self.update_target_SI() 
         #self.update_solid_params()   
         self.update_diffusivity() 
         self.fluid.call('advance') 
@@ -177,13 +176,21 @@ class CarbonationRT(PhrqcReactiveTransport):
             phaseqty['portlandite'][np.where(self.solid.border)]=0
         self.phrqc.modify_solid_phases(phaseqty)        
         ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
+        
+        self.update_solid_params()  
+        self.update_target_SI()
+        self.update_phrqc()  
         if (self.settings['dissolution']=='multilevel'): 
             pqty=self.solid.update(self.phrqc.dphases)  
         else:
             self.solid.calcite.c = self.phrqc.selected_output()['calcite']
             ss=self.update_border_solution(c,ss)
+                  
+            self.update_solid_params()  
+            self.update_target_SI() 
+            self.update_phrqc()  
         ss = self.update_no_flux(ss)
-        self.fluid.set_attr('ss',ss)
+        self.fluid.set_attr('ss',ss)  
                 
     def update_solid_params(self):
         '''
@@ -300,7 +307,8 @@ class CarbonationRT(PhrqcReactiveTransport):
             D_CC = cc[1]*np.ones(D_CC.shape)
         elif(cc[0] == 'inverse'):
             mineral = self.solid.vol
-            D_CC =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/cc[1]), Dref)
+            #D_CC =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/cc[1]), Dref)
+            D_CC =np.nan_to_num(1./((1-mineral)/Dref + mineral/cc[1]), Dref)
         
         if(ch[0] == 'const'):
             D_CH = ch[1]*np.ones(D_CH.shape)
@@ -399,7 +407,7 @@ class CarbonationRT(PhrqcReactiveTransport):
     
     def update_border_solution(self,c,ss):
         poros = self.solid.poros#
-        phrqc_poros =  self.phrqc.selected_output()['poros'] #
+        phrqc_poros = self.phrqc.selected_output()['poros'] #
         fraction = self.settings['subgrid']['fraction']
         result = {}
         by = np.where(self.solid.border)[0]
