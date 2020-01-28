@@ -63,7 +63,7 @@ phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4},
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'},    
-               'ca_liq':{'type':'eq', 'value': 'portlandite'}}
+               'ca_liq':{'type':'conc', 'value': '0'}}
 
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
@@ -89,8 +89,8 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
-                           'CH': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-11), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -107,7 +107,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'Dref':D
             }
                
-tfact_default = 1./6./8#*init_porosCH
+tfact_default = 1./6./1#*init_porosCH
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
@@ -133,7 +133,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  3600. #seconds
+Ts =  1000. #seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)

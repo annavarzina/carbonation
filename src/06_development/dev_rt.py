@@ -52,12 +52,11 @@ class CarbonationRT(PhrqcReactiveTransport):
         
     
     def advance(self):
-        #self.update_solid_params()   
+          
         self.update_diffusivity() 
         self.fluid.call('advance')  
         self.update_target_SI() 
-        self.update_source() 
-        self.update_target_SI()       
+        self.update_source()       
         self.update_phases()    
         self.update_velocity()
         self.update_nodetype()
