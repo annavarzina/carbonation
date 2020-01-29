@@ -19,23 +19,10 @@ Ts =1000.
 fname = 'compare_mvol'
 fpath = root_dir+'\\results\\output\\02_molar_volume\\'
 fn.make_output_dir(fpath)
-'''
-names = np.array(['01_mvol1_subgrid',
-                  '02_mvol5_subgrid',
-                  '03_mvol10_subgrid', 
-                  '04_mvol50_subgrid', 
-                  '05_mvol100_subgrid', 
-                   ])
-label = np.array([ '1', '5', '10', '50', '100'])
 
-names = np.array(['01_mvol1_subgrid_constbc',
-                  '02_mvol5_subgrid_constbc',
-                  '03_mvol10_subgrid _constbc', 
-                  '04_mvol50_subgrid_constbc',
-                  '05_mvol100_subgrid_constbc',
-                   ])
-label = np.array([ '1', '5', '10', '50', '100'])
-'''
+#names = np.array(['01_mvol1_subgrid', '02_mvol5_subgrid', '03_mvol10_subgrid',  '04_mvol50_subgrid',  '05_mvol100_subgrid',  ])
+#names = np.array(['01_mvol1_subgrid_constbc', '02_mvol5_subgrid_constbc',  '03_mvol10_subgrid _constbc',  '04_mvol50_subgrid_constbc', '05_mvol100_subgrid_constbc', ])
+#label = np.array([ '1', '5', '10', '50', '100'])
 #names = np.array(['02_mvol1_fr04_ll5_Ca0', '02_mvol10_fr04_ll5_Ca0', '02_mvol50_fr04_ll5_Ca0','02_mvol100_fr04_ll5_Ca0'])
 #names = np.array(['03_mvol1_fr04_ll5', '03_mvol10_fr04_ll5', '03_mvol50_fr04_ll5','03_mvol100_fr04_ll5'])
 #names = np.array(['04_mvol1_fr04_ll1', '04_mvol10_fr04_ll1', '04_mvol50_fr04_ll1','04_mvol100_fr04_ll1'])

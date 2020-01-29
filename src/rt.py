@@ -47,6 +47,9 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_init_phrqc()        
         self.update_bc(settings)
         self.update_phases()
+        self.solid.transition_time = []
+        self.solid.trans_port = []
+        self.solid.trans_calc = []
         self.update_nodetype()
         self.update_target_SI() 
         
@@ -170,7 +173,8 @@ class CarbonationRT(PhrqcReactiveTransport):
         for num, phase in enumerate(phase_list, start=1):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1]) 
         if(self.settings['dissolution']=='subgrid'):
-            phaseqty['portlandite'] = np.zeros(phaseqty['portlandite'].shape)
+            phaseqty['portlandite'][np.where(self.solid.border)]=0
+            #phaseqty['portlandite'] = np.zeros(phaseqty['portlandite'].shape)
         self.phrqc.modify_solid_phases(phaseqty)        
         ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)  
         if (self.settings['dissolution']=='multilevel'): 
@@ -222,10 +226,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             is_csh = (csh==np.maximum.reduce([cc,ch,csh])) * ~is_liq * ~is_cl
             phases += is_csh*(-5) + is_ch*(-10) + is_cc*(-15)
         self.solid.phases = phases
-        self.solid.transition_time = []
         #self.c = []
-        self.solid.trans_port = []
-        self.solid.trans_calc = []
         self.solid.prev_calc = deepcopy(self.solid.calcite.c > 1e-4)
         self.solid.prev_port = deepcopy(self.solid.portlandite.c > 0)
     
@@ -272,11 +273,11 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.nodetype = self.solid.nodetype
         self.update_border()
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)  
-        if (~np.all(self.nodetype == prev_nodetype)):
+        if (~np.array_equal(self.nodetype, prev_nodetype)):
             self.solid.transition_time.append(self.time)
-        if (~np.all(self.solid.prev_calc == (self.solid.calcite.c > 1e-4))):
+        if (~np.array_equal(self.solid.prev_calc, (self.solid.calcite.c > 1e-4))):
             self.solid.trans_calc.append(self.time)
-        if (~np.all(self.solid.prev_port == is_port)):
+        if (~np.array_equal(self.solid.prev_port, is_port)):
             self.solid.trans_port.append(self.time)
 
     def update_diffusivity(self):

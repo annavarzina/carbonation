@@ -28,7 +28,7 @@ Default example. Explains possible values
 m = 'CH' #or 'CSH' #TODO case for cement
 
 #%% GEOMETRY
-ll = 5#liquid lauer in front of portlandite
+ll = 15#liquid lauer in front of portlandite
 l_ch = 25 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
@@ -49,21 +49,14 @@ plt.show()
 
 #%%  PHREEQC
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\03_fraction\\')
-path = root_dir+'\\results\\output\\03_fraction\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\13_validation\\')
+path = root_dir+'\\results\\output\\13_validation\\' + nn + '\\'
 fn.make_output_dir(path)
-'''
-phrqc_input = {'c_bc':{'type':'conc', 'value': 0.01}, # another option 'c_bc':{'type':'pco2', 'value': 3.4}
-               'c_mlvl':{'type':'conc', 'value': '0'},  # another option c_mlvl':{'type':'conc', 'value': '0'}
-               'c_liq':{'type':'conc', 'value': '0'}, # another option c_liq':{'type':'conc', 'value': '0'}
-               'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'eq', 'value': 'portlandite'}} # another option ca_liq':{'type':'conc', 'value': '0'} or ca_liq':{'type':'eq', 'value': 'portlandite'}
-'''
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4},
                'c_mlvl':{'type':'conc', 'value': '0'}, 
-               'c_liq':{'type':'conc', 'value': '0'},
+               'c_liq':{'type':'eq', 'value': 'calcite'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'},    
-               'ca_liq':{'type':'eq', 'value': 'portlandite'}}
+               'ca_liq':{'type':'eq', 'value': 'calcite'}}
 
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
@@ -86,11 +79,11 @@ app_tort_degree = 1./3.
 app_tort = 1. * porosity ** app_tort_degree
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'multilevel', #'multilevel'/'subgrid'
+            'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-14*5), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -99,7 +92,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
-            'subgrid': {'fraction':1.0}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'velocity': False, 
             'bc': phrqc_input['c_bc'],
@@ -124,7 +117,7 @@ carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain,
 
 #%% PARAMETERS
 
-plist =  [(1,n) for n in np.arange(1, 9)] #points list
+plist =  [(1,n) for n in np.arange(0, 15)] #points list
 pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation', #argument list
             'dissolution', 'portlandite_cells', 'calcite_cells',
             'co2_uptake'] 
@@ -134,7 +127,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  3600. #seconds
+Ts =  3600.*24*2 # * 6 seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -147,15 +140,10 @@ it=time.time()
 itr = 0 
 j = 0
 while carb_rt.time <=Ts: #itr < nitr: # 
-    if(False):
+    if(True):
         if ( (carb_rt.time <= time_points[j]) and \
             ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
-            if(j>0):
-                print(time_points[j])
-                print('C %s' %carb_rt.fluid.C.c[1,:])
-                print('Ca %s' %carb_rt.fluid.Ca.c[1,:])
-                print('Porosity %s' %carb_rt.fluid.Ca.poros[1,:])
-                print('CC %s' %carb_rt.solid.calcite.c[1,:])
+            print(time_points[j])            
             j +=1
         
     carb_rt.advance()    
@@ -174,6 +162,9 @@ np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
 np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
 np.save(path + 'poros', carb_rt.fluid.Ca.poros)
+np.save(path + 'ttime', carb_rt.solid.transition_time)
+#np.save(path + 'calctime', carb_rt.solid.trans_calc)
+#np.save(path + 'porttime', carb_rt.solid.trans_port)
 
 #%% PLOT 
 fn.plot_species(results, names=[])#['calcite']

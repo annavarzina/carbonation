@@ -52,13 +52,6 @@ nn='01_example_default'
 fn.make_output_dir(root_dir+'\\results\\output\\00_examples\\')
 path = root_dir+'\\results\\output\\00_examples\\' + nn + '\\'
 fn.make_output_dir(path)
-'''
-phrqc_input = {'c_bc':{'type':'conc', 'value': 0.01}, # another option 'c_bc':{'type':'pco2', 'value': 3.4}
-               'c_mlvl':{'type':'conc', 'value': '0'},  # another option c_mlvl':{'type':'conc', 'value': '0'}
-               'c_liq':{'type':'conc', 'value': '0'}, # another option c_liq':{'type':'conc', 'value': '0'}
-               'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-               'ca_liq':{'type':'eq', 'value': 'portlandite'}} # another option ca_liq':{'type':'conc', 'value': '0'} or ca_liq':{'type':'eq', 'value': 'portlandite'}
-'''
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4},
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
@@ -90,7 +83,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('inverse', 1e-11), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -133,7 +126,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  1000. #seconds
+Ts =  3600.*0.5 #seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -148,12 +141,8 @@ j = 0
 while carb_rt.time <=Ts: #itr < nitr: # 
     if(True):
         if ( (carb_rt.time <= time_points[j]) and \
-            ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
-            if(j>0):
-                print('C %s' %carb_rt.fluid.C.c[1,:])
-                print('Ca %s' %carb_rt.fluid.Ca.c[1,:])
-                print('Porosity %s' %carb_rt.fluid.Ca.poros[1,:])
-                print('CC %s' %carb_rt.solid.calcite.c[1,:])
+            ((carb_rt.time + carb_rt.dt) > time_points[j]) ): 
+            print(time_points[j])
             j +=1
         
     carb_rt.advance()    

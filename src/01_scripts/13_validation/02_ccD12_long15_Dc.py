@@ -122,7 +122,7 @@ carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain,
 
 #%% PARAMETERS
 #plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
-plist =  [(1,n) for n in np.arange(0, 10)]
+plist =  [(1,n) for n in np.arange(0, 15)]
 pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation',
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 #'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
@@ -134,7 +134,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 3600*24*2.
+Ts = 3600*12.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -176,3 +176,41 @@ fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsi
 #%% PRINT
 print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
 print('Total CC precipitated %s' %(results['calcite'][-1]-results['calcite'][0]))
+
+#%% Carbonation degree
+mm_CH = 74.093
+mm_CC = 100.086
+mass0 = results['portlandite'][0]*mm_CH + results['calcite'][0]*mm_CC
+mass_f = results['portlandite'][-1]*mm_CH + results['calcite'][-1]*mm_CC
+print(mass0*1e-15*scale)
+print(mass_f*1e-15*scale)
+
+plt.figure(figsize=(8,4))
+d = ((np.array(results['portlandite'])*mm_CH + \
+              np.array(results['calcite'])*mm_CC)- \
+              results['portlandite'][0]*mm_CH)*1e-15*scale
+t = np.array(results['time'])*scale/24/3600
+print(d[-1])
+plt.plot(t, d)
+plt.xlabel('Time (d)')
+plt.ylabel('Mass increase (g/um2)')
+plt.show
+
+#%%
+
+alpha = np.array([0.,0.3,0.55,1.05,1.25,1.55])
+time = np.array([0.,2.,4.5,10.,12.,20.]) #days
+
+
+mass0 = 22.977 *1e-3 #[g] initial mass of CH crystal
+dmass = alpha*mass0/100 #delta mass increase
+dmm  = 100.086-74.093 #[g/mol] molar mass difference
+xmol = dmass/dmm #[mol] mol of CH transformed to CC
+
+sa  = 29.19e+6
+depth_sa = xmol*0.0331*1e+15/sa
+mass_sa = dmass/sa
+mol_sa = xmol/sa
+
+print(mass_sa)
+print(mol_sa)

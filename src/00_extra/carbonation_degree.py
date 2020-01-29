@@ -63,6 +63,8 @@ plt.legend()
 plt.show()
 
 print((mass[-1]- mass0)*10e-3)
+#%%
+print(2.711/0.0369-2.24/0.0331)
 #%% depth Predict
 def d_predict(t, c0, c1):
     d = c0*(1 - np.exp(-t*c1))
@@ -70,10 +72,11 @@ def d_predict(t, c0, c1):
 
 mass0 = 22.977 *1e-3 #g
 dmass = alpha*mass0/100 #delta mass per 1 um2
-xmol = dmass/26.812 #constant = rho_CC/C_CC - rho_CH/C_CH
+xmol = dmass/25.9#26.812 #constant = rho_CC/C_CC - rho_CH/C_CH
 
 sa  = 29.19e+6
 d = xmol*0.0331*1e+15/sa
+
 c, cov = curve_fit(d_predict, time, d)
 print(c)
 
