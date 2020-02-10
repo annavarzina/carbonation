@@ -83,13 +83,13 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('const', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-13), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
                          'int_energy': 0.1, # internal energy
                          'pore_size': 0.005*dx, # threshold radius or distance/2
-                         'crystal_size': 0.5*dx, # crystal or pore length
+                         'crystal_size': 0.7*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
             'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
@@ -127,7 +127,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  3600.*24*2 # * 8 seconds
+Ts =  3600.*24*2 # * 6 seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -142,7 +142,7 @@ j = 0
 while carb_rt.time <=Ts: #itr < nitr: # 
     if(True):
         if ( (carb_rt.time <= time_points[j]) and \
-            ((carb_rt.time + carb_rt.dt) > time_points[j]) ):   
+            ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])            
             j +=1
         
@@ -194,25 +194,3 @@ print('tau %s' %str(np.array(carb_rt.fluid.C.tau[1,:])))
 
 print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
 print('Total CC precipitated %s' %(results['calcite'][-1]-results['calcite'][0]))
-#%%
-a = []
-#p = 'poros (1, 8)'
-comp =  [ 'poros (1, ' + str(i) + ')' for i in range(1,15) ]
-thres = 1e-5
-for p in comp:
-    for i in range(1,len(results[p])-1):
-        if np.abs(results[p][i] - results[p][i-1]) < thres:
-            if np.abs(results[p][i+1] - results[p][i]) > thres:
-                a.append(results['time'][i] )
-#t = carb_rt.transition_time
-x = np.arange(1, len(a)+1)
-    
-plt.figure(figsize=(8,4))
-plt.plot(sorted(a), x)
-plt.ylabel("Dissolved length (um)")
-plt.xlabel("Time")
-#plt.ylim([0,10])
-#plt.xlim([0,140])
-plt.legend()
-plt.show()
-b = sorted(a)

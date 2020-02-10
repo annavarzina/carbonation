@@ -185,8 +185,14 @@ plt.xlabel('Mixing fraction')
 plt.ylabel(r'Diffusivity ($m^2/s$)')
 plt.show()
 #%%
-plt.loglog(diffusivity,fraction,  'r-')
-plt.ylabel('Mixing fraction')
+idx = np.where(np.logical_and(diffusivity>=1.e-10, diffusivity<=1.5e-10))[0]
+plt.figure()
+plt.loglog(diffusivity,fraction*100,  'r-')
+plt.hlines(y = fraction[11]*100, xmin = diffusivity[14], xmax = diffusivity[11], 
+           linestyles = '--', colors = 'black', alpha = .5, label = "Galan I., et.al. (2015)")
+plt.vlines(x = diffusivity[11], ymin = fraction[14]*100, ymax = fraction[11]*100, linestyles = '--', colors = 'black', alpha = .5)
+#plt.fill_between(diffusivity[idx],fraction[idx]*100, color = "#6f8191", alpha=.5,label = "Johannsen K., et.al. (1999)")
+plt.ylabel(r"Percentage of equilibrated water $\sigma$ (%)")
 plt.xlabel(r'Diffusivity ($m^2/s$)')
 plt.yscale("log")
 plt.show()

@@ -21,14 +21,15 @@ fpath = root_dir+'\\results\\output\\00_default\\'
 fn.make_output_dir(fpath)
 #names = np.array([ '01_ie01_p05', '02_ie05_p05', '03_ie1_p05'])
 name = '02_c05_p005_Db09'
-
+name = '04_ccD13_Di'
+#name = '05_ccD13_Di_PSCS'
 linetype = '-'
 scale = 100
 
 results = {}
-path = root_dir+'\\results\\output\\09_crystal_size\\' + name + '\\'
+#path = root_dir+'\\results\\output\\09_crystal_size\\' + name + '\\' 
+path = root_dir+'\\results\\output\\13_validation\\' + name + '\\'
 results = fn.load_obj(path + name +'_results')
-
 for n in ['time', 'portlandite', 'calcite']:
     temp = np.array(results[n])
     temp *= scale 
@@ -74,8 +75,56 @@ plt.fill_between(np.arange(6,11,1),ph[1,6:11], color = "#cbd2d9", alpha=.5, labe
 plt.fill_between(np.arange(10,30,1),ph[1,10:30], color = "#3d4249", alpha=.5, label = "portlandite")
 plt.ylabel('pH')
 plt.legend()
-plt.ylim(8.1,12.6)
+plt.ylim(6.0,12.6)
 plt.xlabel(r'Distance ($\mu m$)')
+#%% DISSOLUTION RATE
+titles = ['Dissolution rate', 'Precipitation rate' ]
+comp =  ['portlandite', 'calcite']
+suffix = ['_CH_rate', '_CC_rate' ]
+s =2
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4))    
+    rate = np.abs(cf.get_rate(results[comp[k]],
+                         results['time'][2] - results['time'][1],
+                         step = s ))
+    plt.plot(np.array(results['time'][::s] )/3600,
+             rate)
+    plt.title(titles[k])
+    plt.xlabel('Time (h)')
+    plt.ylabel('Rate (mol/s)')
+    plt.yscale("log")
+    plt.show()
+#plt.savefig(fpath + fname + '_CH_rate')
+
+#%% Change in porosity
+plt.figure(figsize=(8,4))
+cp =  np.array(results['avg_poros']) -results['avg_poros'][0]
+print(cp[-1]*100)
+plt.plot(results['time'],cp)
+plt.xlabel('Time')
+plt.ylabel('Change in porosity')
+plt.legend()
+plt.show
+#%%
+plt.figure(figsize=(8,4))
+plt.plot(results['time'], np.array(results['portlandite']) -
+            results['portlandite'][0])
+plt.xlabel('Time')
+plt.ylabel(r'Change in Portlandite ($\cdot 10^{-15}$ mol/l)')
+plt.legend()
+plt.show
+
+plt.figure(figsize=(8,4))
+plt.plot(results['time'], np.array(results['calcite']))
+plt.xlabel('Time')
+plt.ylabel(r'Change in Calcite ($\cdot 10^{-15}$ mol/l)')
+plt.legend()
+plt.show
+print(np.array(results['portlandite'][-1]) -
+            results['portlandite'][0])
+print(np.array(results['calcite'][-1]) -
+            results['calcite'][0])
+
 
 #%% porosity profile 
 plt.figure(figsize=(8,4))
@@ -140,6 +189,50 @@ for k in range(0, len(comp)):
     plt.plot(np.array(results['time'][r1:r2])/3600, results[comp[k]][r1:r2],
              ls=linetype, label = title[k])
 plt.xlabel('Time (h)')
-plt.ylabel('Dissolved Ca (mol/l)')
+plt.ylabel('Dissolved'+ f +' (mol/l)')
 plt.legend(loc = "upper right")
 plt.show() 
+
+
+#%%
+a = []
+#p = 'poros (1, 8)'
+comp =  [ 'poros (1, ' + str(i) + ')' for i in range(1,15) ]
+thres = 1e-4
+for p in comp:
+    for i in range(1,len(results[p])-1):
+        if np.abs(results[p][i] - results[p][i-1]) < thres:
+            if np.abs(results[p][i+1] - results[p][i]) > thres:
+                a.append(results['time'][i] )
+#t = carb_rt.transition_time
+x = np.arange(0, len(a))
+plt.figure(figsize=(8,4))
+plt.plot(sorted(a), x)
+plt.ylabel("Dissolved length (um)")
+plt.xlabel("Time")
+#plt.ylim([0,10])
+#plt.xlim([0,140])
+plt.legend()
+plt.show()
+
+#%%
+dtime = np.array(sorted(a))
+indices = np.array([np.where(results['time']==dtime[i])[0][0] for i in range(0, len(dtime))])
+dtime = np.insert(dtime, 0, 0)
+indices = np.insert(indices, 0, 0)
+
+titles = ['Dissolution rate', 'Precipitation rate' ]
+comp =  ['portlandite', 'calcite']
+suffix = ['_CH_rate', '_CC_rate' ]
+for k in range(0, len(comp)):
+    plt.figure(figsize=(8,4)) 
+    rate = np.zeros(len(indices)-1)
+    for i in range(1, len(indices)):
+        rate[i-1] = np.abs(results[comp[k]][indices[i]] - results[comp[k]][indices[i-1]])/\
+                         (results['time'][indices[i]]  - results['time'][indices[i-1]])  
+    plt.plot(dtime[1:]/3600,  rate)
+    plt.title(titles[k])
+    plt.xlabel('Time (h)')
+    plt.ylabel('Rate (mol/l/s/um2)')
+    plt.yscale("log")
+    plt.show()

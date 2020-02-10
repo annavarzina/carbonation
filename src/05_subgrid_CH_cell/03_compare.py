@@ -72,3 +72,53 @@ plt.xscale("log")
 plt.yscale("log")
 plt.legend()
 plt.show()
+
+#%% rate
+scale = 100
+dim = 10**(-15)*10**3*10**8 # convert to mmol/l/s/cm2
+plt.figure(figsize = (6,6))
+for f in fractions:
+    plt.plot(np.abs(dch[nn+ str(f)][1:])*scale*dim, label = f)
+plt.ylabel(r"Rate of dissolution $k$ $(mmol / (l\cdot s\cdot cm^2)$")
+plt.xlabel(r"Dissolved portlandite length $(\mu)$")
+plt.yscale("log")
+#plt.xscale("log")
+plt.legend()
+plt.show()
+
+#%% CH rate
+r1 = []
+rn = []
+rmean = []
+for f in fractions:    
+    r1.append(dch[nn + str(f)][1]*scale*dim)
+    rn.append(dch[nn + str(f)][-11]*scale*dim)
+    rmean.append(np.mean(dch[nn + str(f)][:])*scale*dim)
+    
+    
+plt.figure()
+plt.plot(fractions, np.abs(r1), label = "1")
+plt.plot(fractions, np.abs(rn), label = "20")
+plt.plot(fractions, np.abs(rmean), label = "mean")
+plt.ylabel(r"Rate of dissolution $k$ $(mmol / (l\cdot s\cdot cm^2)$")
+plt.xlabel(r"Fraction of equilibrated water $\sigma$")
+plt.yscale("log")
+plt.xscale("log")
+plt.legend()
+plt.show()
+
+#%%
+idx = np.where(np.logical_and(np.abs(rmean)>=0.39e-5, np.abs(rmean)<=6.2e-5))[0]
+plt.figure()
+plt.plot(np.abs(rmean), fractions*100)
+plt.fill_between(np.abs(rmean)[idx],fractions[idx]*100, color = "#6f8191", alpha=.5,label = "Johannsen K., et.al. (1999)")
+plt.xlabel(r"Rate of dissolution $k$ $(mmol / (l\cdot s\cdot cm^2)$")
+plt.ylabel(r"Percentage of equilibrated water $\sigma$ (%)")
+plt.yscale("log")
+plt.xscale("log")
+plt.legend()
+plt.show()
+#%% ch
+scale = 100
+chsc = np.array(ch[nn+ str(fractions[0])]*scale)
+print(chsc)

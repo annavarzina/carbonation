@@ -79,7 +79,7 @@ app_tort_degree = 1./3.
 app_tort = 1. * porosity ** app_tort_degree
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'subgrid', #'multilevel'/'subgrid'
+            'dissolution':'multilevel', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
@@ -127,7 +127,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  3600.*6 # * 6 seconds
+Ts =  200. # * 6 seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -155,6 +155,7 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
   
 #%%  SAVE
+'''
 fn.save_obj(results, path + str(nn) +'_results')
 np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
 np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
@@ -163,6 +164,7 @@ np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
 np.save(path + 'poros', carb_rt.fluid.Ca.poros)
 np.save(path + 'ttime', carb_rt.solid.transition_time)
+'''
 #np.save(path + 'calctime', carb_rt.solid.trans_calc)
 #np.save(path + 'porttime', carb_rt.solid.trans_port)
 

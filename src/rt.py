@@ -291,7 +291,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         is_border = self.solid.border
         is_port = (self.solid.portlandite.c >0) & (~is_border)
         is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
-        is_calc = np.logical_and(is_calc,~is_border)
+        #is_calc = np.logical_and(is_calc,~is_border)
         is_liquid = np.logical_and(~is_port, ~is_calc)
         is_liquid = np.logical_and(is_liquid, ~is_border)
         
@@ -301,7 +301,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         if(cc[0] == 'const'):
             D_CC = cc[1]*np.ones(D_CC.shape)
         elif(cc[0] == 'inverse'):
-            mineral = self.solid.vol
+            mineral = self.solid.calcite.c * self.solid.calcite.mvol
             #D_CC =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/cc[1]), Dref)
             D_CC =np.nan_to_num(1./((1-mineral)/Dref + mineral/cc[1]), Dref)
         
@@ -311,7 +311,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             mineral = self.solid.vol
             D_CH =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/ch[1]), Dref)
         
-        De = D_CH*is_port + D_CC*is_calc + D_border*is_border + Dref*is_liquid 
+        De = D_CH*is_port + D_CC*is_calc + D_CC*is_border + Dref*is_liquid 
             
         self.fluid.set_attr('D0',De,component_dict=False)
         self.fluid.set_attr('Deref',np.max(De),component_dict=False)
