@@ -40,31 +40,22 @@ plt.ylabel('Degree of carbonation (%)')
 plt.legend()
 plt.show()
 #%%
+alpha = np.array([0.,0.3,0.55,1.05,1.25,1.55])
+time = np.array([0.,2.,4.5,10.,12.,20.]) #days
 
-time_new = np.arange(0.,10.,0.01)
-a=degree_predict(time_new, c[0],c[1])
-plt.plot(time_new, a, 'b-', label = "Fitting")
-plt.xlabel('Time (days)')
-plt.ylabel('Degree of carbonation (%)')
-#plt.yscale("log")
-plt.legend()
-plt.show()
+mass0 = 22.977 *1e-3 #g
+dmass = alpha*mass0/100 #delta mass per 1 um2
+xmol = dmass/25.9#26.812 #constant = rho_CC/C_CC - rho_CH/C_CH mol transformed to calcite
 
-time_new = np.arange(0.,1.e-2,1.e-5) 
-a=degree_predict(time_new, c[0],c[1])
+sa  = 29.19e+6
+d = dmass/sa
 
-mass0 = 22.977 
-mass = (a-1)*mass0
-
-plt.plot(time_new*24.*3600, (mass - mass0), 'b-')
-plt.xlabel('Time (seconds)')
+plt.plot(time,d, 'b-')
+plt.xlabel('Time (d)')
 plt.ylabel('Mass increase (mg)')
 plt.legend()
 plt.show()
 
-print((mass[-1]- mass0)*10e-3)
-#%%
-print(2.711/0.0369-2.24/0.0331)
 #%% depth Predict
 def d_predict(t, c0, c1):
     d = c0*(1 - np.exp(-t*c1))
@@ -72,7 +63,7 @@ def d_predict(t, c0, c1):
 
 mass0 = 22.977 *1e-3 #g
 dmass = alpha*mass0/100 #delta mass per 1 um2
-xmol = dmass/25.9#26.812 #constant = rho_CC/C_CC - rho_CH/C_CH
+xmol = dmass/25.9#26.812 #constant = rho_CC/C_CC - rho_CH/C_CH mol
 
 sa  = 29.19e+6
 d = xmol*0.0331*1e+15/sa
@@ -222,3 +213,44 @@ plt.show()
 #%% 
 
 
+t13 = np.array([0.070945216, 0.243092284, 0.58738642, 1.103827624,
+                1.792415895,2.653151235,3.686033642,4.891063118,
+                6.268239661,7.817563273, 9.539033952,11.4326517,
+                13.49841651, 15.7363284,18.14638735])
+    
+    
+x = np.arange(1, len(t13)+1)
+
+
+plt.figure(figsize=(8,4))
+plt.plot(time, d, '.', label = "Experiment")
+plt.plot(t13, np.arange(1, len(t13)+1), label = "Model")
+plt.xlabel('Time (day)', fontsize=14)
+plt.ylabel(r'Depth ($\mu m$)', fontsize=14)
+plt.legend(fontsize=12)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.show()
+
+#%% Mass gain
+alpha = np.array([0.,0.3,0.55,1.05,1.25,1.55])
+time = np.array([0.,2.,4.5,10.,12.,20.]) #days
+
+mass0 = 22.977 *1e-3 #g
+dmass = alpha*mass0/100 #delta mass per 1 um2
+xmol = dmass/25.9#26.812 #constant = rho_CC/C_CC - rho_CH/C_CH mol transformed to calcite
+
+sa  = 29.19e+6
+d = dmass/sa
+
+gain_per_voxel = 6.8*100*1e-15
+max_gain = 7.4*100*1e-15
+
+plt.figure(figsize=(8,4))
+plt.plot(time, d, '.', label = "Experiment")
+plt.plot(t13, x*gain_per_voxel*1.05, label = "Model")
+plt.plot(t13, x*max_gain*1.05, label = "Model (true gain)")
+plt.xlabel('Time (day)', fontsize=14)
+plt.ylabel('Mass increase (mg)', fontsize=14)
+plt.legend(fontsize=12)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.show()

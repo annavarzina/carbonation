@@ -58,9 +58,10 @@ for k in range(0, len(comp)):
         plt.plot(np.array(results[names[i]]['time'])/3600,
                  results[names[i]][comp[k]],
                  ls=linetype[i], label = label[i])
-    plt.ylabel(ylabel[k])
-    plt.xlabel('Time (h)')
-    plt.legend()
+    plt.ylabel(ylabel[k], fontsize = 14)
+    plt.xlabel('Time (h)', fontsize = 14)
+    plt.legend(fontsize = 12)
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.savefig(fpath + fname + suffix[k])
     plt.show() 
 

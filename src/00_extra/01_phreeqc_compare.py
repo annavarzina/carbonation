@@ -123,9 +123,9 @@ scale= 1e-7
 n = 2000
 steps=''
 for i in range(n):
-    steps = steps + ' ' +str(n)
+    steps = steps + ' ' +str(i)
 f = 0.004
-k = f/0.01945*scale
+k = 2.e-7
 
 it=time.time() 
 ps_k = phrqc_string_kin(steps, k)

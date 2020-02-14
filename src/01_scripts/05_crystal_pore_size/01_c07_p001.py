@@ -25,8 +25,6 @@ __doc__= """
 Reference:
     Lime solution \theta = 0.05
     PCO2 = 3.4
-    IE = 0.5
-    Archies relation for diffusivity
 """
 #problem type
 m = 'CH' #or 'CSH'

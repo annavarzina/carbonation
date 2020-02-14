@@ -97,7 +97,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
-            'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
+            'subgrid': {'fraction':1.0}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, #TODO
             'velocity': False, 
             'bc': phrqc_input['c_bc'],

@@ -19,7 +19,7 @@ def phrqc_string(steps, k):
     phrqc_input.append('\t-m0\t1.e+0')
     phrqc_input.append('\t-tol\t1e-8')
     phrqc_input.append('\t-steps '+steps) # seconds
-    phrqc_input.append('\t-runge_kutta 1')
+    phrqc_input.append('\t-runge_kutta 6')
 
     phrqc_input.append('INCREMENTAL_REACTIONS true')
     phrqc_input.append('RATES')
@@ -29,8 +29,7 @@ def phrqc_string(steps, k):
     phrqc_input.append('20\tQ_K = 10^si_p') #calculate Q/K
     phrqc_input.append('30\tk = '+ str(k))#1/s, kinetic rate constant 
     phrqc_input.append('40\tr = k * (1-Q_K)')#r is kinetic rate in mol/l.s, equals to k*(1-Q/K)
-    phrqc_input.append('41\tarea = 1')# cm2  
-    phrqc_input.append('50\tmoles = r * TIME * area')
+    phrqc_input.append('50\tmoles = r * TIME')
     phrqc_input.append('60\tSAVE moles')
     phrqc_input.append('-end')
     
@@ -58,13 +57,14 @@ def phrqc_string(steps, k):
         
     return '\n'.join(phrqc_input)
 #%%
-n = 2000
+n = 50000
 steps=''
 for i in range(0,n,100):
-    steps = steps + ' ' +str(n)
+    steps = steps + ' ' +str(i)
 
-k = 1.*1e+5# mmol/l/s/cm2
-k = k/1e-3# mol/l/s/cm2
+k = 1.2*1e-5# mmol/l/s/cm2
+k = k*1e-3# mol/l/s/cm2
+print(k)
 
 it=time.time() 
 ps = phrqc_string(steps, k)

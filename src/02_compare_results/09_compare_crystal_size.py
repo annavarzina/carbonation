@@ -23,6 +23,9 @@ fn.make_output_dir(fpath)
 names = np.array([ '01_c03_p005_Db09', '02_c05_p005_Db09', '03_c07_p005_Db09'])
 
 label = np.array(['0.3','0.5', '0.7'])
+names = np.array([ '03_p0005_c07', '03_p001_c07', '03_p0025_c07', '03_p005_c07'])
+
+label = np.array(['0.005','0.01', '0.025', '0.05'])
 linetype = np.array(['-', '--', '-.',':'])
 
 results = {}
@@ -83,6 +86,7 @@ for k in range(0, len(comp)):
     plt.show()
 #plt.savefig(fpath + fname + '_CH_rate')
 #%% POINTS
+'''
 f = ('Ca', 'Ca') # ('C', 'C') ('Volume CH', 'vol_CH') ('Volume CC', 'vol_CC') ('pH', 'pH') ('De', 'De')('Porosity', 'poros')
 title = ['%s in %s'%(f[0],i) for i in range(1,9)]
 comp = ['%s (1, %s)'%(f[1],i) for i in range(1,9)]
@@ -96,22 +100,9 @@ for i in range(0, len(names)):
     plt.title(label[i])
     plt.legend()
     plt.show() 
-#%% POINTS log
-f = ('De', 'De')#   ('De', 'De')('Porosity', 'poros')
-title = ['%s in %s'%(f[0],i) for i in range(1,9)]
-comp = ['%s (1, %s)'%(f[1],i) for i in range(1,9)]
-
-for i in range(0, len(names)):
-    plt.figure(figsize=(8,4))    
-    for k in range(0, len(comp)):
-        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
-                 ls=linetype[i], label = title[k])
-    plt.xlabel('Time (s)')
-    plt.yscale("log")
-    plt.title(label[i])
-    plt.legend()
-    plt.show() 
+'''
 #%% COMPARE POINT for cases
+'''
 f = 'poros (1, 5)'
 plt.figure(figsize=(8,4))  
 for i in range(0, len(names)):
@@ -125,17 +116,7 @@ plt.show()
 
 for i in range(0, len(names)):
     print(results[names[i]][f][-1])
-#%% COMPARE POINT for cases
-f = 'De (1, 5)'
-plt.figure(figsize=(8,4))  
-for i in range(0, len(names)):
-    plt.plot(results[names[i]]['time'], results[names[i]][f],
-             ls=linetype[i], label = label[i])
-plt.xlabel('Time (s)')
-plt.ylabel('De in voxel 5')
-plt.yscale("log")
-plt.legend()
-plt.show() 
+'''
 #%% C profile
 c_conc = np.load(path + 'C.npy')
 plt.figure(figsize = (8,4))
@@ -148,3 +129,26 @@ plt.figure(figsize = (8,4))
 plt.plot(pH[1,0:-2])
 plt.xlabel(r'Length ($\mu$m)')
 plt.ylabel('pH')
+
+#%%
+names = np.array([ '03_p0005_c07', '03_p001_c07', '03_p0025_c07', '03_p005_c07'])
+tdict = {}
+plt.figure(figsize=(8,4))
+for i in range(0, len(names)):
+    print(i)
+    a = [0]
+    comp =  ['poros (1, ' + str(m) + ')' for m in range(1,5) ]
+    thres = 1e-4
+    for p in comp:
+        for j in range(1,len(results[names[i]][p])-1):
+            if np.abs(results[names[i]][p][j] - results[names[i]][p][j-1]) < thres:
+                if np.abs(results[names[i]][p][j+1] - results[names[i]][p][j]) > thres:
+                    a.append(results[names[i]]['time'][j] )
+    print(np.sort(a))
+    x = np.arange(0, len(a[:-2]))
+    plt.plot(np.sort(a)[:-2]/3600, x, label = 'pore size ' + label[i], ls = linetype[i])
+plt.ylabel(r"Thickness ($\mu m$)",fontsize = 14)
+plt.xlabel("Time (h)",fontsize = 14)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.legend(fontsize = 12)
+plt.show()

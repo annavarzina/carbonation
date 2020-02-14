@@ -21,14 +21,14 @@ fpath = root_dir+'\\results\\output\\00_default\\'
 fn.make_output_dir(fpath)
 #names = np.array([ '01_ie01_p05', '02_ie05_p05', '03_ie1_p05'])
 name = '02_c05_p005_Db09'
-name = '04_ccD13_Di'
+path = root_dir+'\\results\\output\\09_crystal_size\\' + name + '\\' 
+#path = root_dir+'\\results\\output\\13_validation\\' + name + '\\'
+#name = '04_ccD13_Di'
 #name = '05_ccD13_Di_PSCS'
 linetype = '-'
 scale = 100
 
 results = {}
-#path = root_dir+'\\results\\output\\09_crystal_size\\' + name + '\\' 
-path = root_dir+'\\results\\output\\13_validation\\' + name + '\\'
 results = fn.load_obj(path + name +'_results')
 for n in ['time', 'portlandite', 'calcite']:
     temp = np.array(results[n])
@@ -59,9 +59,10 @@ for k in range(0, len(comp)):
     #for i in range(0, len(names)):
     plt.plot(np.array(results['time'][:r2])/3600, results[comp[k]][:r2],
              ls=linetype)
-    plt.ylabel(ylabel[k])
-    plt.xlabel('Time (h)')
-    plt.legend()
+    plt.ylabel(ylabel[k],fontsize = 14)
+    plt.xlabel('Time (h)',fontsize = 14)
+    plt.legend(fontsize = 12)
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.savefig(fpath + fname + suffix[k])
     plt.show() 
 
@@ -73,15 +74,16 @@ plt.plot(range(0,len(ph[1,:])-1),ph[1,0:-1], color = "#f2630d", label = 'pH')
 plt.fill_between(np.arange(1,7,1),ph[1,1:7], color = "#6f8191", alpha=.5,label = "calcite")
 plt.fill_between(np.arange(6,11,1),ph[1,6:11], color = "#cbd2d9", alpha=.5, label = "depleted portlandite")
 plt.fill_between(np.arange(10,30,1),ph[1,10:30], color = "#3d4249", alpha=.5, label = "portlandite")
-plt.ylabel('pH')
-plt.legend()
+plt.ylabel('pH',fontsize = 14)
+plt.legend(fontsize = 12)
+plt.tick_params(axis='both', which='major', labelsize=12)
 plt.ylim(6.0,12.6)
-plt.xlabel(r'Distance ($\mu m$)')
+plt.xlabel(r'Distance ($\mu m$)',fontsize = 14)
 #%% DISSOLUTION RATE
 titles = ['Dissolution rate', 'Precipitation rate' ]
 comp =  ['portlandite', 'calcite']
 suffix = ['_CH_rate', '_CC_rate' ]
-s =2
+s =2000
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))    
     rate = np.abs(cf.get_rate(results[comp[k]],
@@ -101,9 +103,9 @@ plt.figure(figsize=(8,4))
 cp =  np.array(results['avg_poros']) -results['avg_poros'][0]
 print(cp[-1]*100)
 plt.plot(results['time'],cp)
-plt.xlabel('Time')
-plt.ylabel('Change in porosity')
-plt.legend()
+plt.xlabel('Time', fontsize = 14)
+plt.ylabel('Change in porosity', fontsize = 14)
+plt.legend(fontsize = 12)
 plt.show
 #%%
 plt.figure(figsize=(8,4))
@@ -141,6 +143,7 @@ plt.fill_between(np.arange(6,11,1),concCA[1,6:11], color = "#cbd2d9", alpha=.5, 
 plt.fill_between(np.arange(10,30,1),concCA[1,10:30], color = "#3d4249", alpha=.5, label = "portlandite")
 plt.ylabel('Dissolved Ca (mol/l)')
 plt.xlabel(r'Distance ($\mu m$)')
+plt.tick_params(axis='both', which='major', labelsize=12)
 plt.legend()
 #%% C profile 
 plt.figure(figsize=(8,4))
@@ -172,15 +175,16 @@ plt.plot(range(1,30),cc[:])
 plt.plot(range(1,30),ch[:])
 plt.fill_between(np.arange(1,7,1),cc[0:6], color = "#6f8191", alpha=.5,label = "calcite")
 plt.fill_between(np.arange(8,30,1),ch[7:30], color = "#3d4249", alpha=.5, label = "portlandite")
-plt.ylabel(r'Mineral mass  $\cdot 10^{-15}$ (g) in 1 $\mu m^3$ ')
-plt.xlabel(r'Distance ($\mu m$)')
-plt.legend()
+plt.ylabel(r'Mineral mass  $\cdot 10^{-15}$ (g) in 1 $\mu m^3$ ', fontsize=14)
+plt.xlabel(r'Distance ($\mu m$)', fontsize=14)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.legend(fontsize=12)
 
 #%% Points
 r1 = 1
 r3 = 10000
 p = 7
-f = "Ca"
+f = "pH"
 comp = ['%s (1, %s)'%(f,i) for i in range(1,p)]
 title = ['%s in %s'%(f,i) for i in range(1,p)]
 
@@ -195,10 +199,10 @@ plt.show()
 
 
 #%%
-a = []
+a = [0]
 #p = 'poros (1, 8)'
-comp =  [ 'poros (1, ' + str(i) + ')' for i in range(1,15) ]
-thres = 1e-4
+comp =  [ 'poros (1, ' + str(i) + ')' for i in range(1,9) ]
+thres = 1e-3
 for p in comp:
     for i in range(1,len(results[p])-1):
         if np.abs(results[p][i] - results[p][i-1]) < thres:
@@ -207,16 +211,17 @@ for p in comp:
 #t = carb_rt.transition_time
 x = np.arange(0, len(a))
 plt.figure(figsize=(8,4))
-plt.plot(sorted(a), x)
-plt.ylabel("Dissolved length (um)")
-plt.xlabel("Time")
+plt.plot(np.sort(a)/3600, x)
+plt.ylabel("Dissolved length (um)",fontsize = 14)
+plt.xlabel("Time (h)",fontsize = 14)
+plt.tick_params(axis='both', which='major', labelsize=12)
 #plt.ylim([0,10])
 #plt.xlim([0,140])
-plt.legend()
+plt.legend(fontsize = 12)
 plt.show()
 
 #%%
-dtime = np.array(sorted(a))
+dtime = np.array(sorted(a))[1:]
 indices = np.array([np.where(results['time']==dtime[i])[0][0] for i in range(0, len(dtime))])
 dtime = np.insert(dtime, 0, 0)
 indices = np.insert(indices, 0, 0)
@@ -229,10 +234,35 @@ for k in range(0, len(comp)):
     rate = np.zeros(len(indices)-1)
     for i in range(1, len(indices)):
         rate[i-1] = np.abs(results[comp[k]][indices[i]] - results[comp[k]][indices[i-1]])/\
-                         (results['time'][indices[i]]  - results['time'][indices[i-1]])  
+                         (results['time'][indices[i]]  - results['time'][indices[i-1]]) *1e-4 
     plt.plot(dtime[1:]/3600,  rate)
-    plt.title(titles[k])
-    plt.xlabel('Time (h)')
-    plt.ylabel('Rate (mol/l/s/um2)')
+    #plt.title(titles[k])
+    plt.xlabel('Time (h)',fontsize = 14)
+    plt.ylabel(r"Rate $(mmol / (l\cdot s\cdot cm^2)$",fontsize = 14)
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.yscale("log")
     plt.show()
+    
+#%% Degree of carbonation
+mm_CH = 74
+mm_CC = 100
+mass0 = results['portlandite'][0]*mm_CH + results['calcite'][0]*mm_CC
+mass_f = results['portlandite'][-1]*mm_CH + results['calcite'][-1]*mm_CC
+
+plt.figure(figsize=(8,4))
+d = ((np.array(results['portlandite'])*mm_CH + \
+              np.array(results['calcite'])*mm_CC)- \
+              results['portlandite'][0]*mm_CH)*1e-15
+plt.plot(np.array(results['time'])/24./3600, d)
+plt.title('Degree of carbonation')
+plt.xlabel('Time (d)')
+plt.ylabel('Mass increase (g)')
+plt.show
+
+#%%
+ch = 28.7
+gain_per_voxel =(ch*0.9*mm_CC-ch*mm_CH)*1e-15
+print(gain_per_voxel)
+max_gain = (ch*mm_CC-ch*mm_CH)*1e-15
+print(max_gain)
+

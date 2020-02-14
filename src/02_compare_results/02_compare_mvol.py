@@ -81,10 +81,11 @@ for k in range(0, len(comp)):
     for i in [0,3,4]:
         plt.plot(sres[names[i]]['time'][:r2], sres[names[i]][comp[k]][:r2],
                  ls=linetype[i], label = label[i])
-    plt.ylabel(ylabel[k])
+    plt.ylabel(ylabel[k], fontsize=14)
     #plt.title(titles[k])
-    plt.xlabel('Time (s)')
-    plt.legend()
+    plt.xlabel('Time (s)', fontsize=14)
+    plt.legend(fontsize=12)
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.savefig(fpath + fname + suffix[k])
     plt.show() 
 
@@ -274,6 +275,21 @@ for i in range(0, len(names)):
                  ls=linetype[i], label = title[k])
     plt.xlabel('Time (s)')
     plt.title(label[i])
+    plt.legend()
+    plt.show() 
+'''
+#%% De
+'''
+comp = ['De (1, %s)'%i for i in range(1,7)]
+title = ['De in %s'%i for i in range(1,7)]
+
+for i in range(0, len(names)):
+    plt.figure(figsize=(8,4))    
+    for k in range(0, len(comp)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = title[k])
+    plt.xlabel('Time (s)')
+    plt.yscale("log")
     plt.legend()
     plt.show() 
 '''

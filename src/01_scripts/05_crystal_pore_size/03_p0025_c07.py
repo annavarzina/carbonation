@@ -25,14 +25,12 @@ __doc__= """
 Reference:
     Lime solution \theta = 0.05
     PCO2 = 3.4
-    IE = 0.5
-    Archies relation for diffusivity
 """
 #problem type
 m = 'CH' #or 'CSH'
 
 #%% GEOMETRY
-ll = 5 #liquid lauer in front of portlandite
+ll = 15 #liquid lauer in front of portlandite
 l_ch = 25 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
@@ -53,8 +51,8 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\03_fraction\\')
-path = root_dir+'\\results\\output\\03_fraction\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\09_crystal_size\\')
+path = root_dir+'\\results\\output\\09_crystal_size\\' + nn + '\\'
 fn.make_output_dir(path)
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
@@ -93,8 +91,8 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
                          'int_energy': 0.1, # internal energy
-                         'pore_size': 0.01*dx, # threshold radius or distance/2
-                         'crystal_size': 0.5*dx, # crystal or pore length
+                         'pore_size': 0.025*dx, # threshold radius or distance/2
+                         'crystal_size': 0.7*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
             'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
@@ -122,7 +120,7 @@ carb_rt= rt.CarbonationRT('MultilevelAdvectionDiffusion',  domain,
 
 #%% PARAMETERS
 #plist =  [(1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9), (1,10)]
-plist =  [(1,n) for n in np.arange(0, 10)]
+plist =  [(1,n) for n in np.arange(0, 20)]
 pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation',
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 #'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
@@ -134,7 +132,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 3600.
+Ts = 3600*12.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -164,7 +162,6 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
             
 #%%  SAVE
-'''
 fn.save_obj(results, path + str(nn) +'_results')
 np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
 np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
@@ -172,7 +169,6 @@ np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
 np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
 np.save(path + 'poros', carb_rt.fluid.Ca.poros)
-'''
 #%% PLOT
 fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
 #%% PRINT

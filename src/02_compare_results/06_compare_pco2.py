@@ -30,10 +30,15 @@ scale = 100
 label = np.array(['0.04%',  '0.3%',  '3%','10%'])
 #names = np.array(['01_p005_c34m', '02_p005_c3m', '03_p005_c252m', '04_p005_c2m', '06_p005_c152m', '05_p005_c1m'])
 names = np.array(['01_p005_c34m', '03_p005_c252m', '06_p005_c152m', '05_p005_c1m'])
-#scale = 100
+
 label = np.array(['0.04%',  '0.3%',  '3%','10%'])
 
+names = np.array(['08_p0_D13', '08_p052_D13', '08_p1_D13', '08_p152_D13', '08_p2_D13', '08_p34_D13'])
 
+names = np.array(['08_p052_D13', '08_p1_D13', '08_p152_D13', '08_p252_D13', '08_p34_D13'])
+label = np.array(['30%', '10%',  '3%',  '0.3%', '0.04%'])
+names = np.array(['08_p1_D13', '08_p152_D13', '08_p252_D13', '08_p34_D13'])
+label = np.array(['10%',  '3%',  '0.3%', '0.04%'])
 linetype = np.array(['-', '--', '-.', ':', '-', '--'])
 
 results = {}
@@ -55,6 +60,7 @@ for i in range(0, len(names)):
     
 
 #%% PARAMS
+s = 5
 titles = ['Portlandite', 'Calcite', 'Calcium', 'Carbon',
           'Average pH', 'Porosity']
 comp =  ['portlandite', 'calcite', 'Ca', 'C', 'pH', 'avg_poros']
@@ -66,12 +72,13 @@ ylabel = [r'Portlandite $\cdot 10^{-15}$ (mol)', r'Calcite  $\cdot 10^{-15}$ mol
 for k in range(0, len(comp)):
     plt.figure(figsize=(8,4))
     for i in range(0, len(names)):
-        plt.plot(np.array(results[names[i]]['time']),
-                 results[names[i]][comp[k]],
+        plt.plot(np.array(results[names[i]]['time'])[s:],
+                 results[names[i]][comp[k]][s:],
                  ls=linetype[i], label = label[i])
-    plt.ylabel(ylabel[k])
-    plt.xlabel('Time (h)')
-    plt.legend()
+    plt.ylabel(ylabel[k], fontsize = 14)
+    plt.xlabel('Time (h)', fontsize = 14)
+    plt.legend(fontsize = 12)
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.savefig(fpath + fname + suffix[k])
     plt.show() 
 
@@ -92,6 +99,7 @@ plt.plot(label, pt)
 plt.title('Porosity at time %s hour' %t1)
 plt.xlabel('CO2')
 plt.ylabel('Porosity')
+plt.tick_params(axis='both', which='major', labelsize=12)
 plt.savefig(fpath + fname + '_poros_profile')
 plt.show
 #%%
@@ -115,13 +123,15 @@ plt.legend()
 plt.show
 
 #%% Change in porosity
+s = 500
 plt.figure(figsize=(8,4))
 for i in range(0, len(names)):
-    cp =  np.array(results[names[i]]['avg_poros']) -results[names[i]]['avg_poros'][0]
+    cp =  np.array(results[names[i]]['avg_poros']) -results[names[i]]['avg_poros'][s]
     print(cp[-1]*100)
-    plt.plot(results[names[i]]['time'],cp, label = label[i])
+    plt.plot(results[names[i]]['time'][s:],cp[s:], label = label[i])
 plt.xlabel('Time')
 plt.ylabel('Change in porosity')
+plt.tick_params(axis='both', which='major', labelsize=12)
 plt.legend()
 plt.show
 #%% DISSOLUTION RATE
@@ -191,20 +201,21 @@ for i in range(0, len(names)):
     print(d[-1])
     plt.plot(results[names[i]]['time'], d,
              label = label[i], ls = linetype[i])
-plt.title('Degree of carbonation')
-plt.xlabel('Time (h)')
-plt.ylabel('Mass increase (g)')
-plt.legend()
+#plt.title('Degree of carbonation')
+plt.xlabel('Time (h)', fontsize = 14)
+plt.ylabel('Mass increase (g)', fontsize = 14)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.legend(fontsize = 12)
 plt.show
 #%% COMPARE POINT for cases
-f = 'De (1, 5)'
+f = 'Ca (1, 1)'
 plt.figure(figsize=(8,4))  
 for i in range(0, len(names)):
     plt.plot(results[names[i]]['time'], results[names[i]][f],
              ls=linetype[i], label = label[i])
 plt.xlabel('Time (s)')
-plt.yscale("log")
-plt.ylabel('De')
+#plt.yscale("log")
+plt.ylabel(f)
 plt.legend()
 plt.show() 
 #%% De
@@ -220,25 +231,54 @@ for i in range(0, len(names)):
     plt.yscale("log")
     plt.legend()
     plt.show() 
+    
+#%% Points
+    
+f = ('Ca', 'Ca') # ('Ca', 'Ca') ('Volume CH', 'vol_CH') ('Volume CC', 'vol_CC') ('pH', 'pH') ('De', 'De')('Porosity', 'poros')
+title = ['%s in %s'%(f[0],i) for i in range(1,9)]
+comp = ['%s (1, %s)'%(f[1],i) for i in range(1,9)]
+
+for i in range(0, len(names)):
+    plt.figure(figsize=(8,4))    
+    for k in range(0, len(comp)):
+        plt.plot(results[names[i]]['time'], results[names[i]][comp[k]],
+                 ls=linetype[i], label = title[k])
+    plt.xlabel('Time (s)')
+    plt.title(label[i])
+    plt.legend()
+    plt.show() 
 #%%
       
 plt.figure(figsize = (8,4))
 for i in range(0, len(names)): 
     pH = np.load(root_dir+'\\results\\output\\06_pco2\\' + names[i] + '\\' + 'pH.npy')
-    plt.plot(pH[1,1:-2], label=label[i])
-plt.xlabel(r'Distance ($\mu$m)')
-plt.ylabel('pH')
-plt.legend()
+    plt.plot(pH[1,1:-2], label=label[i], ls=linetype[i])
+plt.xlabel(r'Distance ($\mu$m)', fontsize = 14)
+plt.ylabel('pH', fontsize = 14)
+plt.legend(loc= "right", fontsize = 12)
+plt.tick_params(axis='both', which='major', labelsize=12)
 plt.show()
     #%%
       
 plt.figure(figsize = (8,4))
 for i in range(0, len(names)): 
     C = np.load(root_dir+'\\results\\output\\06_pco2\\' + names[i] + '\\' + 'C.npy')
-    plt.plot(C[1,1:-2], label=label[i])
-plt.xlabel(r'Distance ($\mu$m)')
-plt.ylabel('C (mol/l)')
-plt.legend()
+    plt.plot(C[1,1:-2], label=label[i], ls=linetype[i])
+plt.xlabel(r'Distance ($\mu$m)', fontsize = 14)
+plt.ylabel('C (mol/l)', fontsize = 14)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.legend(loc= "right", fontsize = 12)
+plt.show()
+#%%
+      
+plt.figure(figsize = (8,4))
+for i in range(0, len(names)): 
+    Ca = np.load(root_dir+'\\results\\output\\06_pco2\\' + names[i] + '\\' + 'Ca.npy')
+    plt.plot(Ca[1,1:-2], label=label[i], ls=linetype[i])
+plt.xlabel(r'Distance ($\mu$m)', fontsize = 14)
+plt.ylabel('Ca (mol/l)', fontsize = 14)
+plt.legend(loc= "right", fontsize = 12)
+plt.tick_params(axis='both', which='major', labelsize=12)
 plt.show()
 
 
