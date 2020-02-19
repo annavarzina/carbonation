@@ -44,52 +44,55 @@ class CarbonationPhrqc(Phrqc):
         is_boundary = (self.boundcells ==1).flatten(order='C')
         if (self.iters==0):
             for i,cell in enumerate(range(self.startcell,self.stopcell+1,1)):
-                #if active_nodes[i]:
-                    modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
-                    if(is_boundary[cell-1]):  
-                        self.modify_bc(modifystr)
-                    else:
-                        for key in phaseqty.keys():
-                            modifystr.append("\t -component %s" %(key))
-                            modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
-                            #modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+                modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)
+                if(is_boundary[cell-1]):  
+                    self.modify_bc(modifystr)
+                else:
+                    for key in phaseqty.keys():
+                        modifystr.append("\t -component %s" %(key))
+                        modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1])) 
         else:
             is_liquid = (self.nodetype.flatten(order='C') == -1) 
             is_mineral = (self.init_port>0).flatten(order='C')  
-            #is_port = (self.is_port>0).flatten(order='C')  
             si = self._target_SI.flatten(order='C')  
             for i,cell in enumerate(range(self.startcell,self.stopcell+1,1)):
-                #if active_nodes[i]:
-                    modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)                     
-                    if(is_boundary[cell-1]):  
-                        self.modify_bc(modifystr)
-                    else:
-                        for key in phaseqty.keys():
-                            modifystr.append("\t -component %s" %(key))
-                            modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))   
-                            if (key == 'calcite' and self.pcs == True):
-                                if (self.precipitation == 'interface'):                            
-                                    if (is_liquid[cell-1]):                                   
-                                        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1)) 
-                                    else:
-                                        modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
-                                        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 0))  
-                                elif(self.precipitation == 'all'):
-                                    modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))               
-                                elif(self.precipitation == 'mineral'): 
-                                    if (is_mineral[cell-1]): 
-                                        modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))  
-                                        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 0))                          
-                                    else:   
-                                        modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
-                                else: 
-                                    pass  
-                                if (self.ppt == True):
-                                    if (phaseqty['portlandite'][cell-1]<=0):# and phaseqty['calcite'][cell-1]<=0 ):
-                                        modifystr.append("\t -component\tCO2(g)") 
-                                        modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
+                modifystr.append("EQUILIBRIUM_PHASES_MODIFY %d" % cell)                     
+                if(is_boundary[cell-1]):  
+                    self.modify_bc(modifystr)
+                else:
+                    for key in phaseqty.keys():
+                        modifystr.append("\t -component %s" %(key))
+                        modifystr.append("\t\t%s\t%.20e" %('-moles', phaseqty[key][cell-1]))  
+                        if (key == 'calcite' and self.pcs == True):
+                            if(self.precipitation == 'interface'):                            
+                                if (is_liquid[cell-1]):                                   
+                                    modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+                                else:
+                                    modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1])) 
+                                    modifystr.append("\t\t%s\t%s" %('-dissolve_only', 0))
+                            elif(self.precipitation == 'all'):
+                                modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))              
+                            elif(self.precipitation == 'mineral'): 
+                                if (is_mineral[cell-1]): 
+                                    modifystr.append("\t\t%s\t%.20e" %('-si', si[cell-1]))
+                                    modifystr.append("\t\t%s\t%s" %('-dissolve_only', 0))                            
+                                else:   
+                                    modifystr.append("\t\t%s\t%s" %('-dissolve_only', 1))
+                            else: 
+                                pass  
+                            if (self.ppt == True):
+                                if (phaseqty['portlandite'][cell-1]<=0):# and phaseqty['calcite'][cell-1]<=0 ):
+                                    modifystr.append("\t -component\tCO2(g)") 
+                                    modifystr.append("\t\tsi\t-%.20e" %self.pinput['value'])
         modifystr.append("end") 
         modifystr ='\n'.join(modifystr)
+        #print(modifystr)
+        '''
+        import json
+        with open('modify_eq.txt', 'w') as file:
+            file.write(json.dumps(modifystr))
+            file.close()
+        '''    
         self.IPhreeqc.RunString(modifystr)
         
     def modify_bc(self, modifystr):

@@ -52,7 +52,7 @@ nn='01_example_default'
 fn.make_output_dir(root_dir+'\\results\\output\\00_examples\\')
 path = root_dir+'\\results\\output\\00_examples\\' + nn + '\\'
 fn.make_output_dir(path)
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4},
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 0.0},
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'},    
@@ -88,7 +88,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
                          'int_energy': 0.1, # internal energy
-                         'pore_size': 0.005*dx, # threshold radius or distance/2
+                         'pore_size': 0.01*dx, # threshold radius or distance/2
                          'crystal_size': 0.5*dx, # crystal or pore length
                          'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
@@ -126,7 +126,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  3600.*0.5 #seconds
+Ts =  3600.*0.05 #seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -154,6 +154,7 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
   
 #%%  SAVE
+'''
 fn.save_obj(results, path + str(nn) +'_results')
 np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
 np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
@@ -161,7 +162,7 @@ np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
 np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
 np.save(path + 'poros', carb_rt.fluid.Ca.poros)
-
+'''
 #%% PLOT 
 fn.plot_species(results, names=[])#['calcite']
 fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
