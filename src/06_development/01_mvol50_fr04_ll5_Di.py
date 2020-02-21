@@ -19,7 +19,7 @@ import time
 import yantra
 import cell_type as ct # change the path to cell_type file
 import misc_func as fn
-import rt 
+import dev_rt as rt 
 #import phrqc
 #%% PROBLEM DEFINITION
 __doc__= """ 
@@ -59,7 +59,7 @@ fn.make_output_dir(root_dir+'\\results\\temp\\01_develop\\')
 path = root_dir+'\\results\\temp\\01_develop\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 0.5}, #2.77E-02, 3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #2.77E-02, 3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -86,7 +86,7 @@ app_tort = 1. * porosity ** app_tort_degree
 
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'subgrid', #'multilevel'/'subgrid'
+            'dissolution':'multilevel', #'multilevel'/'subgrid'
             'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
@@ -137,7 +137,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 3600.
+Ts = 1000.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)

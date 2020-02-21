@@ -153,7 +153,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             
             
     def update_source(self):        
-        # '''
+        '''
         c=deepcopy( self.fluid.get_attr('c'))
         f = deepcopy(self.fluid.get_attr('_f'))
         flag = False
@@ -166,7 +166,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.fluid.set_attr('_f',f)
             self.fluid.set_attr('f',f)
             self.fluid.call('compute_macro_var')
-        #'''
+        '''
         c=deepcopy( self.fluid.get_attr('c'))
         phaseqty=self.solid.phaseqty_for_phrqc()
         phase_list = deepcopy(self.solid.diffusive_phase_list)
@@ -187,7 +187,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_solid_params()  
         self.update_target_SI() 
         self.update_phrqc()  
-        ss = self.update_no_flux(ss)
+        #ss = self.update_no_flux(ss)
         self.fluid.set_attr('ss',ss)  
                 
     def update_solid_params(self):
