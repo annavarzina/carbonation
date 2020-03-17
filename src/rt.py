@@ -225,6 +225,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             is_ch = (ch==np.maximum.reduce([cc,ch,csh]))   * ~is_liq * ~is_cl 
             is_csh = (csh==np.maximum.reduce([cc,ch,csh])) * ~is_liq * ~is_cl
             phases += is_csh*(-5) + is_ch*(-10) + is_cc*(-15)
+            self.solid.csh=csh
         self.solid.phases = phases
         #self.c = []
         self.solid.prev_calc = deepcopy(self.solid.calcite.c > 1e-4)

@@ -17,42 +17,30 @@ from yantra._pyevtk.hl  import gridToVTK
 from yantra._pyevtk.hl  import imageToVTK
 #%% PROBLEM DEFINITION
 
-#TODO move functions to func
-def set_mvols(mvol = [], ptype = 'CSH'):
+def set_mvols(mvol, scale, ptype = 'CSH'):
     '''
-    Molar volumes:
-        1. CH; 2. CC; 3. TobH; 4. TobD; 5. JenH; 6. JenD
+    mvol is dictionary with fields CH, CC and CSH types (TobH, TobD, JenH, JenD)
     '''
     ch_type = (ptype=='CH')
     csh_type = (ptype=='CSH')
-    mvol = mvol
-    mv  = (not bool(mvol)) #mvol is empty
+    for k in mvol:
+        mvol[k] = mvol[k]*scale
+    default = {'CH': 33.10e-3*scale, 'CC': 36.90e-3*scale,
+               'CSH_TobH': 55.30e-3*scale, 'CSH_TobD': 47.95e-3*scale,
+               'CSH_JenH': 75.63e-3*scale, 'CSH_JenD': 80.58e-3*scale}
+    merged = default.copy()   
+    merged.update(mvol)
     if ch_type:
-        if (mv or len(mvol)!=2):
-            mvolCH = 33.10e-3
-            mvolCC = 36.90e-3
-            mvol = [mvolCH, mvolCC]
+        return [merged['CH'], merged['CC']]
     elif csh_type:
-        if (mv or len(mvol)!=6):
-            mvolCH = 33.10e-3
-            mvolCC = 36.90e-3
-            mvolCSH_TobH = 55.30e-3
-            mvolCSH_TobD = 47.95e-3
-            mvolCSH_JenH = 75.63e-3
-            mvolCSH_JenD = 80.58e-3
-            mvol = [mvolCH, mvolCC, 
-                    mvolCSH_TobH, mvolCSH_TobD,
-                    mvolCSH_JenH, mvolCSH_JenD]
+        return [merged['CH'], merged['CC'],
+                merged['CSH_TobH'], merged['CSH_TobD'],
+                merged['CSH_JenH'], merged['CSH_JenD']]
     else:
         print('Define ptype as \'CH\' or \'CSH\'. ')    
-    return mvol
-
-def get_max_pqty(mvol):
-    max_pqty = map(lambda x: 1./x, mvol)
-    return max_pqty
-
-
-def set_init_pqty(mvol, porosCH = 0.1, wc = 0.45):
+        return []
+    
+def set_init_pqty(mvol, porosCH = 0.1, wc = 0.45): #TODO check for CSH
     maxCH = get_max_pqty(mvol)[0]
     initCH = (1 - porosCH) * maxCH
     initCC = 0.0
@@ -67,6 +55,10 @@ def set_init_pqty(mvol, porosCH = 0.1, wc = 0.45):
                      initCSH_TobH, initCSH_TobD, 
                      initCSH_JenH, initCSH_JenD]
     return init_conc
+
+def get_max_pqty(mvol):
+    max_pqty = map(lambda x: 1./x, mvol)
+    return max_pqty
     
 def get_pqty(init_pq, domain):
     pqty = []
@@ -180,88 +172,98 @@ def set_bc_params(bc_slabels):
     return bcp
 
 def set_phrqc_input(p, ptype ='CH'):
-    '''
-    Example:
-    p = {'c_bc':{'type':'conc', 'value': 0.01}, 
-         'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
-         'c_liq':{'type':'eq', 'value': 'calcite'},
-         'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
-         'ca_liq':{'type':'eq', 'value': 'calcite'} }
-    '''
     phrqc_input = [] 
-    phrqc_input += set_phrqc_bc(p['c_bc'])
-    phrqc_input += set_phrqc_liquid(p['c_liq'], p['ca_liq'])
-    phrqc_input += set_phrqc_mlvl(p['c_mlvl'], p['ca_mlvl'])    
     if(ptype=='CSH'):
-        pass 
-        #TODO CSH cells
-    phrqc_input += set_phrqc_solid()
-    return phrqc_input
-    
-def set_phrqc_bc(c ):
-    phrqc_input = [] 
+        phrqc_input.append('PHASES')  
+        phrqc_input.append('CSHQ_TobH')  
+        phrqc_input.append('\t(CaO)0.66666667(SiO2)1(H2O)1.5 = 0.66666667Ca++ + 1 SiO(OH)3- + 0.33333334OH- -0.16666667 H2O') 
+        phrqc_input.append('\tlog_K -6.190832') 
+        phrqc_input.append('CSHQ_TobD') 
+        phrqc_input.append('\t(CaO)0.8333333333(SiO2)0.6666666667(H2O)1.8333333333 = 0.8333333333 Ca++ + 0.6666666667 SiO(OH)3- + 0.99999999990 OH- + 0.3333333333 H2O') 
+        phrqc_input.append('\tlog_K -6.8995533') 
+        phrqc_input.append('CSHQ_JenH') 
+        phrqc_input.append('\t(CaO)1.3333333333(SiO2)1(H2O)2.1666666667 = 1.3333333333 Ca++ + 1 SiO(OH)3- + 1.6666666667 OH- -0.1666666667 H2O') 
+        phrqc_input.append('\tlog_K -10.96765') 
+        phrqc_input.append('CSHQ_JenD') 
+        phrqc_input.append('\t(CaO)1.5(SiO2)0.6666666667(H2O)2.5 = 1.5 Ca++ + 0.6666666667 SiO(OH)3- + 2.3333333333 OH- + 0.3333333333 H2O') 
+        phrqc_input.append('\tlog_K -10.47635') 
+        phrqc_input.append('knobs') 
+        phrqc_input.append('\t-iterations 8000') 
+
+    # Boundary
     phrqc_input.append('#boundary_solution')    
     phrqc_input.append('SOLUTION\t100001')
     phrqc_input.append('\t-units\tmol/kgw')
     phrqc_input.append('\t-water\t1')
     phrqc_input.append('\tpH\t7\tcharge')
-    if(c['type'] == 'conc'):
-        phrqc_input.append('\tC\t' + str(c['value']) + '\n')
-    elif(c['type'] == 'pco2'):
-        phrqc_input.append('\tC\t1\tCO2(g)\t-' + str(c['value']) + '\n')
+    if(p['c_bc']['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(p['c_bc']['value']) + '\n')
+    elif(p['c_bc']['type'] == 'pco2'):
+        phrqc_input.append('\tC\t1\tCO2(g)\t-' + str(p['c_bc']['value']) + '\n')
     phrqc_input.append('EQUILIBRIUM_PHASES\t100001\n')
-    return phrqc_input
     
-def set_phrqc_liquid(c, ca):
-    phrqc_input = [] 
+    #Liquid
     phrqc_input.append('#solution_liquid')    
     phrqc_input.append('SOLUTION\t100002')
     phrqc_input.append('\t-units\tmol/kgw')
     phrqc_input.append('\t-water\t1')
     phrqc_input.append('\tpH\t7\tcharge')
-    if(c['type'] == 'conc'):
-        phrqc_input.append('\tC\t' + str(c['value']))
-    elif(c['type'] == 'eq'):
-        phrqc_input.append('\tC\t1\t' + str(c['value']))
+    if(p['c_liq']['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(p['c_liq']['value']))
+    elif(p['c_liq']['type'] == 'eq'):
+        phrqc_input.append('\tC\t1\t' + str(p['c_liq']['value']))
     else:
         pass        
-    if(ca['type'] == 'conc'):
-        phrqc_input.append('\tCa\t' + str(ca['value']))
-    elif(ca['type'] == 'eq'):
-        phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+    if(p['ca_liq']['type'] == 'conc'):
+        phrqc_input.append('\tCa\t' + str(p['ca_liq']['value']))
+    elif(p['ca_liq']['type'] == 'eq'):
+        phrqc_input.append('\tCa\t1\t' + str(p['ca_liq']['value']))
     else:
         pass        
     phrqc_input.append('EQUILIBRIUM_PHASES\t100002')
     phrqc_input.append('portlandite\t0\t0')
     phrqc_input.append('calcite\t0\t0\n')
-    return phrqc_input
-
-def set_phrqc_mlvl(c, ca):
-    phrqc_input = [] 
+    
+    #Multilevel
     phrqc_input.append('#solution_multilevel')    
     phrqc_input.append('SOLUTION\t100003')
     phrqc_input.append('\t-units\tmol/kgw')
     phrqc_input.append('\t-water\t1')
     phrqc_input.append('\tpH\t7\tcharge')
-    if(c['type'] == 'conc'):
-        phrqc_input.append('\tC\t' + str(c['value']))
-    elif(c['type'] == 'eq'):
-        phrqc_input.append('\tC\t1\t' + str(c['value']))
+    if(p['c_mlvl']['type'] == 'conc'):
+        phrqc_input.append('\tC\t' + str(p['c_mlvl']['value']))
+    elif(p['c_mlvl']['type'] == 'eq'):
+        phrqc_input.append('\tC\t1\t' + str(p['c_mlvl']['value']))
     else:
         pass              
-    if(ca['type'] == 'conc'):
-        phrqc_input.append('\tCa\t' + str(ca['value']))
-    elif(ca['type'] == 'eq'):
-        phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+    if(p['ca_mlvl']['type'] == 'conc'):
+        phrqc_input.append('\tCa\t' + str(p['ca_mlvl']['value']))
+    elif(p['ca_mlvl']['type'] == 'eq'):
+        phrqc_input.append('\tCa\t1\t' + str(p['ca_mlvl']['value']))
     else:
         pass        
     phrqc_input.append('EQUILIBRIUM_PHASES\t100003')
     phrqc_input.append('portlandite\t0\t1')
-    phrqc_input.append('calcite\t0\t0\n')
-    return phrqc_input
-
-def set_phrqc_solid():
-    phrqc_input = [] 
+    phrqc_input.append('calcite\t0\t0\n')    
+    if(ptype=='CSH'):
+        phrqc_input.append('#solution_csh_multilevel') 
+        phrqc_input.append('SOLUTION\t100004') 
+        phrqc_input.append('\t-water\t0.448230266981165') 
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\tpH\t12\tcharge') 
+        phrqc_input.append('\tCa\t1.955e-002') 
+        phrqc_input.append('\tSi\t3.018e-005') 
+        phrqc_input.append('SOLID_SOLUTIONS\t100004') 
+        phrqc_input.append('Tob_jen_ss') 
+        phrqc_input.append('\t-comp\tCSHQ_TobH\t0.1041') 
+        phrqc_input.append('\t-comp\tCSHQ_TobD\t2.5050') 
+        phrqc_input.append('\t-comp\tCSHQ_JenH\t2.1555') 
+        phrqc_input.append('\t-comp\tCSHQ_JenD\t3.2623') 
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100004')
+        phrqc_input.append('portlandite\t0\t0')
+        phrqc_input.append('calcite\t0\t0\n')
+            
+    #Solid
     phrqc_input.append('#solution_solid')    
     phrqc_input.append('SOLUTION\t100005')
     phrqc_input.append('\t-water\t1\n')
@@ -292,7 +294,6 @@ def get_average_poros(rt):
     return(poros)
     
 def get_average_D(rt):
-    #TODO change
     '''
     Avarage effective diffusivity calculated by Archie's formula
     '''

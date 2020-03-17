@@ -85,6 +85,7 @@ class CSHCarbonation(CarbonationRT):
         prev_nodetype = deepcopy(self.nodetype)
         is_port = (self.solid.portlandite.c>0)
         is_calc = (self.solid.calcite.c>0)
+        #is_clinker = self.solid.nodetype == ct.Type.CLINKER
         is_solid = self.solid.nodetype == ct.Type.SOLID
         is_critical = np.zeros(np.shape(is_port))
         is_interface = np.zeros(np.shape(is_port))

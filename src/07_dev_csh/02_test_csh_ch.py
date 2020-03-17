@@ -1,10 +1,4 @@
 # -*- coding: utf-8 -*-
-'''
-Molar volume = 100
-Liquid layer = 5 um
-Fraction = 0.004
-'''
-
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
@@ -27,7 +21,7 @@ __doc__= """
 ll = 4 #liquid lauer in front of portlandite
 l_ch = 25 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
-ly = 2.0e-6
+ly = 3.0e-6
 dx = 1.0e-6
 
 domain = yantra.Domain2D(corner=(0, 0), 
@@ -35,6 +29,7 @@ domain = yantra.Domain2D(corner=(0, 0),
                          dx=dx, 
                          grid_type='nodal')
 domain.nodetype[:, ll+1: ll+l_ch] = ct.Type.MULTILEVEL
+domain.nodetype[2, ll+1: ll+l_ch] = ct.Type.MULTILEVEL_CH
 domain.nodetype[0,:] = ct.Type.SOLID
 domain.nodetype[-1,:] = ct.Type.SOLID
 domain.nodetype[:,-1] = ct.Type.SOLID
@@ -100,6 +95,7 @@ domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
 bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
 solver_params = fn.set_solver_params(tfact = tfact_default, smart_thres = 1e-8, cphi_fact = 1/3.)
+domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 #fn.save_settings(settings, bc_params, solver_params, path, nn)
 #csh=yantra.PhrqcReactiveTransport('MultilevelDiffusion',domain,domain_params,bc_params,solver_params)
 csh=rt.CSHCarbonation('MultilevelDiffusion',domain,domain_params,bc_params,solver_params, settings)
