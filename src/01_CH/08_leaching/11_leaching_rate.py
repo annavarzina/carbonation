@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 '''
-Sript for both CH and CSH systems
+
 '''
 
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
-root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 sys.path.append(src_dir)
 import matplotlib.pylab as plt
@@ -17,13 +17,12 @@ import time
 import yantra
 import cell_type as ct # change the path to cell_type file
 import misc_func as fn
-import rt1
+import rt_leach as rt1
 from copy import deepcopy
 #import phrqc
 #%% PROBLEM DEFINITION
 __doc__= """ 
-Default example. Explains possible values
-1D carbonation of portlandite/cement.
+
 """
 #problem type
 m = 'CH' #or 'CSH' #TODO case for cement
@@ -90,21 +89,15 @@ def set_phrqc_input(p, ptype ='CH'):
     phrqc_input += set_phrqc_solid()
     return phrqc_input
 #%% LOOP
-fractions = np.array([1., 0.7, 0.5, 0.3, 0.2, 0.1, 0.07, 0.05, 0.03, 
-                      0.02, 0.01, 0.007, 0.005, 0.003, 0.002, 0.001 ])
-#final_time = np.array([500, 500, 500, 1000, 1000, 1000, 1000, 1500, 1500,
-#                       1500, 2000, 2000, 2500, 3000, 3500, 4000])  
-#fractions = np.array([0.007, 0.005, 0.003, 0.002, 0.001 ])
-dl = 20
-#final_time = np.array([10, 20])
-#for f, ft in zip(fractions, final_time):
+fractions = np.array([1.,0.005 ])
+dl = 2
 for f in fractions:
     #%% GEOMETRY
     ll = 1 #liquid lauer in front of portlandite
-    l_ch = 40 #length of portlandite
-    lx = (l_ch+ll)*1.0e-6
-    ly = 2.0e-6
-    dx = 1.0e-6
+    l_ch = 10 #length of portlandite
+    lx = (l_ch+ll)*1.0e-2
+    ly = 2.0e-2
+    dx = 1.0e-2
     
     domain = yantra.Domain2D(corner=(0, 0), 
                              lengths=(lx, ly), 
@@ -184,7 +177,6 @@ for f in fractions:
                               settings) 
     
     #%% RUN SOLVER
-    nitr =5000#2000
     it=time.time()
     itr = 0 
     j = 0
@@ -223,22 +215,7 @@ for f in fractions:
     np.save(path + 'CH', rt_port)
     np.save(path + 'Ca_prof', rt.fluid.Ca.c[1,:]+ np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:]))
     
-    #%% PRINT
-    '''
-    print('Ca %s' %str(np.array(rt.fluid.Ca._c[1,:])))
-    print('Ca +ss %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
-    print('H +ss %s' %str(np.array(rt.fluid.H.c[1,:]) + np.array(rt.fluid.H._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
-    print('O +ss %s' %str(np.array(rt.fluid.O.c[1,:]) + np.array(rt.fluid.O._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
-    print('CH %s' %str(np.array(rt.solid.portlandite.c[1,:])))
-    print('dCH %s' %str(np.array(rt.phrqc.dphases['portlandite'][1,:])))
-    print('Vol %s' %str(np.array(rt.solid.vol[1,:])))
-    print('D %s' %str(np.array(rt.fluid.Ca.De[1,:])))
-    print('pH %s' %str(np.array(rt.phrqc.selected_output()['pH'][1,:])))
-    print('poros %s' %str(np.array(rt.solid.poros[1,:])))
-    print('phrqc poros %s' %str(np.array(np.array(rt.phrqc.poros[1,:]))))
-    print('tau %s' %str(np.array(rt.fluid.Ca.tau[1,:])))
-    '''
-    
+
     #%% PLOT
       
     
@@ -268,158 +245,5 @@ for f in fractions:
     plt.show()
     '''
 
-#%% COMPARE    
-fractions = np.array([1., 0.7, 0.5, 0.3, 0.2, 0.1,
-                      0.07, 0.05, 0.03,0.02, 0.01,
-                      0.007, 0.005, 0.003, 0.002, 0.001 ])
-time = {}
-ch = {}
-ca ={}
-dch = {}
-dissolution = {}
-nn="03_subgrid_leaching_depth"#os.path.basename(__file__)[:-3] 
-for f in fractions:
-    path = root_dir+'\\results\\output\\10_subgrid_leaching\\' + nn + str(f)+'\\'
-    dissolution[nn+ str(f)] = np.load(path +'dis_time'+'.npy')
-    ch[nn+ str(f)] = np.load(path +'CH'+'.npy')
-    ca[nn+ str(f)] = np.load(path +'Ca_prof'+'.npy')
-    dch[nn+ str(f)] = np.load(path +'dCH'+'.npy')
-    time[nn+ str(f)] = np.load(path +'time'+'.npy')
-    
-#%% PLOT  
-plt.figure()
-for f in fractions:    
-    t = np.array(dissolution[nn + str(f)])*scale
-    x = np.arange(1,len(dissolution[nn + str(f)])+1)
-    plt.plot(t, x, label = f)
-plt.ylabel("Dissolved length (um)")
-plt.xlabel("Time")
-plt.legend()
-plt.show()
 
-plt.figure()
-for f in fractions:  
-    t = np.array(dissolution[nn + str(f)])*scale
-    x = np.arange(1,len(dissolution[nn + str(f)])+1)*1e-6
-    D = (x**2)/2/t
-    plt.plot(t, D, label = f)
-plt.ylabel("D (m2/s)")
-plt.xlabel("Time (s)")
-plt.legend()
-plt.show()
-
-#%%
-d1 = []
-dn = []
-for f in fractions:
-    t = np.array(dissolution[nn + str(f)])*scale
-    x = np.arange(1,len(dissolution[nn + str(f)])+1)*1e-6
-    D = (x**2)/2/t
-    d1.append(D[0])
-    dn.append(D[-1])
-    
-plt.figure()
-plt.plot(fractions, d1, label = "1")
-#plt.plot(fractions, dn, label = "20")
-plt.ylabel("D (m2/s)")
-plt.xlabel("Fraction")
-plt.yscale("log")
-plt.legend()
-plt.show()
-#%% CH    
-plt.figure()
-for f in fractions:  
-    plt.plot(np.array(time[nn + str(f)]), ch[nn + str(f)]*scale, label = f)
-plt.ylabel("CH mol/l")
-plt.xlabel("Time")
-plt.legend()
-plt.show()
-
-#%% CH rate    
-plt.figure()
-for f in fractions:  
-    plt.plot(np.array(time[nn + str(f)])[1:-1], np.abs(dch[nn + str(f)])[1:-1]*scale, label = f)
-plt.ylabel("CH rate (*10^-15 mol/s)")
-plt.xlabel("Time")
-plt.yscale("log")
-plt.legend()
-plt.show()
-
-plt.figure()
-for f in fractions:  
-    plt.plot( ca[nn + str(f)], label = f)
-plt.ylabel("Ca (mol/l)")
-plt.xlabel("X (um)")
-plt.legend()
-plt.show()
-#%% CH rate
-r1 = []
-rn = []
-for f in fractions:    
-    r1.append(dch[nn + str(f)][1]*scale)
-    rn.append(dch[nn + str(f)][-11]*scale)
-    
-    
-plt.figure()
-plt.plot(fractions, np.abs(r1), label = "1")
-plt.plot(fractions, np.abs(rn), label = "20")
-plt.ylabel("dCH (*10^-15 mol/s)")
-plt.xlabel("Fraction")
-plt.yscale("log")
-plt.xscale("log")
-plt.legend()
-plt.show()
-#%%
-
-from scipy.optimize import curve_fit
-from sklearn.metrics import r2_score
-def diff_predict(f, c0, c1, c2):
-    d = c0-c1/(f+c2)
-    #d = c0*(1-np.exp(-f*c1))
-    return d
-f = 0.1
-t = np.array(dissolution[nn + str(f)])*scale
-x = np.arange(1,len(dissolution[nn + str(f)])+1)*1e-6
-D = x**2/2/t
-c, cov = curve_fit(diff_predict, t, D)
-print(c)
-
-diff_opt = diff_predict(t, c[0],c[1],c[2])
-print('R2: ', r2_score(diff_opt, D))
-
-
-plt.plot(t, D, 'r.', label = "Result")
-plt.plot(t, diff_opt, 'b-', label = "Fitting")
-plt.xlabel('Time')
-plt.ylabel(r'Diffusivity ($m^2/s$)')
-plt.legend()
-plt.show()
-
-#%% Portlandite to ppm
-amCH = 74.093 #mol/l
-amCa = 40.078 #g/mol
-def mol2ppm(c, am):
-    p = c * am * 1000
-    return p #ppm
-#ppm/s/um2
-rate = mol2ppm(np.abs(r1), amCH)*3600 *10**6 *10**-15
-print(rate)
-rate_n = mol2ppm(np.abs(rn), amCH)*3600 *10**6 *10**-15
-print(rate_n)
-plt.figure()
-plt.loglog(fractions, rate, label = "1")
-plt.loglog(fractions, rate_n, label = "20")
-plt.ylabel("dCH (ppm/h/mm2)")
-plt.xlabel("Fraction")
-plt.legend()
-plt.show()
-
-#%% Ca to ppm 
-ca_n = []
-for f in fractions:    
-    ca_n.append(ca[nn + str(f)][-21])
-print(ca_n)
-
-ca_ppm = mol2ppm(np.abs(ca_n), amCa)
-print(ca_ppm)
     

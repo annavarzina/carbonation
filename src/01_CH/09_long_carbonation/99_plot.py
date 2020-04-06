@@ -16,8 +16,8 @@ import misc_func as fn
 
 #%% UPLOAD
 #name = '02_ccD12_long_prev'
-name = '00_ccD11_prev'
-path = root_dir+'\\results\\output\\13_validation\\' + name + '\\'
+name = '01_18days_D13'
+path = root_dir+'\\results\\output\\09_long\\' + name + '\\'
 results = fn.load_obj(path + '00_ccD11' +'_results')
 scale = 100
 #%%
@@ -58,43 +58,3 @@ plt.xlim(-1,264)
 plt.ylabel('Mass increase (g/um2)')
 plt.show
 
-#%%
-
-b = np.array([0.8026666666666116,
- 2.4080000000003117,
- 7.224000000006197,
- 14.19000000001471,
- 23.99399999994149,
- 36.20599999982626,
- 50.8833333330211,
- 68.08333333303288,
- 87.66266666701618,
- 109.6213333344118,
- 134.76200000191304,
- 162.62600000283803,
- 193.81533333720674,
- 227.38400000498777,
- 263.4466666715817])
-
-
-x = np.arange(0, len(b))
-plt.figure(figsize=(8,4))
-plt.plot(b, x)
-plt.ylabel("Dissolved length (um)")
-plt.xlabel("Time")
-plt.xlim(-1,264)
-plt.legend()
-plt.show()
-
-#%% Depth -> mass increase
-dmm  = mm_CC-mm_CH #[g/mol] molar mass difference
-mi = x/0.0331*1e-15*dmm
-nt = b[-2]/time[-2]*time
-plt.figure(figsize=(8,4))
-plt.plot(b, mi)
-plt.plot(nt, mass_sa)
-plt.ylabel("Mass increase (g/um2)")
-plt.xlabel("Time")
-plt.xlim(-1,264)
-plt.legend()
-plt.show()
