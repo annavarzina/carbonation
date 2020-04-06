@@ -47,9 +47,6 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.update_init_phrqc()        
         self.update_bc(settings)
         self.update_phases()
-        self.solid.transition_time = []
-        self.solid.trans_port = []
-        self.solid.trans_calc = []
         self.update_nodetype()
         self.update_target_SI() 
         
@@ -106,13 +103,19 @@ class CarbonationRT(PhrqcReactiveTransport):
     
     def update_init_phrqc(self):
         self.phrqc.boundcells = self.update_boundary_cells()
-        self.phrqc.init_port = self.solid.portlandite.c>0
-        self.phrqc.is_calc = self.solid.calcite.c>0
+        if 'portlandite' in self.solid.diffusive_phase_list:
+            self.phrqc.init_port = self.solid.portlandite.c>0
+        if self.ptype == 'CSH':
+            self.phrqc.init_csh = np.logical_or(np.logical_or(self.solid.CSHQ_TobD.c>0, self.solid.CSHQ_TobH.c>0),
+                                                np.logical_or(self.solid.CSHQ_JenD.c>0, self.solid.CSHQ_JenH.c>0))
+        if 'calcite' in self.solid.diffusive_phase_list:
+            self.phrqc.is_calc = self.solid.calcite.c>0
         self.phrqc._target_SI = np.zeros(self.solid.shape)  
         self.phrqc.nodetype = deepcopy(self.nodetype) 
         if self.solid.nphases >0:
             phaseqty = self.solid.phaseqty_for_phrqc()
             self.phrqc.modify_solid_phases(phaseqty) 
+                
             
     def update_phrqc(self):
         self.phrqc.poros=deepcopy(self.solid.poros)      
@@ -153,20 +156,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             
             
     def update_source(self):        
-        # '''
-        c=deepcopy( self.fluid.get_attr('c'))
-        f = deepcopy(self.fluid.get_attr('_f'))
-        flag = False
-        for comp in self.fluid.components:
-            n = c[comp] < 0
-            if n.any():
-                flag = True            
-                f[comp][n] = f[comp][n] - f[comp][n]*(f[comp][n]<0)
-        if flag: 
-            self.fluid.set_attr('_f',f)
-            self.fluid.set_attr('f',f)
-            self.fluid.call('compute_macro_var')
-        #'''
+        
         c=deepcopy( self.fluid.get_attr('c'))
         phaseqty=self.solid.phaseqty_for_phrqc()
         phase_list = deepcopy(self.solid.diffusive_phase_list)
@@ -238,6 +228,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         prev_nodetype = deepcopy(self.nodetype)
         is_port = (self.solid.portlandite.c>0)
         is_calc = (self.solid.calcite.c>0)
+        #is_clinker = self.solid.nodetype == ct.Type.CLINKER
         is_solid = self.solid.nodetype == ct.Type.SOLID
         is_critical = np.zeros(np.shape(is_port))
         is_interface = np.zeros(np.shape(is_port))
@@ -255,18 +246,19 @@ class CarbonationRT(PhrqcReactiveTransport):
                 ct.Type.SOLID * is_solid
         if self.ptype == 'CSH':
             is_csh= (self.solid.CSHQ_JenD.c>0) | (self.solid.CSHQ_JenH.c>0) | \
-                    (self.solid.CSHQ_TobD.c>0) |(self.solid.CSHQ_TobH.c>0)
-        
-            is_liquid =  (~is_port) & (~is_csh)
+                    (self.solid.CSHQ_TobD.c>0) |(self.solid.CSHQ_TobH.c>0) &(~is_port) 
+            is_liquid = (~is_port) & (~is_csh)
             if(self.iters>1):
-                is_critical = (self.solid.target_SI >= self.settings['si_params']['threshold_SI']) & is_calc& (~is_port) & (~is_csh)
-                is_liquid =  (~is_critical)&(~is_port) & (~is_csh)
-                
+                is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc & (~is_port)
+                is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(~is_calc)&(~is_csh)#&((prev_nodetype==-1)|(prev_nodetype==-2))
+                is_interface = (~is_critical)&(~is_port)&(~is_solid)&(~is_liquid)&(~is_csh)
             self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
-                ct.Type.MULTILEVEL * is_port  + \
-                ct.Type.MULTILEVEL * is_csh  + \
-                ct.Type.MULTILEVEL * is_critical +\
+                ct.Type.MULTILEVEL * is_critical + \
+                ct.Type.MULTILEVEL * is_port +\
+                ct.Type.MULTILEVEL * is_csh +\
+                ct.Type.INTERFACE * is_interface + \
                 ct.Type.SOLID * is_solid
+        
         yantra._solvers.update2d.reassign_mlvl(self.solid.nodetype) 
         self.solid.nodetype[prev_nodetype == ct.Type.SOLID] = ct.Type.SOLID
         yantra._solvers.update2d.reassign_mlvl_solid(self.solid.nodetype) 
@@ -274,13 +266,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.nodetype = self.solid.nodetype
         self.update_border()
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)  
-        if (~np.array_equal(self.nodetype, prev_nodetype)):
-            self.solid.transition_time.append(self.time)
-        if (~np.array_equal(self.solid.prev_calc, (self.solid.calcite.c > 1e-4))):
-            self.solid.trans_calc.append(self.time)
-        if (~np.array_equal(self.solid.prev_port, is_port)):
-            self.solid.trans_port.append(self.time)
-
+        
     def update_diffusivity(self):
         Dref = self.Dref
         cc = self.settings['diffusivity']['CC']
@@ -342,38 +328,37 @@ class CarbonationRT(PhrqcReactiveTransport):
         
     
     def update_target_SI(self):
-        if (self.ptype == 'CH'):  
-            self.solid.vol_ch = self.volume_CH()
-            self.solid.vol_cc = self.volume_CC()          
-            if (self.settings['pcs_mode']['pores']=='cylinder'):
-                #TODO check this case
-                if (self.iters<=1):
-                    self.solid.threshold_pore_size = self.settings['pcs_mode']['crystal_size']
-                    self.solid.pore_length = self.settings['pcs_mode']['crystal_size']  
-                self.solid.pore_amount = self.pore_amount()  
-                self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.free_volume()  
-                self.solid.pore_size = self.pore_size()
-                self.solid.pore_volume_cc = self.pore_volume_CC() 
-            elif(self.settings['pcs_mode']['pores']=='block'):                
-                if (self.iters<1):      
-                    self.solid.threshold_crystal = self.settings['pcs_mode']['crystal_size'] #default crystal size
-                    self.solid.threshold_pore_size = self.settings['pcs_mode']['pore_size']
-                    self.solid.threshold_distance = self.solid.threshold_pore_size*2
-                    self.solid.block_size = self.block_size()
-                self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.solid._poros * self.dx**3#self.get_pore_volume(self)
-                self.solid.ncrystals = self.block_amount()                 
-                self.solid.crystal_size = self.crystal_size()
-                self.solid.distance = self.distance()
-                self.solid.pore_size =  self.pore_size()
-            else:
-                pass        
-            self.solid.target_SI = self.target_SI()
-            self.phrqc._target_SI = self.solid.target_SI
-        elif (self.ptype == 'CSH'): 
-            pass     
+        self.solid.vol_ch = self.volume_CH()
+        self.solid.vol_cc = self.volume_CC() 
+        if (self.settings['pcs_mode']['pores']=='cylinder'):
+            #TODO check this case
+			if (self.iters<=1):
+				self.solid.threshold_pore_size = self.settings['pcs_mode']['crystal_size']
+				self.solid.pore_length = self.settings['pcs_mode']['crystal_size']  
+			self.solid.pore_amount = self.pore_amount()  
+			self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.free_volume()  
+			self.solid.pore_size = self.pore_size()
+			self.solid.pore_volume_cc = self.pore_volume_CC() 
+        elif(self.settings['pcs_mode']['pores']=='block'):                
+			if (self.iters<1):      
+				self.solid.threshold_crystal = self.settings['pcs_mode']['crystal_size'] #default crystal size
+				self.solid.threshold_pore_size = self.settings['pcs_mode']['pore_size']
+				self.solid.threshold_distance = self.solid.threshold_pore_size*2
+				self.solid.block_size = self.block_size()
+			self.solid.free_vol_cc = (self.solid.voxel_vol-self.solid.vol_ch)* self.dx**3#self.solid._poros * self.dx**3#self.get_pore_volume(self)
+			self.solid.ncrystals = self.block_amount()                 
+			self.solid.crystal_size = self.crystal_size()
+			self.solid.distance = self.distance()
+			self.solid.pore_size =  self.pore_size()
+        else:
+			pass  
+        self.solid.target_SI = self.target_SI()
+        self.phrqc._target_SI = self.solid.target_SI  
     
     def update_no_flux(self, ss):        
-        ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
+        ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1)
+        if (self.ptype =='CSH'):
+            ss['Si'] = ss['Si']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
         return(ss)
         
     def update_border(self):

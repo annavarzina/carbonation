@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-Molar volume = 100
-Liquid layer = 5 um
-Fraction = 0.004
+Carbonation of a single CSH voxel
 '''
-
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
@@ -14,16 +11,17 @@ sys.path.append(root_dir)
 sys.path.append(src_dir)
 import matplotlib.pylab as plt
 import numpy as np
+import time
 np.set_printoptions(precision=5, threshold=np.inf)
 import yantra
 import cell_type as ct # change the path to cell_type file
-import dev_rt as rt 
-import dev_func as fn
-import time
+import rt 
+import misc_func as fn
 #%% PROBLEM DEFINITION
 __doc__= """ 
-...
+Carbonation of a single CSH voxel
 """
+
 #%% GEOMETRY
 ll = 4 #liquid lauer in front of portlandite
 l_ch = 2 #length of portlandite
@@ -43,7 +41,6 @@ domain.nodetype[:,-1] = ct.Type.SOLID
 plt.figure(figsize=(5,5))
 plt.imshow(domain.nodetype) 
 plt.show()
-
 #%%  VALUES
 m = 'CSH' #or 'CSH'
 nn=os.path.basename(__file__)[:-3]
@@ -52,17 +49,16 @@ path = root_dir+'\\results\\temp\\01_develop\\' + nn + '\\'
 fn.make_output_dir(path)
 
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 1.0},
-               #'c_bc':{'type':'conc', 'value': 0.01},
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.0}, # 0.1% CO2
                'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
                'c_liq':{'type':'eq', 'value': 'calcite'},
-               'ca_mlvl':{'type':'eq', 'value': 'portlandite'},    
+               'ca_mlvl':{'type':'eq', 'value': 'calcite'},    
                'ca_liq':{'type':'eq', 'value': 'calcite'}}
 
 phrqc = fn.set_phrqc_input(phrqc_input, ptype = m)            
 fn.save_phrqc_input(phrqc,root_dir, nn)  
 #%%
-scale = 100# scale of molar volume
+scale = 10 # scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
 mvol = fn.set_mvols({}, scale, ptype = m) #m3/mol
 
@@ -78,7 +74,7 @@ app_tort = 1. * porosity ** app_tort_degree
 
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'multilevel', #'multilevel'/'subgrid'
-            'active_nodes': 'all', # 'all'/'smart'/ better use all to avoid errors
+            'active_nodes': 'smart', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            'CC': ('inverse', 1e-12), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
@@ -104,7 +100,8 @@ bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
 solver_params = fn.set_solver_params(tfact = tfact_default, smart_thres = 1e-8, cphi_fact = 1/3.)
 #fn.save_settings(settings, bc_params, solver_params, path, nn)
 #csh=yantra.PhrqcReactiveTransport('MultilevelDiffusion',domain,domain_params,bc_params,solver_params)
-csh=rt.CSHCarbonation('MultilevelDiffusion',domain,domain_params,bc_params,solver_params, settings)
+csh=rt.CarbonationRT('MultilevelDiffusion',domain,domain_params,bc_params,solver_params, settings)
+
 #%% results dict
 
 plist =  [(1,n) for n in np.arange(3, 6)] #points list
@@ -112,7 +109,7 @@ pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation', #argumen
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
-Ts  = 2000 #s
+Ts  = 2 #s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
 N_res = 1e+4
@@ -139,3 +136,11 @@ fn.plot_species(results, names=[])#['calcite']
 fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
 fn.plot_fields(csh, names=['calcite'],fsize=(15,1)) #,'Ca','Si'
 fn.plot_points(results, names=['calcite', 'poros', 'Ca','pH'])
+
+#%% plot ca/si against density
+plt.figure()
+plt.plot(results['Ca_Si'], results['csh_density'])
+plt.legend()
+plt.ylabel('CSH density')
+plt.xlabel('C/S')
+plt.show()

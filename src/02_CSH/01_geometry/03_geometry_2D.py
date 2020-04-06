@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Apr  3 13:51:29 2020
 
-@author: avarzina
 """
-
-
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
@@ -21,31 +17,10 @@ import cell_type as ct # change the path to cell_type file
 #import phrqc
 #%% PROBLEM DEFINITION
 __doc__= """ 
-Default example. Explains possible values
-1D carbonation of portlandite/cement.
+
 """
 #problem type
-m = 'CH' #or 'CSH' #TODO case for cement
-
-#%% 1D GEOMETRY
-ll = 1 #liquid lauer in front of portlandite
-l_ch = 25 #length of portlandite
-lx = (l_ch+ll)*1.0e-6
-ly = 4.0e-6
-dx = 1.0e-6
-
-domain = yantra.Domain2D(corner=(0, 0), 
-                         lengths=(lx, ly), 
-                         dx=dx, 
-                         grid_type='nodal')
-domain.nodetype[:, ll+1: ll+l_ch] = ct.Type.MULTILEVEL
-domain.nodetype[0,:] = ct.Type.SOLID
-domain.nodetype[-1,:] = ct.Type.SOLID
-domain.nodetype[:,-1] = ct.Type.SOLID
-
-plt.figure(figsize=(5,5))
-plt.imshow(domain.nodetype[1:-1, 1:-1]) 
-plt.show()
+m = 'CSH' #or 'CSH' #TODO case for cement
 
 #%% 2D GEOMETRY -Crack
 ll = 1 #liquid lauer in front of portlandite

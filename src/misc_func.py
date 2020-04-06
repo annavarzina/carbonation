@@ -17,51 +17,49 @@ from yantra._pyevtk.hl  import gridToVTK
 from yantra._pyevtk.hl  import imageToVTK
 #%% PROBLEM DEFINITION
 
-#TODO move functions to func
-def set_mvols(mvol = [], ptype = 'CSH'):
-    '''
-    Molar volumes:
-        1. CH; 2. CC; 3. TobH; 4. TobD; 5. JenH; 6. JenD
-    '''
+def set_mvols(mvol = [], scale=50, ptype = 'CSH'):
+    #TODO similar scaling for CH and CSH
     ch_type = (ptype=='CH')
     csh_type = (ptype=='CSH')
-    mvol = mvol
-    mv  = (not bool(mvol)) #mvol is empty
+    
     if ch_type:
+        mv  = (not bool(mvol)) #mvol is empty
         if (mv or len(mvol)!=2):
             mvolCH = 33.10e-3
             mvolCC = 36.90e-3
             mvol = [mvolCH, mvolCC]
+        return mvol
+        #return [merged['CH'], merged['CC']]
     elif csh_type:
-        if (mv or len(mvol)!=6):
-            mvolCH = 33.10e-3
-            mvolCC = 36.90e-3
-            mvolCSH_TobH = 55.30e-3
-            mvolCSH_TobD = 47.95e-3
-            mvolCSH_JenH = 75.63e-3
-            mvolCSH_JenD = 80.58e-3
-            mvol = [mvolCH, mvolCC, 
-                    mvolCSH_TobH, mvolCSH_TobD,
-                    mvolCSH_JenH, mvolCSH_JenD]
+        for k in mvol:
+            mvol[k] = mvol[k]*scale
+        default = {'CH': 33.10e-3*scale, 'CC': 36.90e-3*scale,
+                   'CSH_TobH': 55.30e-3*scale, 'CSH_TobD': 47.95e-3*scale,
+                   'CSH_JenH': 75.63e-3*scale, 'CSH_JenD': 80.58e-3*scale}
+        merged = default.copy()   
+        merged.update(mvol)
+        return [merged['CH'], merged['CC'],
+                merged['CSH_TobH'], merged['CSH_TobD'],
+                merged['CSH_JenH'], merged['CSH_JenD']]
     else:
         print('Define ptype as \'CH\' or \'CSH\'. ')    
-    return mvol
-
+        return []
+		
 def get_max_pqty(mvol):
     max_pqty = map(lambda x: 1./x, mvol)
     return max_pqty
 
 
-def set_init_pqty(mvol, porosCH = 0.1, wc = 0.45):
+def set_init_pqty(mvol, scale=50, porosCH = 0.1, wc = 0.45): 
     maxCH = get_max_pqty(mvol)[0]
     initCH = (1 - porosCH) * maxCH
     initCC = 0.0
     init_conc = [initCH, initCC]
     if (len(mvol) == 6):
-        initCSH_TobH = 0.1041#(1-init_porosCSH) *maxCSH_TobH
-        initCSH_TobD = 2.5050#(1-init_porosCSH) *maxCSH_TobD
-        initCSH_JenH = 2.1555#(1-init_porosCSH) *maxCSH_JenH
-        initCSH_JenD = 3.2623#(1-init_porosCSH) *maxCSH_JenD
+        initCSH_TobH = 0.1041/scale#(1-init_porosCSH) *maxCSH_TobH
+        initCSH_TobD = 2.5050/scale#(1-init_porosCSH) *maxCSH_TobD
+        initCSH_JenH = 2.1555/scale#(1-init_porosCSH) *maxCSH_JenH
+        initCSH_JenD = 3.2623/scale#(1-init_porosCSH) *maxCSH_JenD
         # set different init if wc ~= 0.45
         init_conc = [initCH, initCC, 
                      initCSH_TobH, initCSH_TobD, 
@@ -86,6 +84,7 @@ def get_pqty(init_pq, domain):
                 pqty_CSHQ_TobH, pqty_CSHQ_TobD, 
                 pqty_CSHQ_JenH, pqty_CSHQ_JenD]    
     return pqty
+
 
 def set_labels(domain, ptype = 'CSH'):
     ch_type = (ptype=='CH')
@@ -180,6 +179,8 @@ def set_bc_params(bc_slabels):
     return bcp
 
 def set_phrqc_input(p, ptype ='CH'):
+	# TODO add initial Si concentrations
+    # TODO CSH parameters
     '''
     Example:
     p = {'c_bc':{'type':'conc', 'value': 0.01}, 
@@ -189,16 +190,30 @@ def set_phrqc_input(p, ptype ='CH'):
          'ca_liq':{'type':'eq', 'value': 'calcite'} }
     '''
     phrqc_input = [] 
-    phrqc_input += set_phrqc_bc(p['c_bc'])
-    phrqc_input += set_phrqc_liquid(p['c_liq'], p['ca_liq'])
-    phrqc_input += set_phrqc_mlvl(p['c_mlvl'], p['ca_mlvl'])    
     if(ptype=='CSH'):
-        pass 
-        #TODO CSH cells
+        phrqc_input.append('PHASES')  
+        phrqc_input.append('CSHQ_TobH')  
+        phrqc_input.append('\t(CaO)0.66666667(SiO2)1(H2O)1.5 = 0.66666667Ca++ + 1 SiO(OH)3- + 0.33333334OH- -0.16666667 H2O') 
+        phrqc_input.append('\tlog_K -6.190832') 
+        phrqc_input.append('CSHQ_TobD') 
+        phrqc_input.append('\t(CaO)0.8333333333(SiO2)0.6666666667(H2O)1.8333333333 = 0.8333333333 Ca++ + 0.6666666667 SiO(OH)3- + 0.99999999990 OH- + 0.3333333333 H2O') 
+        phrqc_input.append('\tlog_K -6.8995533') 
+        phrqc_input.append('CSHQ_JenH') 
+        phrqc_input.append('\t(CaO)1.3333333333(SiO2)1(H2O)2.1666666667 = 1.3333333333 Ca++ + 1 SiO(OH)3- + 1.6666666667 OH- -0.1666666667 H2O') 
+        phrqc_input.append('\tlog_K -10.96765') 
+        phrqc_input.append('CSHQ_JenD') 
+        phrqc_input.append('\t(CaO)1.5(SiO2)0.6666666667(H2O)2.5 = 1.5 Ca++ + 0.6666666667 SiO(OH)3- + 2.3333333333 OH- + 0.3333333333 H2O') 
+        phrqc_input.append('\tlog_K -10.47635') 
+        phrqc_input.append('knobs') 
+        phrqc_input.append('\t-iterations 8000') 
+    phrqc_input += set_phrqc_bc(p['c_bc'], ptype)
+    phrqc_input += set_phrqc_liquid(p['c_liq'], p['ca_liq'], ptype)
+    phrqc_input += set_phrqc_mlvl(p['c_mlvl'], p['ca_mlvl'], ptype)    
+
     phrqc_input += set_phrqc_solid()
     return phrqc_input
     
-def set_phrqc_bc(c ):
+def set_phrqc_bc(c, ptype):
     phrqc_input = [] 
     phrqc_input.append('#boundary_solution')    
     phrqc_input.append('SOLUTION\t100001')
@@ -212,7 +227,7 @@ def set_phrqc_bc(c ):
     phrqc_input.append('EQUILIBRIUM_PHASES\t100001\n')
     return phrqc_input
     
-def set_phrqc_liquid(c, ca):
+def set_phrqc_liquid(c, ca, ptype):
     phrqc_input = [] 
     phrqc_input.append('#solution_liquid')    
     phrqc_input.append('SOLUTION\t100002')
@@ -236,7 +251,7 @@ def set_phrqc_liquid(c, ca):
     phrqc_input.append('calcite\t0\t0\n')
     return phrqc_input
 
-def set_phrqc_mlvl(c, ca):
+def set_phrqc_mlvl(c, ca, ptype):
     phrqc_input = [] 
     phrqc_input.append('#solution_multilevel')    
     phrqc_input.append('SOLUTION\t100003')
@@ -258,6 +273,23 @@ def set_phrqc_mlvl(c, ca):
     phrqc_input.append('EQUILIBRIUM_PHASES\t100003')
     phrqc_input.append('portlandite\t0\t1')
     phrqc_input.append('calcite\t0\t0\n')
+    if(ptype=='CSH'):
+        phrqc_input.append('#solution_csh_multilevel') 
+        phrqc_input.append('SOLUTION\t100004') 
+        phrqc_input.append('\t-water\t0.448230266981165') 
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\tpH\t12\tcharge') 
+        phrqc_input.append('\tCa\t1.955e-002') 
+        phrqc_input.append('\tSi\t3.018e-005') 
+        phrqc_input.append('SOLID_SOLUTIONS\t100004') 
+        phrqc_input.append('Tob_jen_ss') 
+        phrqc_input.append('\t-comp\tCSHQ_TobH\t0.1041') 
+        phrqc_input.append('\t-comp\tCSHQ_TobD\t2.5050') 
+        phrqc_input.append('\t-comp\tCSHQ_JenH\t2.1555') 
+        phrqc_input.append('\t-comp\tCSHQ_JenD\t3.2623') 
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100004')
+        phrqc_input.append('portlandite\t0\t0')
+        phrqc_input.append('calcite\t0\t0\n')
     return phrqc_input
 
 def set_phrqc_solid():
@@ -366,8 +398,31 @@ def get_active(rt):
 def get_dt(rt):
     return(rt.dt)
 
+
 def get_sum_csh(rt): 
+    #TODO CSH mass
     return(np.sum(rt.solid.csh))
+
+def get_Ca_solid(rt):
+    ca = np.sum(0.8333333*rt.solid.CSHQ_TobD.c[:,:] + 0.6666667*rt.solid.CSHQ_TobH.c[:,:] + 
+        1.3333333*rt.solid.CSHQ_JenH.c[:,:] + 1.5*rt.solid.CSHQ_JenD.c[:,:])
+    return ca
+def get_Si_solid(rt):
+    si = np.sum(0.6666667*rt.solid.CSHQ_TobD.c[:,:] + 1.0*rt.solid.CSHQ_TobH.c[:,:] + 
+        1.0*rt.solid.CSHQ_JenH.c[:,:] + 0.6666667*rt.solid.CSHQ_JenD.c[:,:])
+    return si
+def get_Ca_Si(rt):
+    r = get_Ca_solid(rt)/get_Si_solid(rt)
+    return r
+
+def get_csh_density(rt):
+    m_ca = 56.0774 #g/mol
+    m_si = 60.08 #g/mol
+    m_h2o = 18.01528 #g/mol
+    h2o= np.sum(1.8333333333*rt.solid.CSHQ_TobD.c[:,:] + 1.5*rt.solid.CSHQ_TobH.c[:,:] + 
+        2.1666666667*rt.solid.CSHQ_JenH.c[:,:] + 2.5*rt.solid.CSHQ_JenD.c[:,:])
+    d = h2o*m_h2o + get_Ca_solid(rt)*m_ca + get_Si_solid(rt)*m_si
+    return d
     
 
 #%% LISTS OF PARAMETERS
@@ -380,7 +435,7 @@ def init_results(pavg=True, pavg_list=[], points=[], ptype='CSH'):
     elif ptype =='CSH':
         params += ['CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH', 'portlandite', 'calcite',
                   'Ca','C','O','H','Si']
-        params += ['csh']
+        params += ['csh','Ca_solid','Si_solid','Ca_Si','csh_density']
     results={name: [] for name in params}       
     results['params'] = params
     if pavg: #average parameters        
@@ -412,9 +467,13 @@ def append_results(rt, results, step = 1e+2):
         for num, phase in enumerate(rt.solid.diffusive_phase_list, start=1):
             results[phase].append(np.sum(rt.solid._diffusive_phaseqty[num-1]))        
         for num, comp in enumerate(rt.fluid.components, start=1):
-            results[comp].append(np.sum(getattr(rt.fluid, comp)._c*getattr(rt.fluid, comp).poros))       
+            results[comp].append(np.sum(getattr(rt.fluid, comp)._c*getattr(rt.fluid, comp).poros))                
         if (ptype == 'CSH'):
             results['csh'].append(get_sum_csh(rt))
+            results['Ca_solid'].append(get_Ca_solid(rt))
+            results['Si_solid'].append(get_Si_solid(rt))
+            results['Ca_Si'].append(get_Ca_Si(rt))
+            results['csh_density'].append(get_csh_density(rt))
         # average
         favgall = {'sum_vol':get_sum_mineral_volume,
                 'avg_D_eff':get_average_D,
@@ -461,7 +520,7 @@ def append_results(rt, results, step = 1e+2):
                 results['CSHQ_TobH'+' ' + str(p)].append(rt.solid.CSHQ_TobH.c[p])
                 results['CSHQ_JenH'+' ' + str(p)].append(rt.solid.CSHQ_JenH.c[p])
                 results['csh'+' ' + str(p)].append(rt.solid.csh[p])
-                results['vol_CSH'+' ' + str(p)].append(rt.solid.vol_csh[p])
+                #results['vol_CSH'+' ' + str(p)].append(rt.solid.vol_csh[p])
                 
     return(results)
 
@@ -650,7 +709,11 @@ def get_titles():
              'phases': 'Cement phases',
              'target_si': 'Target saturation index',
              'radius': 'Pore radius',
-             'pore_amount': 'Amount of pores'
+             'pore_amount': 'Amount of pores',             
+             'Ca_solid':'solid Ca',
+             'Si_solid' :'solid Si',
+             'Ca_Si': 'Ca/Si',
+             'csh_density': 'Density(CSH)'
              }
     return(title)
      
@@ -690,7 +753,11 @@ def get_ylabs():
             'phases': 'Phases [-]',
             'target_si': 'Target SI [-]',
             'radius': 'Radius [m]',
-            'pore_amount': 'Pores'
+            'pore_amount': 'Pores',
+            'Ca_solid':'solid Ca [mol]',
+            'Si_solid' :'solid Si [mol]',
+            'Ca_Si': 'Ca/Si [-]',
+            'csh_density': 'Density(CSH) [g/l]'
             }        
     return(ylab)
     
@@ -766,7 +833,7 @@ def plot_fields(rt, names={}, fsize = (8,4)):
               'phases': rt.solid.phases,
               'poros': rt.solid.poros}
     if rt.ptype == 'CSH':
-        fields.update({'csh':rt.get_csh_conc(),
+        fields.update({'csh':rt.solid.csh,
                        'Si':rt.fluid.Si.c}) #'CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH'
         
         
