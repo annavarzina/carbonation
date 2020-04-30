@@ -36,7 +36,7 @@ domain = yantra.Domain2D(corner=(0, 0),
 
 domain.nodetype[ll+1: ll+l_ch,:] = ct.Type.MULTILEVEL
 domain.nodetype[:, l_ch/2-1:l_ch/2+1] = ct.Type.LIQUID
-domain.nodetype[0,:] = ct.Type.SOLID
+domain.nodetype[:,0] = ct.Type.SOLID
 domain.nodetype[-1,:] = ct.Type.SOLID
 domain.nodetype[:,-1] = ct.Type.SOLID
 

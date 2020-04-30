@@ -6,4 +6,4 @@ The package 'carbonation' is an extension for YANTRA lattice Boltzmann solver (v
 'results/' for output and figures
 'src/' for all scripts and classes
 'test/' for unit testing
-'fortran/' folder contains updated and compiled files, which should be replaced in the original Yantra v1.0.
+'yantra-physics/' folder contains updated and compiled files (fortran and python) that should be replaced in the original Yantra v1.0.
