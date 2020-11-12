@@ -29,7 +29,7 @@ m = 'CH' #or 'CSH' #TODO case for cement
 
 #%% GEOMETRY
 ll = 5#liquid lauer in front of portlandite
-l_ch = 25 #length of portlandite
+l_ch = 25#length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
 dx = 1.0e-6
@@ -52,17 +52,17 @@ nn='01_example_default'
 fn.make_output_dir(root_dir+'\\results\\output\\00_examples\\')
 path = root_dir+'\\results\\output\\00_examples\\' + nn + '\\'
 fn.make_output_dir(path)
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 0.0},
-               'c_mlvl':{'type':'conc', 'value': '0'}, 
-               'c_liq':{'type':'conc', 'value': '0'},
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4},
+               'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
+               'c_liq':{'type':'eq', 'value': 'calcite'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'},    
-               'ca_liq':{'type':'conc', 'value': '0'}}
+               'ca_liq':{'type':'eq', 'value': 'calcite'}}
 
 phrqc = fn.set_phrqc_input(phrqc_input)            
 fn.save_phrqc_input(phrqc,root_dir, nn)   
 
 #%% VALUES
-scale = 100 # scale of molar volume
+scale = 50 # scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
 mvol_ratio = 3.69/3.31
 mvolCH = 0.0331*scale
@@ -126,7 +126,7 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
 #%% TIME SETTINGS
 nitr =1000
-Ts =  3600.*0.05 #seconds
+Ts =  100#3600.*3 #seconds
 Ts = Ts/scale + 0.001
 step = max(int(Ts/36.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
@@ -154,20 +154,25 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
   
 #%%  SAVE
-'''
+#'''
 fn.save_obj(results, path + str(nn) +'_results')
 np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
 np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
 np.save(path + 'Ca', carb_rt.phrqc.selected_output()['Ca'] )
 np.save(path + 'C', carb_rt.phrqc.selected_output()['C'] )
+np.save(path + 'CH', carb_rt.phrqc.selected_output()['portlandite'] )
+np.save(path + 'CC', carb_rt.phrqc.selected_output()['calcite'] )
 np.save(path + 'De', carb_rt.fluid.Ca.De )
 np.save(path + 'poros', carb_rt.fluid.Ca.poros)
-'''
+#'''
 #%% PLOT 
+'''
 fn.plot_species(results, names=[])#['calcite']
 fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
 fn.plot_points(results, names=['calcite', 'portlandite', 'poros', 'Ca', 'C'])
 fn.plot_fields(carb_rt, names=['calcite', 'Ca', 'poros', 'C'],fsize=(15,1))
+'''
+
 
 #%% PRINT
 print('Ca %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
@@ -188,5 +193,5 @@ print('poros %s' %str(np.array(carb_rt.solid.poros[1,:])))
 print('phrqc poros %s' %str(np.array(np.array(carb_rt.phrqc.poros[1,:]))))
 
 
-print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
-print('Total CC precipitated %s' %(results['calcite'][-1]-results['calcite'][0]))
+#print('Total CH dissolved %s' %(results['portlandite'][-1]-results['portlandite'][0]))
+#print('Total CC precipitated %s' %(results['calcite'][-1]-results['calcite'][0]))

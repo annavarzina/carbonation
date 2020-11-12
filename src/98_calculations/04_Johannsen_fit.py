@@ -110,7 +110,7 @@ plt.show()
 #%%
 r = rn#rmean
 idx = np.where(np.logical_and(np.abs(r)>=0.39e-5, np.abs(r)<=6.2e-5))[0]
-plt.figure(figsize = (6,4))
+plt.figure(figsize = (8,4), dpi = 500)
 plt.plot(np.abs(r), fractions)
 plt.fill_between(np.abs(r)[idx],fractions[idx], color = "#6f8191", alpha=.5,label = "Johannsen K., et.al. (1999)")
 plt.xlabel(r"Rate of dissolution $R$ $(mmol / (l\cdot s\cdot cm^2)$",fontsize=14)

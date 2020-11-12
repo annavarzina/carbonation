@@ -5,8 +5,8 @@ Compare the results for different fraction
 #%% MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
-root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 sys.path.append(src_dir)
 import matplotlib.pylab as plt

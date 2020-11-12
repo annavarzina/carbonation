@@ -222,16 +222,23 @@ t13 = np.array([0.070945216, 0.243092284, 0.58738642, 1.103827624,
 x = np.arange(1, len(t13)+1)
 
 
-plt.figure(figsize=(8,4))
+plt.figure(figsize=(8,4), dpi = 500)
 plt.plot(time, d, '.', label = "Experiment")
 plt.plot(t13, np.arange(1, len(t13)+1), label = "Model")
 plt.xlabel('Time (day)', fontsize=14)
-plt.ylabel(r'Depth ($\mu m$)', fontsize=14)
+plt.ylabel(r'Thickness ($\mu m$)', fontsize=14)
 plt.legend(fontsize=12)
 plt.tick_params(axis='both', which='major', labelsize=12)
 plt.show()
 
+#%%
+
+np.savetxt('case_study_low_diffusivity.txt', 
+           np.transpose([t13, np.arange(1, len(t13)+1)]), 
+           header = 'time;\t thickness', delimiter = '; ', fmt ='%f')
+
 #%% Mass gain
+'''
 alpha = np.array([0.,0.3,0.55,1.05,1.25,1.55])
 time = np.array([0.,2.,4.5,10.,12.,20.]) #days
 
@@ -254,3 +261,4 @@ plt.ylabel('Mass increase (mg)', fontsize=14)
 plt.legend(fontsize=12)
 plt.tick_params(axis='both', which='major', labelsize=12)
 plt.show()
+'''

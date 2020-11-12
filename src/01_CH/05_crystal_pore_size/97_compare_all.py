@@ -13,7 +13,7 @@ import matplotlib.pylab as plt
 import numpy as np
 np.set_printoptions(precision=5, threshold=np.inf)
 import misc_func as fn
-import func as cf
+import plot_func as cf
 #%% SETTINGS
 Ts =100.
 fname = 'ps_cs'

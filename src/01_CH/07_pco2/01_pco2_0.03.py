@@ -128,7 +128,7 @@ itr = 0
 j = 0
 ni = 100
 nitr = 100
-Ts = 1.#1000.
+Ts = 3.*3600#1000.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -158,7 +158,7 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
            
 #%%  SAVE
-if(False):
+if(True):
     fn.save_obj(results, path + str(nn) +'_results')
     np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
     np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )

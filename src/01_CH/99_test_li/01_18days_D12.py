@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Test CO2(g)
+Long duration
 '''
 
 #%% PYTHON MODULES
@@ -15,14 +15,13 @@ import numpy as np
 np.set_printoptions(precision=5, threshold=np.inf)
 import time
 import yantra
-import cell_type as ct 
+import cell_type as ct # change the path to cell_type file
 import misc_func as fn
 import rt 
 #import phrqc
 #%% PROBLEM DEFINITION
 __doc__= """ 
-1D carbonation of portlandite.
-CO2 partial pressure - 1.0%
+
 """
 #problem type
 m = 'CH' #or 'CSH'
@@ -49,11 +48,11 @@ plt.show()
 
 #%%  VALUES
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output\\07_pco2\\')
-path = root_dir+'\\results\\output\\07_pco2\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output\\09_long\\')
+path = root_dir+'\\results\\output\\09_long\\' + nn + '\\'
 fn.make_output_dir(path)
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 2.0}, #3.05E-02, 3.74E-02, 4.30E-02
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4}, #3.05E-02, 3.74E-02, 4.30E-02
                'c_mlvl':{'type':'conc', 'value': '0'}, 
                'c_liq':{'type':'conc', 'value': '0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
@@ -88,7 +87,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
                          'int_energy': 0.1, # internal energy
-                         'pore_size': 0.01*dx, # threshold radius or distance/2
+                         'pore_size': 0.005*dx, # threshold radius or distance/2
                          'crystal_size': 0.5*dx, # crystal or pore length
                          }, 
             'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
@@ -127,8 +126,8 @@ results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 itr = 0 
 j = 0
 ni = 100
-nitr = 100
-Ts = 3.*3600#1000.
+nitr = 2
+Ts = 18*3600.#1000.
 Ts = Ts/scale + 0.001#1.001#1.01
 step = max(int(Ts/10.),1)
 #time_points = np.arange(0, Ts+step, step)
@@ -140,7 +139,8 @@ N_res = 1e+4
 S = max(1,int(N/N_res))
 #%% RUN SOLVER
 
-while  carb_rt.time <=Ts: #itr <= nitr: #
+while  itr <= nitr: #
+    print('\n=================\n')
     if(True):
         if ( (carb_rt.time <= time_points[j]) and ((carb_rt.time + carb_rt.dt) > time_points[j]) ):  
             print(time_points[j])
@@ -158,7 +158,7 @@ simulation_time = time.time()-it
 fn.print_time(simulation_time, carb_rt)
            
 #%%  SAVE
-if(True):
+if(False):
     fn.save_obj(results, path + str(nn) +'_results')
     np.save(path + 'SI', carb_rt.phrqc.selected_output()['SI_calcite'] )
     np.save(path + 'pH', carb_rt.phrqc.selected_output()['pH'] )
@@ -167,14 +167,14 @@ if(True):
     np.save(path + 'De', carb_rt.fluid.Ca.De )
     np.save(path + 'poros', carb_rt.fluid.Ca.poros)
 #%% PLOT 
-if(True):
+if(False):
     fn.plot_species(results, names=[])#['calcite']
     fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
     fn.plot_points(results, names=['calcite', 'portlandite', 'poros', 'Ca', 'C'])
     fn.plot_fields(carb_rt, names=['calcite', 'portlandite', 'Ca', 'C', 'poros'],fsize=(15,1))
 
 #%% PRINT
-if(True):
+if(False):
     print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
     print('C +ss %s' %str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
     print('H +ss %s' %str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))

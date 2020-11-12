@@ -186,13 +186,13 @@ plt.ylabel(r'Diffusivity ($m^2/s$)')
 plt.show()
 #%%
 idx = np.where(np.logical_and(diffusivity>=1.e-10, diffusivity<=1.5e-10))[0]
-plt.figure(figsize = (6,4))
+plt.figure(figsize = (8,4), dpi = 500)
 plt.loglog(diffusivity,fraction)
 plt.hlines(y = fraction[11], xmin = diffusivity[14], xmax = diffusivity[11], 
            linestyles = '--', colors = 'black', alpha = .5, label = "Galan I., et.al. (2015)")
 plt.vlines(x = diffusivity[11], ymin = fraction[14], ymax = fraction[11], linestyles = '--', colors = 'black', alpha = .5)
 #plt.fill_between(diffusivity[idx],fraction[idx]*100, color = "#6f8191", alpha=.5,label = "Johannsen K., et.al. (1999)")
-plt.ylabel(r"Mixing parameter $\sigma$ (%)",fontsize=14)
+plt.ylabel(r"Mixing parameter $\sigma$",fontsize=14)
 plt.xlabel(r'Diffusivity ($m^2/s$)',fontsize=14)
 plt.legend(fontsize=12)
 plt.tick_params(axis='both', which='major', labelsize=12)

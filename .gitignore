@@ -9,6 +9,9 @@ results/
 *.xlsx
 *.csv
 *.xls
+*.png
+*.tiff
+*.txt
 phreeqc_input/bc.phrq
 src/01_scripts/12_lime_paste/modity_solution.txt
 src/01_scripts/12_lime_paste/modify_eq.txt

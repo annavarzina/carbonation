@@ -5,19 +5,20 @@ Compare the results for different pore sizes (PS)
 #%% MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
-root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 sys.path.append(src_dir)
 import matplotlib.pylab as plt
 import numpy as np
 np.set_printoptions(precision=5, threshold=np.inf)
 import misc_func as fn
-import func as cf
+import plot_func as cf
 #%% SETTINGS
 Ts =100.
 fname = 'ps'
-fpath = root_dir+'\\results\\output\\05_crystal_pore_size\\compare\\'
+fpath = root_dir+'\\results\\output\\05_porosity\\'
+#fpath = root_dir+'\\results\\output\\05_crystal_pore_size\\compare\\'
 fn.make_output_dir(fpath)
 #names = np.array([ '01_ie01_p05', '02_ie05_p05', '03_ie1_p05'])
 #names = np.array([ '01_p0005_p005_Db09', '02_p001_p005_Db09', '03_p005_p005_Db09'])
@@ -28,9 +29,15 @@ names = np.array(['02_co3_p0005', '01_co3_p001', '03_co3_p005'])
 label = np.array(['PS 0.005','PS 0.01', 'PS 0.05'])
 linetype = np.array(['-', '--', '-.',':'])
 
+
+
+names = np.array(['01_porosity_0.05', '02_porosity_0.1', '03_porosity_0.25', '04_porosity_0.5'])
+label = np.array(['pore size 0.005','pore size 0.01', 'pore size 0.025', 'pore size 0.05'])
+
 results = {}
 for nn in names:
-    path = root_dir+'\\results\\output\\05_crystal_pore_size\\' + nn + '\\'
+    #path = root_dir+'\\results\\output\\05_crystal_pore_size\\' + nn + '\\'
+    path = root_dir+'\\results\\output\\05_porosity\\' + nn + '\\'
     results[nn] = fn.load_obj(path + nn +'_results')
 
 #%% SCALE    
