@@ -268,44 +268,96 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)  
         
     def update_diffusivity(self):
-        Dref = self.Dref
-        cc = self.settings['diffusivity']['CC']
-        ch = self.settings['diffusivity']['CH']
-        D_border = self.Dref
-        if('border' in self.settings['diffusivity']):
-            D_border = self.settings['diffusivity']['border']
-        
-        is_border = self.solid.border
-        is_port = (self.solid.portlandite.c >0) & (~is_border)
-        is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
-        #is_calc = np.logical_and(is_calc,~is_border)
-        is_liquid = np.logical_and(~is_port, ~is_calc)
-        is_liquid = np.logical_and(is_liquid, ~is_border)
-        
-        D_archie = Dref * self.solid.poros * self.solid.app_tort 
-        D_CC = D_archie
-        D_CH = D_archie
-        if(cc[0] == 'const'):
-            D_CC = cc[1]*np.ones(D_CC.shape)
-        elif(cc[0] == 'inverse'):
-            mineral = self.solid.calcite.c * self.solid.calcite.mvol
-            #D_CC =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/cc[1]), Dref)
-            D_CC =np.nan_to_num(1./((1-mineral)/Dref + mineral/cc[1]), Dref)
-        
-        if(ch[0] == 'const'):
-            D_CH = ch[1]*np.ones(D_CH.shape)
-        elif(ch[0] == 'inverse'):            
-            mineral = self.solid.vol
-            D_CH =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/ch[1]), Dref)
-        
-        De = D_CH*is_port + D_CC*is_calc + D_CC*is_border + Dref*is_liquid 
+        Dref = self.Dref        
+        if self.ptype == 'CH':
+            cc = self.settings['diffusivity']['CC']
+            ch = self.settings['diffusivity']['CH']
+            #D_border = self.Dref
+            #if('border' in self.settings['diffusivity']):
+            #    D_border = self.settings['diffusivity']['border']
             
-        self.fluid.set_attr('D0',De,component_dict=False)
-        self.fluid.set_attr('Deref',np.max(De),component_dict=False)
-        self.fluid.call("_set_relaxation_params")           
+            is_border = self.solid.border
+            is_port = (self.solid.portlandite.c >0) & (~is_border)
+            is_calc = np.logical_and(self.solid.calcite.c >0,~is_port)
+            #is_calc = np.logical_and(is_calc,~is_border)
+            is_liquid = np.logical_and(~is_port, ~is_calc)
+            is_liquid = np.logical_and(is_liquid, ~is_border)
+            
+            D_archie = Dref * self.solid.poros * self.solid.app_tort 
+            D_CC = D_archie
+            D_CH = D_archie
+            if(cc[0] == 'const'):
+                D_CC = cc[1]*np.ones(D_CC.shape)
+            elif(cc[0] == 'inverse'):
+                mineral = self.solid.calcite.c * self.solid.calcite.mvol
+                #D_CC =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/cc[1]), Dref)
+                D_CC =np.nan_to_num(1./((1-mineral)/Dref + mineral/cc[1]), Dref)
+            
+            if(ch[0] == 'const'):
+                D_CH = ch[1]*np.ones(D_CH.shape)
+            elif(ch[0] == 'inverse'):            
+                mineral = self.solid.vol
+                D_CH =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/ch[1]), Dref)
+            
+            De = D_CH*is_port + D_CC*is_calc + D_CC*is_border + Dref*is_liquid 
+                
+            self.fluid.set_attr('D0',De,component_dict=False)
+            self.fluid.set_attr('Deref',np.max(De),component_dict=False)
+            self.fluid.call("_set_relaxation_params")           
+        if self.ptype == 'CSH':
+            cc = self.settings['diffusivity']['CC']
+            ch = self.settings['diffusivity']['CH']
+            csh = self.settings['diffusivity']['CSH']
+            #D_border = self.Dref
+            #if('border' in self.settings['diffusivity']):
+            #    D_border = self.settings['diffusivity']['border']
+            is_border = self.solid.border
+            is_port = (self.solid.portlandite.c >0) & (~is_border)
+            is_csh = (self.solid.CSHQ_JenD.c > 0) | (self.solid.CSHQ_JenH.c > 0) | \
+                (self.solid.CSHQ_TobD.c > 0) |(self.solid.CSHQ_TobH.c > 0) 
+            is_csh =  np.logical_and(is_csh, ~is_port)
+            is_calc = np.logical_and(self.solid.calcite.c >0, ~is_port)
+            is_calc = np.logical_and(is_calc, ~is_csh)
+            #is_calc = np.logical_and(is_calc,~is_border)
+            is_liquid = np.logical_and(~is_port, ~is_calc)
+            is_liquid = np.logical_and(is_liquid, ~is_csh)
+            is_liquid = np.logical_and(is_liquid, ~is_border)
+            
+            D_archie = Dref * self.solid.poros * self.solid.app_tort 
+            D_CC = D_archie
+            D_CH = D_archie
+            D_CSH = D_archie
+            if(cc[0] == 'const'):
+                D_CC = cc[1]*np.ones(D_CC.shape)
+            elif(cc[0] == 'inverse'):
+                mineral = self.solid.calcite.c * self.solid.calcite.mvol
+                #D_CC =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/cc[1]), Dref)
+                D_CC =np.nan_to_num(1./((1-mineral)/Dref + mineral/cc[1]), Dref)
+            
+            if(ch[0] == 'const'):
+                D_CH = ch[1]*np.ones(D_CH.shape)
+            elif(ch[0] == 'inverse'):            
+                mineral = self.solid.vol
+                D_CH =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + \
+                                        mineral/ch[1]), Dref)           
+            
+            if(csh[0] == 'const'):
+                D_CSH = csh[1]*np.ones(D_CSH.shape)
+            
+            De = D_CH*is_port + D_CSH*is_csh + \
+                D_CC*is_calc + D_CC*is_border + Dref*is_liquid 
+                
+            self.fluid.set_attr('D0',De,component_dict=False)
+            self.fluid.set_attr('Deref',np.max(De),component_dict=False)
+            self.fluid.call("_set_relaxation_params")           
         
         
     def update_velocity(self):
+        '''
+        Optional function that defines velocity change due to calcite precipitation.
+        TODO: optmize
+        TODO: C-S-H phase
+        '''
         if(self.settings['velocity']):
             is_solid = self.solid.nodetype >=1
             not_solid = ~is_solid
@@ -362,17 +414,29 @@ class CarbonationRT(PhrqcReactiveTransport):
         return(ss)
         
     def update_border(self):
+        if self.ptype == 'CH':
+            is_port = (self.solid.portlandite.c>0)
+            is_mineral = is_port | (self.solid.nodetype==ct.Type.SOLID)
+            val = -16
+            temp = deepcopy(self.solid.nodetype)
+            temp = temp*(~is_mineral) + val*is_mineral        
+            rolled = np.roll(temp, -1, axis = 1)/4+np.roll(temp, 1, axis = 1)/4 +\
+                  np.roll(temp, -1, axis = 0)/4+np.roll(temp, 1, axis = 0)/4
+            border = (rolled!=val)&is_port
+            self.solid.border = border
         
-        is_port = (self.solid.portlandite.c>0)
-        is_mineral = is_port | (self.solid.nodetype==ct.Type.SOLID)
-        val = -16
-        temp = deepcopy(self.solid.nodetype)
-        temp = temp*(~is_mineral) + val*is_mineral        
-        rolled = np.roll(temp, -1, axis = 1)/4+np.roll(temp, 1, axis = 1)/4 +\
-              np.roll(temp, -1, axis = 0)/4+np.roll(temp, 1, axis = 0)/4
-        border = (rolled!=val)&is_port
-        self.solid.border = border
-        
+        if self.ptype == 'CSH':
+            is_port = (self.solid.portlandite.c>0)
+            is_csh = (self.solid.CSHQ_JenD.c > 0) | (self.solid.CSHQ_JenH.c > 0) | \
+                (self.solid.CSHQ_TobD.c > 0) |(self.solid.CSHQ_TobH.c > 0) 
+            is_mineral = is_port | is_csh | (self.solid.nodetype==ct.Type.SOLID)
+            val = -16
+            temp = deepcopy(self.solid.nodetype)
+            temp = temp*(~is_mineral) + val*is_mineral        
+            rolled = np.roll(temp, -1, axis = 1)/4+np.roll(temp, 1, axis = 1)/4 +\
+                  np.roll(temp, -1, axis = 0)/4+np.roll(temp, 1, axis = 0)/4
+            border = (rolled!=val)&(is_port|is_csh)
+            self.solid.border = border
     
     def update_border_solution(self,c,ss):
         #poros = self.solid.poros#
