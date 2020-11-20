@@ -63,7 +63,7 @@ class CarbonationRT(PhrqcReactiveTransport):
     #%% UPDATES
     def update_volume(self):
         vol = np.zeros(self.solid.shape)
-        phase_list = deepcopy(self.solid.diffusive_phase_list)
+        phase_list = self.solid.diffusive_phase_list
         for num, phase in enumerate(phase_list, start=1):
             val = getattr(self.solid, phase)
             vol += val.c * self.solid.mvol[num-1] 
@@ -111,18 +111,18 @@ class CarbonationRT(PhrqcReactiveTransport):
         if 'calcite' in self.solid.diffusive_phase_list:
             self.phrqc.is_calc = self.solid.calcite.c>0
         self.phrqc._target_SI = np.zeros(self.solid.shape)  
-        self.phrqc.nodetype = deepcopy(self.nodetype) 
+        self.phrqc.nodetype = self.nodetype  #TODO check how many times is used
         if self.solid.nphases >0:
             phaseqty = self.solid.phaseqty_for_phrqc()
             self.phrqc.modify_solid_phases(phaseqty) 
                 
             
     def update_phrqc(self):
-        self.phrqc.poros=deepcopy(self.solid.poros)      
+        self.phrqc.poros=self.solid.poros 
         self.phrqc.is_calc = self.solid.calcite.c>0   #TODO check if necessary - move to update phrqc function
         if(self.phrqc.precipitation == 'interface'):
             if(self.phrqc.active != 'interface'):
-                self.phrqc.nodetype = deepcopy(self.nodetype)
+                self.phrqc.nodetype = deepcopy(self.nodetype)#TODO check how many times is used
         
     def apply_settings(self, settings):
         self.settings = settings
@@ -138,7 +138,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         self.phrqc.phrqc_flags['only_fluid'] = False
         self.phrqc.phrqc_flags['smart_run'] = False
         if(settings['active_nodes'] == 'all'):
-            self.phrqc.nodetype = deepcopy(self.nodetype)
+            self.phrqc.nodetype = self.nodetype #TODO check how many times is used
         elif(settings['active_nodes'] == 'interface'):    
             self.phrqc.phrqc_flags['only_interface'] = True
         elif(settings['active_nodes'] == 'smart'):
@@ -157,11 +157,11 @@ class CarbonationRT(PhrqcReactiveTransport):
             
     def update_source(self):        
         
-        c=deepcopy( self.fluid.get_attr('c'))
+        c=self.fluid.get_attr('c')
         phaseqty=self.solid.phaseqty_for_phrqc()
-        phase_list = deepcopy(self.solid.diffusive_phase_list)
+        phase_list = self.solid.diffusive_phase_list
         for num, phase in enumerate(phase_list, start=1):
-            phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1]) 
+            phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])  #TODO check how many times is used
         if(self.settings['dissolution']=='subgrid'):
             phaseqty['portlandite'][np.where(self.solid.border)]=0
             #phaseqty['portlandite'] = np.zeros(phaseqty['portlandite'].shape)
@@ -185,7 +185,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         Calculates porosity, apparent tortuosity,
         volume and change in volume last time step
         '''
-        self.solid.prev_vol = deepcopy(self.solid.vol)
+        self.solid.prev_vol = deepcopy(self.solid.vol) #TODO check how many times is used
         self.update_volume()
         self.update_porosity()
         self.update_app_tort()
@@ -218,14 +218,14 @@ class CarbonationRT(PhrqcReactiveTransport):
             self.solid.csh=csh
         self.solid.phases = phases
         #self.c = []
-        self.solid.prev_calc = deepcopy(self.solid.calcite.c > 1e-4)
-        self.solid.prev_port = deepcopy(self.solid.portlandite.c > 0)
+        self.solid.prev_calc = deepcopy(self.solid.calcite.c > 1e-4) #TODO check how many times is used
+        self.solid.prev_port = deepcopy(self.solid.portlandite.c > 0) #TODO check how many times is used
     
     def update_nodetype(self):
         '''
         find neighbous of the multilevel cells
         '''
-        prev_nodetype = deepcopy(self.nodetype)
+        prev_nodetype = deepcopy(self.nodetype) #TODO check how many times is used
         is_port = (self.solid.portlandite.c>0)
         is_calc = (self.solid.calcite.c>0)
         #is_clinker = self.solid.nodetype == ct.Type.CLINKER
@@ -262,7 +262,7 @@ class CarbonationRT(PhrqcReactiveTransport):
         yantra._solvers.update2d.reassign_mlvl(self.solid.nodetype) 
         self.solid.nodetype[prev_nodetype == ct.Type.SOLID] = ct.Type.SOLID
         yantra._solvers.update2d.reassign_mlvl_solid(self.solid.nodetype) 
-        self.solid.prev_calc_c = deepcopy(self.phrqc.solid_phase_conc['calcite'])
+        self.solid.prev_calc_c = deepcopy(self.phrqc.solid_phase_conc['calcite']) #TODO check how many times is used
         self.nodetype = self.solid.nodetype
         self.update_border()
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)  
@@ -423,7 +423,7 @@ class CarbonationRT(PhrqcReactiveTransport):
             is_port = (self.solid.portlandite.c>0)
             is_mineral = is_port | (self.solid.nodetype==ct.Type.SOLID)
             val = -16
-            temp = deepcopy(self.solid.nodetype)
+            temp = deepcopy(self.solid.nodetype) #TODO check how many times is used
             temp = temp*(~is_mineral) + val*is_mineral        
             rolled = np.roll(temp, -1, axis = 1)/4+np.roll(temp, 1, axis = 1)/4 +\
                   np.roll(temp, -1, axis = 0)/4+np.roll(temp, 1, axis = 0)/4
@@ -436,7 +436,7 @@ class CarbonationRT(PhrqcReactiveTransport):
                 (self.solid.CSHQ_TobD.c > 0) |(self.solid.CSHQ_TobH.c > 0) 
             is_mineral = is_port | is_csh | (self.solid.nodetype==ct.Type.SOLID)
             val = -16
-            temp = deepcopy(self.solid.nodetype)
+            temp = deepcopy(self.solid.nodetype) #TODO check how many times is used
             temp = temp*(~is_mineral) + val*is_mineral        
             rolled = np.roll(temp, -1, axis = 1)/4+np.roll(temp, 1, axis = 1)/4 +\
                   np.roll(temp, -1, axis = 0)/4+np.roll(temp, 1, axis = 0)/4
