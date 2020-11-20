@@ -47,8 +47,8 @@ plt.show()
 #%%  VALUES
 m = 'CSH' #or 'CSH'
 nn=os.path.basename(__file__)[:-3]
-fn.make_output_dir(root_dir+'\\results\\output_csh\\01_default\\')
-path = root_dir+'\\results\\output_csh\\01_default\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output_csh\\02_24h\\')
+path = root_dir+'\\results\\output_csh\\02_24h\\' + nn + '\\'
 fn.make_output_dir(path)
 
 
@@ -81,7 +81,7 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'active_nodes': 'all', # 'all'/'smart'/ better use all to avoid errors
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('inverse', 1e-11), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-13), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
                            'CSH': ('const', 1e-11), # fixed diffusivity in CSH node 'archie'/'const'/'inverse'
                           }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
@@ -108,12 +108,12 @@ solver_params = fn.set_solver_params(tfact = tfact_default, smart_thres = 1e-8, 
 csh=rt.CarbonationRT('MultilevelDiffusion',domain,domain_params,bc_params,solver_params, settings)
 #%% results dict
 
-plist =  [(1,n) for n in np.arange(3, 6)] #points list
+plist =  [(1,n) for n in np.arange(3, 8)] #points list
 pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation', #argument list
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
-Ts  = 100# 36 * 3 #s
+Ts  = 3600 * 3#s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
 N_res = 1e+4
@@ -129,11 +129,9 @@ S = max(1,int(N/N_res))
 '''
 #%% run
 #n=1000
-'''
 j = 0
 it=time.time()
-nitr = 5
-while csh.iters < nitr: # csh.time <=Ts: #
+while csh.time <=Ts: #itr < nitr: # 
     if(True):
         if ( (csh.time <= time_points[j]) and ((csh.time + csh.dt) > time_points[j]) ):  
             print(time_points[j])
@@ -145,23 +143,20 @@ while csh.iters < nitr: # csh.time <=Ts: #
     
 simulation_time = time.time()-it
 fn.print_time(simulation_time, csh)
-'''
 #%%
-'''
 fn.plot_species(results, names=[])#['calcite']
 fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
 fn.plot_fields(csh, names=['calcite'],fsize=(15,1)) #,'Ca','Si'
 fn.plot_points(results, names=['calcite', 'poros', 'Ca','pH'])
-'''
+
 #%% plot ca/si against density
-'''
 plt.figure()
 plt.plot(results['Ca_Si'], results['csh_density'])
 plt.legend()
 plt.ylabel('CSH density')
 plt.xlabel('C/S')
 plt.show()
-'''
+
 
 #%% PRINT
 #'''
@@ -181,13 +176,9 @@ print('SI %s' %str(np.array(csh.solid.target_SI[1,:])))
 print('pH %s' %str(np.array(csh.phrqc.selected_output()['pH'][1,:])))
 print('poros %s' %str(np.array(csh.solid.poros[1,:])))
 print('phrqc poros %s' %str(np.array(np.array(csh.phrqc.poros[1,:]))))
-print('CSHQ TobD %s' %str(np.array(csh.solid.CSHQ_TobD.c[1,:])))
-print('CSHQ TobH %s' %str(np.array(csh.solid.CSHQ_TobH.c[1,:])))
-print('CSHQ JenD %s' %str(np.array(csh.solid.CSHQ_JenD.c[1,:])))
-print('CSHQ JenH %s' %str(np.array(csh.solid.CSHQ_JenH.c[1,:])))
 #'''
 #%%  SAVE
-'''
+#'''
 fn.save_obj(results, path + str(nn) +'_results')
 np.save(path + 'SI', csh.phrqc.selected_output()['SI_calcite'] )
 np.save(path + 'pH', csh.phrqc.selected_output()['pH'] )
@@ -196,19 +187,8 @@ np.save(path + 'C', csh.phrqc.selected_output()['C'] )
 np.save(path + 'CH', csh.phrqc.selected_output()['portlandite'] )
 np.save(path + 'CC', csh.phrqc.selected_output()['calcite'] )
 np.save(path + 'De', csh.fluid.Ca.De )
-np.save(path + 'poros', csh.fluid.Ca.poros)
-'''
 
-#%% C-S-H profile
-linetype = np.array(['dotted', 'solid', 'dashed', 'dashdot', 'dotted'])
-x = range(1, 9)
-
-fig, ax1 = plt.subplots(figsize=(8,4))
-ax1.set_xlabel(r'Distance ($\mu$m)',fontsize = 14)
-ax1.set_ylabel('C-S-H Q phases',fontsize = 14)
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_TobD'][1,1:-2],  label='CSHQ_TobD', ls=linetype[1])
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_TobH'][1,1:-2],  label='CSHQ_TobH', ls=linetype[1])
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenD'][1,1:-2],  label='CSHQ_JenD', ls=linetype[1])
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenH'][1,1:-2],  label='CSHQ_JenH', ls=linetype[1])
-plt.legend(loc = "center left")
-plt.show()
+np.save(path + 'CSHQ_TobD', csh.phrqc.selected_output()['CSHQ_TobD'] )
+np.save(path + 'CSHQ_TobH', csh.phrqc.selected_output()['CSHQ_TobH'] )
+np.save(path + 'CSHQ_JenD', csh.phrqc.selected_output()['CSHQ_JenD'] )
+np.save(path + 'CSHQ_JenH', csh.phrqc.selected_output()['CSHQ_JenH'] )

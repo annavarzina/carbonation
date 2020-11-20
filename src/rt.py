@@ -300,6 +300,7 @@ class CarbonationRT(PhrqcReactiveTransport):
                 D_CH =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + mineral/ch[1]), Dref)
             
             De = D_CH*is_port + D_CC*is_calc + D_CC*is_border + Dref*is_liquid 
+            De = De/self.solid.poros/self.solid.app_tort 
                 
             self.fluid.set_attr('D0',De,component_dict=False)
             self.fluid.set_attr('Deref',np.max(De),component_dict=False)
@@ -316,9 +317,10 @@ class CarbonationRT(PhrqcReactiveTransport):
             is_csh = (self.solid.CSHQ_JenD.c > 0) | (self.solid.CSHQ_JenH.c > 0) | \
                 (self.solid.CSHQ_TobD.c > 0) |(self.solid.CSHQ_TobH.c > 0) 
             is_csh =  np.logical_and(is_csh, ~is_port)
+            is_csh =  np.logical_and(is_csh, ~is_border)
             is_calc = np.logical_and(self.solid.calcite.c >0, ~is_port)
             is_calc = np.logical_and(is_calc, ~is_csh)
-            #is_calc = np.logical_and(is_calc,~is_border)
+            is_calc = np.logical_and(is_calc,~is_border)
             is_liquid = np.logical_and(~is_port, ~is_calc)
             is_liquid = np.logical_and(is_liquid, ~is_csh)
             is_liquid = np.logical_and(is_liquid, ~is_border)
@@ -347,8 +349,11 @@ class CarbonationRT(PhrqcReactiveTransport):
             De = D_CH*is_port + D_CSH*is_csh + \
                 D_CC*is_calc + D_CC*is_border + Dref*is_liquid 
                 
+            De = De/self.solid.poros/self.solid.app_tort 
+            #print(De)
             self.fluid.set_attr('D0',De,component_dict=False)
-            self.fluid.set_attr('Deref',np.max(De),component_dict=False)
+            #self.fluid.set_attr('Deref',np.max(De),component_dict=False)
+            self.fluid.set_attr('Deref',Dref,component_dict=False)
             self.fluid.call("_set_relaxation_params")           
         
         

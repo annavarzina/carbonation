@@ -119,7 +119,7 @@ pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation', #argumen
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
-Ts  = 10 #s
+Ts  = 0.01 #s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
 N_res = 1e+4
