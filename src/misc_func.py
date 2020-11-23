@@ -509,7 +509,7 @@ def append_results(rt, results, step = 1e+2):
                 results['poros'+' ' + str(p)].append(rt.solid.poros[p])
                 results['vol'+' ' + str(p)].append(rt.solid.vol[p])
                 results['De'+' ' + str(p)].append(rt.fluid.H.De[p])
-                results['pH'+' ' + str(p)].append(rt.phrqc.selected_output()['pH'][p])
+                #results['pH'+' ' + str(p)].append(rt.phrqc.selected_output()['pH'][p])
                 results['vol_CH'+' ' + str(p)].append(rt.solid.vol_ch[p])
                 results['vol_CC'+' ' + str(p)].append(rt.solid.vol_cc[p])
             

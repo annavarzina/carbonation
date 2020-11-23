@@ -40,9 +40,7 @@ domain.nodetype[0,:] = ct.Type.SOLID
 domain.nodetype[-1,:] = ct.Type.SOLID
 domain.nodetype[:,-1] = ct.Type.SOLID
 
-plt.figure(figsize=(5,5))
-plt.imshow(domain.nodetype) 
-plt.show()
+
 
 #%%  VALUES
 m = 'CSH' #or 'CSH'
@@ -109,7 +107,7 @@ csh=rt.CarbonationRT('MultilevelDiffusion',domain,domain_params,bc_params,solver
 #%% results dict
 
 plist =  [(1,n) for n in np.arange(3, 6)] #points list
-pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation', #argument list
+pavglist = ['avg_poros', 'avg_D_eff', 'sum_vol', 'precipitation', #argument list
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
