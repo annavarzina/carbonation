@@ -174,7 +174,6 @@ fn.plot_points(results, names=['calcite', 'portlandite', 'poros', 'Ca', 'C'])
 fn.plot_fields(carb_rt, names=['calcite', 'Ca', 'poros', 'C'],fsize=(15,1))
 '''
 
-
 #%% PRINT
 print('Ca %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
 print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))

@@ -510,8 +510,8 @@ def append_results(rt, results, step = 1e+2):
                 results['vol'+' ' + str(p)].append(rt.solid.vol[p])
                 results['De'+' ' + str(p)].append(rt.fluid.H.De[p])
                 #results['pH'+' ' + str(p)].append(rt.phrqc.selected_output()['pH'][p])
-                results['vol_CH'+' ' + str(p)].append(rt.solid.vol_ch[p])
-                results['vol_CC'+' ' + str(p)].append(rt.solid.vol_cc[p])
+                results['vol_CH'+' ' + str(p)].append(rt.solid.portlandite.vol[p])
+                results['vol_CC'+' ' + str(p)].append(rt.solid.calcite.vol[p])
             
             if( ptype=='CSH'):
                 results['Si'+' ' + str(p)].append(rt.fluid.Si._c[p]+rt.fluid.Si._ss[p])
@@ -653,8 +653,8 @@ def print_points(rt, points, names=[]):
               'O':  rt.fluid.O.c,
               'phases': rt.solid.phases,
               'poros': rt.solid._poros,
-              'vol_CH': rt.solid.vol_ch,
-              'vol_CC': rt.solid.vol_cc,
+              'vol_CH': rt.solid.portlandite.vol,
+              'vol_CC': rt.solid.calcite.vol,
               'target_si':rt.phrqc._target_SI,
               'radius':rt.solid.pore_radius,
               'pore_amount':rt.solid.pore_amount}

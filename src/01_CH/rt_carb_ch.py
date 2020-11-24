@@ -7,7 +7,6 @@ import numpy as np
 from copy import deepcopy
 import yantra
 import cell_type as ct # change the path to cell_type file
-import defaults as df
 from rt import CarbonationRT
 
 
@@ -84,7 +83,8 @@ class CH_Carbonation(CarbonationRT):
         #calc_c = self.phrqc.solid_phase_conc['calcite']
         is_liquid = (~is_port)
         if(self.iters>1):
-            is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc & (~is_port)
+            is_critical = (self.solid.pcs.pore_size <= 
+                           self.solid.pcs.threshold_pore_size) & is_calc & (~is_port)
             is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(~is_calc)#&((prev_nodetype==-1)|(prev_nodetype==-2))
             is_interface = (~is_critical)&(~is_port)&(~is_solid)&(~is_liquid)
         self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
@@ -229,7 +229,18 @@ class CH_Carbonation(CarbonationRT):
         comp['O'] = (output[1][9] - self.phrqc.O_norm)
         result[str(n_ch)] = comp        
         return(result)     
-
+        
+    def update_volume(self):
+        vol = np.zeros(self.solid.shape)
+        phase_list = self.solid.diffusive_phase_list
+        for num, phase in enumerate(phase_list, start=1):
+            val = getattr(self.solid, phase)
+            vol += val.c * self.solid.mvol[num-1] 
+        self.solid.vol = vol
+        self.solid.portlandite.vol = self.volume_CH()
+        self.solid.calcite.vol = self.volume_CC() 
+        self.solid.dissolving_mineral_vol = self.solid.portlandite.vol
+        
     def volume_CH(self):
         CH_vol = self.solid.portlandite.c * self.solid.portlandite.mvol
         return CH_vol

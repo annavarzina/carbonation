@@ -95,7 +95,8 @@ class CSH_Carbonation(CarbonationRT):
                 (self.solid.CSHQ_TobD.c>0) |(self.solid.CSHQ_TobH.c>0) &(~is_port) 
         is_liquid = (~is_port) & (~is_csh)
         if(self.iters>1):
-            is_critical = (self.solid.pore_size <= self.solid.threshold_pore_size) & is_calc & (~is_port)
+            is_critical = (self.solid.pcs.pore_size <= 
+                           self.solid.pcs.threshold_pore_size) & is_calc & (~is_port)
             is_liquid =  (~is_critical)&(~is_port)&(~is_solid)&(~is_calc)&(~is_csh)#&((prev_nodetype==-1)|(prev_nodetype==-2))
             is_interface = (~is_critical)&(~is_port)&(~is_solid)&(~is_liquid)&(~is_csh)
         self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
@@ -197,6 +198,19 @@ class CSH_Carbonation(CarbonationRT):
     def update_equilibrium(self, result, n_ch, m_ch, porosity, fraction=1):
         return(result)     
 
+    def update_volume(self):
+        vol = np.zeros(self.solid.shape)
+        phase_list = self.solid.diffusive_phase_list
+        for num, phase in enumerate(phase_list, start=1):
+            val = getattr(self.solid, phase)
+            vol += val.c * self.solid.mvol[num-1] 
+        self.solid.vol = vol
+        self.solid.portlandite.vol = self.volume_CH()
+        self.solid.calcite.vol = self.volume_CC() 
+        self.solid.csh_vol = self.volume_CSH()
+        self.solid.dissolving_mineral_vol = self.solid.portlandite.vol + \
+            self.solid.csh_vol
+        
     def volume_CH(self):
         CH_vol = self.solid.portlandite.c * self.solid.portlandite.mvol
         return CH_vol
