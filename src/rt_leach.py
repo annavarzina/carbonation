@@ -19,11 +19,7 @@ class LeachingRT(PhrqcReactiveTransport):
         where reactions are computed using geochemical solver PHREEQC
         ''' 
         if(settings['diffusivity']['type']=='fixed'):
-            print("newMlvl")
             eqn = 'MultilevelAdvectionDiffusion2'
-            #solver_params['tauref'] = 1
-            #domain_params['Deref'] = settings['diffusivity']['D_border']
-            #solver_params['tauref'] = 0.5*np.max(settings['Dref'])/domain_params['Deref']+0.5#5.5 for 1e-10
         self.auto_time_step = solver_params.get('auto_time_step',True)
         self.phrqc = Phrqc(domain,domain_params,bc_params,solver_params)    
         components = self.phrqc.components
@@ -50,13 +46,10 @@ class LeachingRT(PhrqcReactiveTransport):
         self.apply_settings(settings)  
         self.update_nodetype()
         self.update_border_and_interface(self.nodetype)
-        #self.fluid.call("_set_relaxation_params")
         self.solid.prev_border = deepcopy(self.solid.border)
         self.Dref = settings['Dref']
     
     def advance(self):
-        #print(self.iters)
-        
         self.update_border_and_interface(self.nodetype) 
         if(~np.all(self.solid.border == self.solid.prev_border)):
             print("update")            
@@ -67,27 +60,25 @@ class LeachingRT(PhrqcReactiveTransport):
             self.fluid.call('update_transport_params',self.solid.poros,
                             self.solid.app_tort,self.auto_time_step)
             self.phrqc.poros=deepcopy(self.solid.poros)
+        self.update_source()
+        #self.fluid.call("_set_relaxation_params")
         
-        c=deepcopy( self.fluid.get_attr('c'))
+    
+    def update_source(self):        
+        c = self.fluid.get_attr('c')
         phaseqty=self.solid.phaseqty_for_phrqc()
         phase_list = deepcopy(self.solid.diffusive_phase_list)
         for num, phase in enumerate(phase_list, start=1):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])
-        #if self.iters ==0:
-        #    self.phrqc.modify_solid_phases(phaseqty)
-        #self.modify_eq(phaseqty)  
         ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)
         if self.iters >1 :pqty=self.solid.update(self.phrqc.dphases)  
-        ss = self.update_portlandite_eq(c,ss)
-        #if(self.settings['dissolution']=='subgrid'):
-            #ss=self.update_border_solution(c,ss) 
+        ss = self.update_equilibrium(c,ss)
         self.set_volume()
         self.set_porosity()  
         self.set_app_tort()        
         self.update_nodetype()
         self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)      
         self.fluid.set_attr('ss',ss) 
-        #self.fluid.call("_set_relaxation_params")
         
     def modify_eq(self, phaseqty):
         """
@@ -112,6 +103,7 @@ class LeachingRT(PhrqcReactiveTransport):
         modifystr ='\n'.join(modifystr)
         #print(modifystr)
         self.phrqc.IPhreeqc.RunString(modifystr)
+        
     #%% SETTINGS
     def set_volume(self):
         self.solid.vol = np.zeros(self.solid.shape)
@@ -144,25 +136,7 @@ class LeachingRT(PhrqcReactiveTransport):
     #%% UPDATES
     
     def update_diffusivity(self):
-        Dref = self.Dref
-        D_border = self.Dref
-        if('D_border' in self.settings['diffusivity']):
-            D_border = self.settings['diffusivity']['D_border']
-        if('D_CH' in self.settings['diffusivity']):
-            D_CH = self.settings['diffusivity']['D_CH']
-        
-        is_border = self.solid.border
-        is_port = (self.solid.portlandite.c >0) & (~is_border)
-        is_liquid = np.logical_and(~is_port, ~is_border)
-        
-        #Dnew_lb = Dref*np.ones(np.shape(self.nodetype))
-        De = D_CH*is_port + D_border*is_border + Dref*is_liquid 
-        #print(De[1,:])
-        #Dnew_lb = De/self.solid.poros/self.solid.app_tort
-        #(Dnew_lb[1,:])
-        self.fluid.set_attr('D0',De,component_dict=False)
-        self.fluid.set_attr('Deref',np.max(De),component_dict=False)
-        self.fluid.call("_set_relaxation_params")
+        pass
         
     def update_solid_params(self):
         '''
@@ -174,46 +148,21 @@ class LeachingRT(PhrqcReactiveTransport):
         self.set_app_tort() 
     
     def update_nodetype(self):
-        prev_nodetype = self.nodetype
-        is_port = (self.solid.portlandite.c>0)
-        is_solid = self.solid.nodetype == ct.Type.SOLID
-        is_interface = np.zeros(np.shape(is_port))
-        #calc_c = self.phrqc.solid_phase_conc['calcite']
-        if self.ptype == 'CH':
-            is_liquid = (~is_port)
-            if(self.iters>1):
-                is_liquid =  (~is_port)&(~is_solid)
-            self.solid.nodetype = ct.Type.LIQUID * is_liquid + \
-                ct.Type.MULTILEVEL * is_port +\
-                ct.Type.INTERFACE * is_interface + \
-                ct.Type.SOLID * is_solid
-        if self.ptype == 'CSH':
-            pass
-        yantra._solvers.update2d.reassign_mlvl(self.solid.nodetype) 
-        self.solid.nodetype[prev_nodetype == ct.Type.SOLID] = ct.Type.SOLID
-        yantra._solvers.update2d.reassign_mlvl_solid(self.solid.nodetype) 
-        self.fluid.set_attr('nodetype',self.solid.nodetype,component_dict=False)      
-        self.nodetype = self.solid.nodetype
+        # override
+        pass
 
-    def update_no_flux(self, ss):        
-        ss['Ca'] = ss['Ca']*(self.phrqc.boundcells==0) + 0* (self.phrqc.boundcells==1) 
+    def update_no_flux(self, ss):
+        # override        
         return(ss)
         
     def update_border_and_interface(self, nodetype):
-        is_port = (self.solid.portlandite.c>0)
-        is_mineral = is_port | (nodetype==ct.Type.SOLID)
-        val = -16
-        temp = deepcopy(nodetype)
-        temp = temp*(~is_mineral) + val*is_mineral
-        border = self.get_border(temp, val, is_port)
-        interface = self.get_interfaces(border, temp, val)
-        self.solid.border = border
-        self.solid.interface = interface
+        # override
+        pass
     
-    def get_border(self, nt, val, is_port):
+    def get_border(self, nt, val, is_mineral):
         rolled = np.roll(nt, -1, axis = 1)/4+np.roll(nt, 1, axis = 1)/4 +\
               np.roll(nt, -1, axis = 0)/4+np.roll(nt, 1, axis = 0)/4
-        is_border = (rolled!=val)&is_port
+        is_border = (rolled!=val)&is_mineral
         return(is_border)
         
     def get_interfaces(self, is_border, nt, val):        
@@ -306,88 +255,25 @@ class LeachingRT(PhrqcReactiveTransport):
         return ss
         
     
-    def update_portlandite_eq(self,c,ss):
-        phrqc_poros = self.phrqc.selected_output()['poros']
-        fr = np.zeros(phrqc_poros.shape)
-        fraction = self.settings['subgrid']['fraction']
-        result = {}
-        by = np.where(self.solid.border)[0]
-        bx = np.where(self.solid.border)[1]
-        bf = np.where(self.solid.border.flatten())[0]
-        for i in np.arange(0, np.sum(self.solid.border)):            
-            if fraction >0:    
-                fr[by[i], bx[i]] = fraction
-                cell_m = bf[i]+1
-                result  = self.update_equilibrium(result, cell_m,  
-                                          self.solid.portlandite.c[by[i], bx[i]],
-                                          phrqc_poros[by[i], bx[i]],
-                                          fraction)
-                ssnew={}
-                for name in self.phrqc.components:
-                    ssnew[name] = (result[str(cell_m)][name]-c[name][by[i], bx[i]])/self.dt
-                    ssnew[name] *= phrqc_poros[by[i], bx[i]]
-                    ss[name][by[i], bx[i]] = ssnew[name]
-        
-        for i in np.arange(0, np.sum(self.solid.border)):
-            self.solid.portlandite.c[by[i], bx[i]] = result[str(bf[i]+1)]['portlandite_m']
-        
+    def update_equilibrium(self,c,ss):
+        # override
         return ss
     
     
-    def update_equilibrium(self, result, n_ch, m_ch, porosity, fraction=1):
-        ncell = 123456
-        fract = fraction/porosity
-        if fract>1: fract =1
-        #print(fract)
-        modify_str = []
-        modify_str.append("EQUILIBRIUM_PHASES %i" % ncell)
-        modify_str.append("Portlandite 0 %.20e dissolve only" %(m_ch))   
-        modify_str.append("END") 
-        modify_str.append('MIX %i' % ncell)         
-        modify_str.append('%i %.20e' %( n_ch, fract)) #modify_str.append('%i 1' %n_int)  
-        modify_str.append('SAVE solution %i' % ncell)  
-        modify_str.append("END") 
-        modify_str.append('USE solution %i' % ncell)  
-        modify_str.append('USE equilibrium_phase %i' % ncell)
-        modify_str.append('SAVE solution %i' % ncell)   
-        modify_str.append("END") 
-        modify_str.append("END") 
-        modify_str ='\n'.join(modify_str)
-        self.phrqc.IPhreeqc.RunString(modify_str) 
-        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
-        
-        port = output[2][9] 
-        modify_str = [] 
-        modify_str.append("EQUILIBRIUM_PHASES %i" %n_ch)
-        modify_str.append("Portlandite 0 %.20e" %(0)) # dissolve only
-        modify_str.append("END") 
-        modify_str.append('USE equilibrium_phase %i' %n_ch)      
-        modify_str.append('MIX %i' % ncell)      
-        modify_str.append('%i 1' % ncell)   
-        modify_str.append('%i %.20e' %(n_ch, 1.-fract)) #modify_str.append('%i 0' %n_int)   
-        modify_str.append('SAVE solution %i' %(n_ch))  
-        #modify_str.append('SAVE equilibrium_phase %i' %(n_ch))  
-        modify_str.append("END") 
-        modify_str ='\n'.join(modify_str)
-        self.phrqc.IPhreeqc.RunString(modify_str)  
-        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
-        #print(modify_str)
-        #print(output)
-        comp = {}        
-        comp['portlandite_m'] = port
-        comp['Ca'] = output[1][6]
-        comp['H'] = (output[1][7] - self.phrqc.H_norm)
-        comp['O'] = (output[1][8] - self.phrqc.O_norm)
-        result[str(n_ch)] = comp        
+    def update_pqrqc_equilibrium(self, result, n_ch, m_ch, porosity, fraction=1):
+        # override
         return(result)     
     
     #%% PROPERIES
+    
+       
+    '''
     def volume_CH(self):
         CH_vol = self.solid.portlandite.c * self.solid.portlandite.mvol
         return CH_vol
-    
+    def free_volume(self):
+        v = self.solid.voxel_vol - self.solid.vol_ch
+        return v
     def volume_CSH(self):
         CSH_vol = self.solid.CSHQ_JenD.c * self.solid.CSHQ_JenD.mvol +\
                   self.solid.CSHQ_JenH.c * self.solid.CSHQ_JenH.mvol +\
@@ -395,13 +281,9 @@ class LeachingRT(PhrqcReactiveTransport):
                   self.solid.CSHQ_TobH.c * self.solid.CSHQ_TobH.mvol 
         return CSH_vol
 
-       
-    def free_volume(self):
-        v = self.solid.voxel_vol - self.solid.vol_ch
-        return v
     
     def csh_conc(self):    
         csh = self.solid.CSHQ_TobH.c+ self.solid.CSHQ_TobD.c +\
                 self.solid.CSHQ_JenH.c + self.solid.CSHQ_JenD.c
         return csh 
-                
+    '''

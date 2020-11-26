@@ -71,8 +71,8 @@ phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.4},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'},    
                'ca_liq':{'type':'eq', 'value': 'calcite'}}
 
-phrqc = fn.set_phrqc_input(phrqc_input)            
-fn.save_phrqc_input(phrqc,root_dir, nn)   
+phrqc = rt.PhreeqcInputCH(phrqc_input)            
+phrqc.save_phrqc_input(root_dir, nn)   
 
 #%% VALUES
 scale = 50 # scale of molar volume

@@ -8,7 +8,11 @@ from copy import deepcopy
 import yantra
 import cell_type as ct # change the path to cell_type file
 from rt import CarbonationRT
+from phrqc_input import PhreeqcInput
 
+class PhreeqcInputCH(PhreeqcInput):
+    pass
+    
 
 class CH_Carbonation(CarbonationRT):  
     def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):

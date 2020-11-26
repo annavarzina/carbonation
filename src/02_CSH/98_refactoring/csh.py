@@ -75,8 +75,8 @@ phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.0},
                'ca_mlvl':{'type':'eq', 'value': 'calcite'},    
                'ca_liq':{'type':'eq', 'value': 'calcite'}}
 
-phrqc = fn.set_phrqc_input(phrqc_input, ptype = m)            
-fn.save_phrqc_input(phrqc,root_dir, nn)  
+phrqc = rt.PhreeqcInputCSHQ(phrqc_input)            
+phrqc.save_phrqc_input(root_dir, nn)   
 #%%
 scale = 50# scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes

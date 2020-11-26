@@ -2,7 +2,7 @@
 import sys
 import numpy as np
 from copy import deepcopy
-import yantra
+#import yantra
 from yantra._base import Multicomponent 
 from yantra.physics.PhrqcReactiveTransport import PhrqcReactiveTransport 
 from yantra.physics.PhrqcReactiveTransport import Solid
