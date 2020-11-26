@@ -9,6 +9,65 @@ import yantra
 #from rt import CarbonationRT
 import cell_type as ct # change the path to cell_type file
 from rt_leach import LeachingRT
+from phrqc_input import PhreeqcInput
+
+class PhreeqcInputCH(PhreeqcInput):
+    def make_phrqc_input(self):
+        self.phrqc_boundary_voxel_Ca(self.c['ca_bc'])
+        self.phrqc_liquid_voxel_Ca(self.c['ca_liq'])
+        self.phrqc_multilevel_voxel_Ca(self.c['ca_mlvl'])        
+        self.phrqc_solid_voxel()
+        print(self.phrqc_input)
+        return(self.phrqc_input)
+        
+    def phrqc_boundary_voxel_Ca(self, ca):
+        phrqc_input = [] 
+        phrqc_input.append('#boundary_solution')    
+        phrqc_input.append('SOLUTION\t100001')
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\t-water\t1')
+        phrqc_input.append('\tpH\t7\tcharge')
+        if(ca['type'] == 'conc'):
+            phrqc_input.append('\tCa\t' + str(ca['value']) + '\n')
+        else:
+            pass
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100001\n')
+        self.phrqc_input +=  phrqc_input
+        
+    def phrqc_liquid_voxel_Ca(self, ca):
+        phrqc_input = [] 
+        phrqc_input.append('#solution_liquid')    
+        phrqc_input.append('SOLUTION\t100002')
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\t-water\t1')
+        phrqc_input.append('\tpH\t7\tcharge')
+        if(ca['type'] == 'conc'):
+            phrqc_input.append('\tCa\t' + str(ca['value']))
+        elif(ca['type'] == 'eq'):
+            phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+        else:
+            pass        
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100002')
+        phrqc_input.append('portlandite\t0\t0')
+        self.phrqc_input +=  phrqc_input
+        
+    
+    def phrqc_multilevel_voxel_Ca(self, ca):
+        phrqc_input = [] 
+        phrqc_input.append('#solution_multilevel')    
+        phrqc_input.append('SOLUTION\t100003')
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\t-water\t1')
+        phrqc_input.append('\tpH\t7\tcharge')
+        if(ca['type'] == 'conc'):
+            phrqc_input.append('\tCa\t' + str(ca['value']))
+        elif(ca['type'] == 'eq'):
+            phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+        else:
+            pass        
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100003')
+        phrqc_input.append('portlandite\t0\t0')
+        self.phrqc_input +=  phrqc_input
 
 class CH_Leaching(LeachingRT):
     def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):

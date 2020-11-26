@@ -24,6 +24,7 @@ class LeachingRT(PhrqcReactiveTransport):
         self.phrqc = Phrqc(domain,domain_params,bc_params,solver_params)    
         components = self.phrqc.components
         bc = self.phrqc.boundary_conditions 
+        #print(self.phrqc.nactive)
         init_c = self.phrqc.initial_conditions         
         for name in components:
             if name not in domain_params:

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+#%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -7,7 +9,6 @@ ch_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_dir)
 sys.path.append(src_dir)
 sys.path.append(ch_dir)
-#%% MODULES
 import matplotlib.pylab as plt
 import numpy as np
 #np.set_printoptions(precision=3, threshold=np.inf)
@@ -15,75 +16,14 @@ import time
 import yantra
 import cell_type as ct # change the path to cell_type file
 import misc_func as fn
-import rt_leach_ch as rtl#rt_leach as rt1
+import rt_leach_ch as rt1
 from copy import deepcopy
 #import phrqc
 #%% PROBLEM DEFINITION
 
 #problem type
-m = 'CH' 
+m = 'CH' #or 'CSH' #TODO case for cement
 
-def set_phrqc_input(p, ptype ='CH'):
-    def set_phrqc_bc(ca):
-        phrqc_input = [] 
-        phrqc_input.append('#boundary_solution')    
-        phrqc_input.append('SOLUTION\t100001')
-        phrqc_input.append('\t-units\tmol/kgw')
-        phrqc_input.append('\t-water\t1')
-        phrqc_input.append('\tpH\t7\tcharge')
-        if(ca['type'] == 'conc'):
-            phrqc_input.append('\tCa\t' + str(ca['value']) + '\n')
-        else:
-            pass
-        phrqc_input.append('EQUILIBRIUM_PHASES\t100001\n')
-        return phrqc_input
-    def set_phrqc_liquid(ca):
-        phrqc_input = [] 
-        phrqc_input.append('#solution_liquid')    
-        phrqc_input.append('SOLUTION\t100002')
-        phrqc_input.append('\t-units\tmol/kgw')
-        phrqc_input.append('\t-water\t1')
-        phrqc_input.append('\tpH\t7\tcharge')
-        if(ca['type'] == 'conc'):
-            phrqc_input.append('\tCa\t' + str(ca['value']))
-        elif(ca['type'] == 'eq'):
-            phrqc_input.append('\tCa\t1\t' + str(ca['value']))
-        else:
-            pass        
-        phrqc_input.append('EQUILIBRIUM_PHASES\t100002')
-        phrqc_input.append('portlandite\t0\t0')
-        return phrqc_input
-    
-    def set_phrqc_mlvl(ca):
-        phrqc_input = [] 
-        phrqc_input.append('#solution_multilevel')    
-        phrqc_input.append('SOLUTION\t100003')
-        phrqc_input.append('\t-units\tmol/kgw')
-        phrqc_input.append('\t-water\t1')
-        phrqc_input.append('\tpH\t7\tcharge')
-        if(ca['type'] == 'conc'):
-            phrqc_input.append('\tCa\t' + str(ca['value']))
-        elif(ca['type'] == 'eq'):
-            phrqc_input.append('\tCa\t1\t' + str(ca['value']))
-        else:
-            pass        
-        phrqc_input.append('EQUILIBRIUM_PHASES\t100003')
-        phrqc_input.append('portlandite\t0\t0')
-        return phrqc_input
-    
-    def set_phrqc_solid():
-        phrqc_input = [] 
-        phrqc_input.append('#solution_solid')    
-        phrqc_input.append('SOLUTION\t100005')
-        phrqc_input.append('\t-water\t1\n')
-        return phrqc_input
-
-    phrqc_input = [] 
-    phrqc_input += set_phrqc_bc(p['ca_bc'])
-    phrqc_input += set_phrqc_liquid( p['ca_liq'])
-    phrqc_input += set_phrqc_mlvl(p['ca_mlvl'])    
-    phrqc_input += set_phrqc_solid()
-    return phrqc_input
 #%% LOOP
 f = 0.01 # fraction
 ll = 1 #liquid lauer in front of portlandite
@@ -114,8 +54,9 @@ fn.make_output_dir(path)
 phrqc_input = {'ca_bc':{'type':'conc', 'value': '0.0'}, 
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
                'ca_liq':{'type':'conc', 'value': '0'}} # another option ca_liq':{'type':'conc', 'value': '0'} or ca_liq':{'type':'eq', 'value': 'portlandite'}
-phrqc = set_phrqc_input(phrqc_input)            
-fn.save_phrqc_input(phrqc,root_dir, nn)   
+
+phrqc = rt1.PhreeqcInputCH(phrqc_input)            
+phrqc.save_phrqc_input(root_dir, nn)   
 
 #%% VALUES
 scale = 100 # scale of molar volume
@@ -138,7 +79,7 @@ app_tort_degree = 1.#1./3.
 app_tort = 1. * porosity ** app_tort_degree
 
 settings = {'dissolution':'subgrid', #'multilevel'/'subgrid'
-            'active_nodes': 'smart', # 'all'/'smart'/'interface'
+            'active_nodes': 'all', # 'all'/'smart'/'interface'
             'diffusivity':{'type':'fixed', #'archie'/'fixed'
                            'D_border': D_border, #diffusivity at border
                            'D_CH': D_CH, # fixed diffusivity in portlandite node
@@ -165,7 +106,7 @@ solver_params['phrqc_flags']['smart_run']=False
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 fn.save_settings(settings, bc_params, solver_params, path, nn)
 #%% INITIATE THE SOLVER
-rt= rtl.CH_Leaching('MultilevelAdvectionDiffusion',  domain, 
+rt= rt1.CH_Leaching('MultilevelAdvectionDiffusion',  domain, 
                           domain_params, bc_params, solver_params,
                           settings) 
 
