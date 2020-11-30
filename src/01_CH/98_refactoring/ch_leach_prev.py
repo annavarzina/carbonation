@@ -5,9 +5,8 @@ from __future__ import division  #using floating everywhere
 import sys,os
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ch_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
 sys.path.append(src_dir)
-sys.path.append(ch_dir)
 import matplotlib.pylab as plt
 import numpy as np
 #np.set_printoptions(precision=3, threshold=np.inf)
@@ -15,13 +14,83 @@ import time
 import yantra
 import cell_type as ct # change the path to cell_type file
 import misc_func as fn
-import rt_leach_ch as rt1
+import rt_l as rt1
 from copy import deepcopy
 #import phrqc
 #%% PROBLEM DEFINITION
 
 #problem type
-m = 'CH' 
+m = 'CH' #or 'CSH' #TODO case for cement
+
+def set_phrqc_input(p, ptype ='CH'):
+    def set_phrqc_bc(ca):
+        phrqc_input = [] 
+        phrqc_input.append('#boundary_solution')    
+        phrqc_input.append('SOLUTION\t100001')
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\t-water\t1')
+        phrqc_input.append('\tpH\t7\tcharge')
+        if(ca['type'] == 'conc'):
+            phrqc_input.append('\tCa\t' + str(ca['value']) + '\n')
+        else:
+            pass
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100001\n')
+        return phrqc_input
+    def set_phrqc_liquid(ca):
+        phrqc_input = [] 
+        phrqc_input.append('#solution_liquid')    
+        phrqc_input.append('SOLUTION\t100002')
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\t-water\t1')
+        phrqc_input.append('\tpH\t7\tcharge')
+        if(ca['type'] == 'conc'):
+            phrqc_input.append('\tCa\t' + str(ca['value']))
+        elif(ca['type'] == 'eq'):
+            phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+        else:
+            pass        
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100002')
+        phrqc_input.append('portlandite\t0\t0')
+        return phrqc_input
+    
+    def set_phrqc_mlvl(ca):
+        phrqc_input = [] 
+        phrqc_input.append('#solution_multilevel')    
+        phrqc_input.append('SOLUTION\t100003')
+        phrqc_input.append('\t-units\tmol/kgw')
+        phrqc_input.append('\t-water\t1')
+        phrqc_input.append('\tpH\t7\tcharge')
+        if(ca['type'] == 'conc'):
+            phrqc_input.append('\tCa\t' + str(ca['value']))
+        elif(ca['type'] == 'eq'):
+            phrqc_input.append('\tCa\t1\t' + str(ca['value']))
+        else:
+            pass        
+        phrqc_input.append('EQUILIBRIUM_PHASES\t100003')
+        phrqc_input.append('portlandite\t0\t0')
+        return phrqc_input
+    
+    def set_phrqc_solid():
+        phrqc_input = [] 
+        phrqc_input.append('#solution_solid')    
+        phrqc_input.append('SOLUTION\t100005')
+        phrqc_input.append('\t-water\t1\n')
+        return phrqc_input
+
+    phrqc_input = [] 
+    phrqc_input += set_phrqc_bc(p['ca_bc'])
+    phrqc_input += set_phrqc_liquid( p['ca_liq'])
+    phrqc_input += set_phrqc_mlvl(p['ca_mlvl'])    
+    phrqc_input += set_phrqc_solid()
+    return phrqc_input
+
+
+    
+def save_phrqc_input(phrqc_input, root_dir, name):
+    with open(root_dir +'\\phreeqc_input\\' + name + '.phrq', 'w') as f:
+        for item in phrqc_input:
+            f.write("%s\n" % item)
+#%% LOOP
 f = 0.01 # fraction
 #ll = 1 #liquid lauer in front of portlandite
 #l_ch = 10 #length of portlandite
@@ -30,7 +99,7 @@ f = 0.01 # fraction
 #dx = 1.0e-2
 
 ll = 1 #liquid lauer in front of portlandite
-l_ch = 10 #40 #length of portlandite
+l_ch = 40 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
 dx = 1.0e-6
@@ -58,9 +127,8 @@ phrqc_input = {'ca_bc':{'type':'conc', 'value': '0.0'},
                'ca_mlvl':{'type':'eq', 'value': 'portlandite'}, 
                'ca_liq':{'type':'conc', 'value': '0'}} # another option ca_liq':{'type':'conc', 'value': '0'} or ca_liq':{'type':'eq', 'value': 'portlandite'}
 
-
-phrqc = rt1.PhreeqcInputCH(phrqc_input)            
-phrqc.save_phrqc_input(root_dir, nn) 
+phrqc = set_phrqc_input(phrqc_input)            
+save_phrqc_input(phrqc,root_dir, nn) 
 
 #%% VALUES
 scale = 100 # scale of molar volume
@@ -99,8 +167,7 @@ bc_params = {'solution_labels':{'left':100001},
             'top':['flux', 0.0],
             'bottom':['flux', 0.0],
             'left':['flux', 0.0],
-            'right':['flux', 0.0],}      
-         
+            'right':['flux', 0.0],}               
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
 domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
                                      input_file = root_dir + \
@@ -111,7 +178,7 @@ solver_params['phrqc_flags']['smart_run']=False
 domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
 fn.save_settings(settings, bc_params, solver_params, path, nn)
 #%% INITIATE THE SOLVER
-rt= rt1.CH_Leaching('MultilevelAdvectionDiffusion',  domain, 
+rt= rt1.LeachingRT('MultilevelAdvectionDiffusion',  domain, 
                           domain_params, bc_params, solver_params,
                           settings) 
 
@@ -130,7 +197,7 @@ dport = []
 dport.append(0)
 dl = 2
 nitr = 2
-while len(rt.dissolution_time)<dl:# rt.time <=Ts: # rt.iters < nitr: # 
+while rt.iters < nitr: # len(rt.dissolution_time)<dl:# rt.time <=Ts: # 
     rt.advance()             
     if (~np.all(rt.nodetype == prev_nodetype)):
         prev_nodetype = deepcopy(rt.nodetype)

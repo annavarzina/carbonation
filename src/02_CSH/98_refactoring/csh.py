@@ -80,7 +80,7 @@ phrqc.save_phrqc_input(root_dir, nn)
 #%%
 scale = 50# scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
-mvol = fn.set_mvols({}, scale, ptype = m) #m3/mol
+mvol = fn.set_mvols({}, scale, ptype = m)#m3/mol 
 
 max_pqty = fn.get_max_pqty(mvol) #mol/m3
 init_conc = fn.set_init_pqty(mvol, scale, init_porosCH)
@@ -142,8 +142,8 @@ time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+s
 #n=1000
 j = 0
 it=time.time()
-nitr = 5
-while csh.time <=Ts: 
+nitr = 10
+while csh.time <=Ts: #csh.iters <= nitr: #
     if(True):
         if ( (csh.time <= time_points[j]) and ((csh.time + csh.dt) > time_points[j]) ):  
             print(time_points[j])
@@ -155,6 +155,8 @@ while csh.time <=Ts:
     
 simulation_time = time.time()-it
 fn.print_time(simulation_time, csh)
+
+
 #%%
 '''
 fn.plot_species(results, names=[])#['calcite']
@@ -191,9 +193,12 @@ print('pH %s' %str(np.array(csh.phrqc.selected_output()['pH'][1,:])))
 print('poros %s' %str(np.array(csh.solid.poros[1,:])))
 print('phrqc poros %s' %str(np.array(np.array(csh.phrqc.poros[1,:]))))
 print('CSHQ TobD %s' %str(np.array(csh.solid.CSHQ_TobD.c[1,:])))
+print('PHRQC CSHQ TobD %s' %str(np.array(csh.phrqc.selected_output()['CSHQ_TobD'][1,:])))
 print('CSHQ TobH %s' %str(np.array(csh.solid.CSHQ_TobH.c[1,:])))
+print('PHRQC CSHQ TobH %s' %str(np.array(csh.phrqc.selected_output()['CSHQ_TobH'][1,:])))
 print('CSHQ JenD %s' %str(np.array(csh.solid.CSHQ_JenD.c[1,:])))
 print('CSHQ JenH %s' %str(np.array(csh.solid.CSHQ_JenH.c[1,:])))
+
 #'''
 
 #%% C-S-H profile
