@@ -81,7 +81,7 @@ for f in fractions:
     pqty = init_conc[0] * (domain.nodetype == ct.Type.MULTILEVEL)
     
     slabels = fn.set_labels(domain, m) 
-    D_CSH =    1.e-15
+    D_CSH =    1.e-11
     D_border = 1.e-9 # 5.e-10#8*1.e-12
     D_high = 1.e-9
     D = D_high*(domain.nodetype==-1) + D_CSH*(domain.nodetype!=-1) 
@@ -200,7 +200,7 @@ for f in fractions:
   
 #%%  PRINT
 '''
-print('Ca %s' %str(np.array(rt.fluid.Ca._c[1,:])))
+#print('Ca %s' %str(np.array(rt.fluid.Ca._c[1,:])))
 print('Ca +ss %s' %str(np.array(rt.fluid.Ca.c[1,:]) + np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
 print('H +ss %s' %str(np.array(rt.fluid.H.c[1,:]) + np.array(rt.fluid.H._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
 print('O +ss %s' %str(np.array(rt.fluid.O.c[1,:]) + np.array(rt.fluid.O._ss[1,:])/np.array(rt.phrqc.poros[1,:])))

@@ -83,7 +83,7 @@ for f in fractions:
     pqty = init_conc[0] * (domain.nodetype == ct.Type.MULTILEVEL)
     
     slabels = fn.set_labels(domain, m) 
-    D_CSH =    1.e-15
+    D_CSH =    1.e-11
     D_border = 1.e-9 # 5.e-10#8*1.e-12
     D_high = 1.e-9
     D = D_high*(domain.nodetype==-1) + D_CSH*(domain.nodetype!=-1) 
