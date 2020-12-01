@@ -24,10 +24,10 @@ from copy import deepcopy
 #problem type
 m = 'CSH'
 
-f = 0.01 # fraction
+f = 1#0.01 # fraction
 
 ll = 1 #liquid lauer in front of csh
-l_csh = 10 #40 #length of csh
+l_csh = 40 #40 #length of csh
 lx = (l_csh+ll)*1.0e-6
 ly = 2.0e-6
 dx = 1.0e-6
@@ -47,8 +47,8 @@ plt.show()
 #%%  PHREEQC
 nn=os.path.basename(__file__)[:-3] 
 nn += str(f)
-fn.make_output_dir(root_dir+'\\results\\output\\10_subgrid_leaching')
-path = root_dir+'\\results\\output\\10_subgrid_leaching\\' + nn + '\\'
+fn.make_output_dir(root_dir+'\\results\\output_csh\\03_leaching')
+path = root_dir+'\\results\\output_csh\\03_leaching\\' + nn + '\\'
 fn.make_output_dir(path)
 phase_name = m
 phrqc_input = {'csh_mol':{'value': '0.051555' },
@@ -143,13 +143,13 @@ l = ll
 prev_nodetype = deepcopy(rt.nodetype)
 rt.dissolution_time = []
 rt_csh = [] 
-rt_csh.append(np.sum(rt.solid.CSH.c))
+rt_csh.append(np.sum(rt.solid.CSH.c)*scale)
 rt_time = []
 rt_time.append(rt.time)
-dport = []
-dport.append(0)
+dcsh = [] #dissolution rate
+dcsh.append(0)
 Ts = 1000 
-dl = 2
+dl = 10
 nitr = 2
 while len(rt.dissolution_time)<dl:# rt.iters <= nitr: #rt.time <=Ts: # 
     rt.advance()             
@@ -159,9 +159,9 @@ while len(rt.dissolution_time)<dl:# rt.iters <= nitr: #rt.time <=Ts: #
         rt.dissolution_time.append(rt.time)
         rt_csh.append(np.sum(rt.solid.CSH.c)*scale)
         if(len(rt_csh)<2):
-            dport.append(0)
+            dcsh.append(0)
         else:
-            dport.append((rt_csh[-1]-rt_csh[-2])/(rt_time[-1]-rt_time[-2]))
+            dcsh.append((rt_csh[-1]-rt_csh[-2])/(rt_time[-1]-rt_time[-2])) #mol/s/um2
     itr += 1 
 
 #%% SIMULATION TIME
@@ -169,6 +169,15 @@ print("Fraction %s done" %str(f))
 print("Time to dissolve %s" %str(rt.time*scale))
 simulation_time = time.time()-it
 fn.print_time(simulation_time, rt)
+
+#%%  SAVE
+np.save(path + 'dis_time', rt.dissolution_time )
+np.save(path + 'dCH', dcsh)
+np.save(path + 'time', rt_time)
+np.save(path + 'CH', rt_csh)
+np.save(path + 'Ca_prof', rt.fluid.Ca.c[1,:]+ np.array(rt.fluid.Ca._ss[1,:])/np.array(rt.phrqc.poros[1,:]))
+np.save(path + 'Si_prof', rt.fluid.Si.c[1,:]+ np.array(rt.fluid.Si._ss[1,:])/np.array(rt.phrqc.poros[1,:]))
+    
   
 #%%  PRINT
 print('Ca %s' %str(np.array(rt.fluid.Ca._c[1,:])))
@@ -183,3 +192,48 @@ print('poros %s' %str(np.array(rt.solid.poros[1,:])))
 print('phrqc poros %s' %str(np.array(np.array(rt.phrqc.poros[1,:]))))
 print('CSH %s' %str(np.array(rt.solid.CSH.c[1,:])))
 print('PHRQC CSH %s' %str(np.array(rt.phrqc.selected_output()['CSH'][1,:])))
+
+#%% Rate
+#dim = 10**3*10**(-15)*10**8 # convert to mmol/l/cm2/s
+dim =  10**(-15)*10**12 #convert to mol/l/m2/s
+r1 = dcsh[1]*dim #mol/s
+print('R1: %s' %str(r1))
+n= 10 #-11
+rn = dcsh[n]*dim
+print('Rn: %s' %str(rn))
+#%%
+'''
+r1 = []
+rn = []
+rmean = []
+for f in fractions:    
+    r1.append(dch[nn + str(f)][1]*scale*dim)
+    rn.append(dch[nn + str(f)][-11]*scale*dim)
+    rmean.append(np.mean(dch[nn + str(f)][:])*scale*dim)
+    
+    
+plt.figure()
+plt.plot(fractions, np.abs(r1), label = "1")
+plt.plot(fractions, np.abs(rn), label = "20")
+plt.plot(fractions, np.abs(rmean), label = "mean")
+plt.ylabel(r"Rate of dissolution $k$ $(mmol / (l\cdot s\cdot cm^2)$")
+plt.xlabel(r"Fraction of equilibrated water $\sigma$")
+plt.yscale("log")
+plt.xscale("log")
+plt.legend()
+plt.show()
+
+
+r = rn#rmean
+idx = np.where(np.logical_and(np.abs(r)>=0.39e-5, np.abs(r)<=6.2e-5))[0]
+plt.figure(figsize = (6,4))
+plt.plot(np.abs(r), fractions)
+plt.fill_between(np.abs(r)[idx],fractions[idx], color = "#6f8191", alpha=.5,label = "Johannsen K., et.al. (1999)")
+plt.xlabel(r"Rate of dissolution $R$ $(mmol / (l\cdot s\cdot cm^2)$",fontsize=14)
+plt.ylabel(r"Mixing parameter $\sigma$ ", fontsize=14)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.yscale("log")
+plt.xscale("log")
+plt.legend(fontsize=12)
+plt.show()
+'''

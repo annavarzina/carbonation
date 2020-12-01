@@ -30,7 +30,7 @@ f = 0.01 # fraction
 #dx = 1.0e-2
 
 ll = 1 #liquid lauer in front of portlandite
-l_ch = 10 #40 #length of portlandite
+l_ch = 40 #40 #length of portlandite
 lx = (l_ch+ll)*1.0e-6
 ly = 2.0e-6
 dx = 1.0e-6
@@ -123,12 +123,12 @@ l = ll
 prev_nodetype = deepcopy(rt.nodetype)
 rt.dissolution_time = []
 rt_port = [] 
-rt_port.append(np.sum(rt.solid.portlandite.c))
+rt_port.append(np.sum(rt.solid.portlandite.c)*scale)
 rt_time = []
 rt_time.append(rt.time)
 dport = []
 dport.append(0)
-dl = 2
+dl = 10
 nitr = 2
 while len(rt.dissolution_time)<dl:# rt.time <=Ts: # rt.iters < nitr: # 
     rt.advance()             
@@ -162,3 +162,11 @@ print('D %s' %str(np.array(rt.fluid.Ca.De[1,:])))
 print('pH %s' %str(np.array(rt.phrqc.selected_output()['pH'][1,:])))
 print('poros %s' %str(np.array(rt.solid.poros[1,:])))
 print('phrqc poros %s' %str(np.array(np.array(rt.phrqc.poros[1,:]))))
+#%% Rate
+dim = 10**(-15)*10**3*10**8 # convert to mmol/l/s/cm2
+#dim =  10**(-15)*10**12 #convert to mol/s/m2
+r1 = np.abs(dport[1]*dim)
+print('R1: %s' %str(r1))
+n= -2 #-11
+rn = np.abs(dport[n]*dim)
+print('Rn: %s' %str(rn))

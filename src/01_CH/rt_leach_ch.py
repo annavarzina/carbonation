@@ -17,7 +17,7 @@ class PhreeqcInputCH(PhreeqcInput):
         self.phrqc_liquid_voxel_Ca(self.c['ca_liq'])
         self.phrqc_multilevel_voxel_Ca(self.c['ca_mlvl'])        
         self.phrqc_solid_voxel()
-        print(self.phrqc_input)
+        #print(self.phrqc_input)
         return(self.phrqc_input)
         
     def phrqc_boundary_voxel_Ca(self, ca):
