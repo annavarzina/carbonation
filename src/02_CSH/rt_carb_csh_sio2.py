@@ -38,6 +38,10 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         phrqc_input.append('CSHQ_JenD') 
         phrqc_input.append('\t(CaO)1.5(SiO2)0.6666666667(H2O)2.5 = 1.5 Ca++ + 0.6666666667 SiO(OH)3- + 2.3333333333 OH- + 0.3333333333 H2O') 
         phrqc_input.append('\tlog_K -10.47635') 
+        phrqc_input.append('SiO2am') 
+        phrqc_input.append('\tSiO2 + 1OH- + 1H2O = SiO(OH)3-') 
+        phrqc_input.append('\tlog_K -1.475988') 
+        phrqc_input.append('\t-analytical_expression\t-2.14181238156\t0\t664.05554528339\t0.5620295123\t0') 
         phrqc_input.append('knobs') 
         phrqc_input.append('\t-iterations 8000\n') 
         
@@ -84,6 +88,7 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         phrqc_input.append('\t-comp\tCSHQ_TobD\t2.5050') 
         phrqc_input.append('\t-comp\tCSHQ_JenH\t2.1555') 
         phrqc_input.append('\t-comp\tCSHQ_JenD\t3.2623') 
+        phrqc_input.append('\t-comp\tSiO2am\t0.0') 
         phrqc_input.append('EQUILIBRIUM_PHASES\t100004')
         phrqc_input.append('portlandite\t0\t0')
         phrqc_input.append('calcite\t0\t0\n')
@@ -278,7 +283,6 @@ class CSH_Carbonation(CarbonationRT):
         return(result)     
 
     def update_volume(self):
-        #print('volume')
         vol = np.zeros(self.solid.shape)
         phase_list = self.solid.diffusive_phase_list
         for num, phase in enumerate(phase_list, start=1):
@@ -303,17 +307,20 @@ class CSH_Carbonation(CarbonationRT):
         CSH_vol = self.solid.CSHQ_JenD.c * self.solid.CSHQ_JenD.mvol +\
                   self.solid.CSHQ_JenH.c * self.solid.CSHQ_JenH.mvol +\
                   self.solid.CSHQ_TobD.c * self.solid.CSHQ_TobD.mvol +\
-                  self.solid.CSHQ_TobH.c * self.solid.CSHQ_TobH.mvol 
+                  self.solid.CSHQ_TobH.c * self.solid.CSHQ_TobH.mvol + \
+                  self.solid.SiO2am.c * self.solid.SiO2am.mvol
         return CSH_vol
 
        
     def free_volume(self):
-        v = self.solid.voxel_vol - self.solid.vol_ch
+        v = self.solid.voxel_vol - self.solid.portlandite.vol - \
+            self.solid.csh_vol - self.solid.calcite.vol
         return v
 
     
     def csh_conc(self):    
         csh = self.solid.CSHQ_TobH.c+ self.solid.CSHQ_TobD.c +\
-                self.solid.CSHQ_JenH.c + self.solid.CSHQ_JenD.c
+                self.solid.CSHQ_JenH.c + self.solid.CSHQ_JenD.c +\
+                self.solid.SiO2am.c
         return csh 
                 

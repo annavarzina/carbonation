@@ -37,8 +37,8 @@ class PhreeqcInputCSH(PhreeqcInput):
                            'Ca++ + ' + str(s['Si']) + ' SiO(OH)3- + ' + \
                            str(oh) + 'OH- ' + sign + ' ' + str(h2o) + ' H2O') 
         phrqc_input.append('\tlog_K ' + str(csh['log_k']) )
-        phrqc_input.append('knobs') 
-        phrqc_input.append('\t-iterations 8000\n') 
+        #phrqc_input.append('knobs') 
+        #phrqc_input.append('\t-iterations 8000\n') 
         
         self.phrqc_input +=  phrqc_input
         

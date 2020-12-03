@@ -7,7 +7,7 @@ import numpy as np
 from copy import deepcopy
 import yantra
 import cell_type as ct # change the path to cell_type file
-from rt import CarbonationRT
+from rt_carb import CarbonationRT
 from phrqc_input import PhreeqcInput
 
 class PhreeqcInputCH(PhreeqcInput):

@@ -150,7 +150,18 @@ def set_domain_params(D, mvol, pqty, poros, app_tort, slabels, input_file = 'CH_
                             'CSHQ_TobH':  {'c':pqty[2],'mvol':mvol[2],'type':'diffusive'},
                             'CSHQ_TobD':  {'c':pqty[3],'mvol':mvol[3],'type':'diffusive'},
                             'CSHQ_JenH':  {'c':pqty[4],'mvol':mvol[4],'type':'diffusive'},
-                            'CSHQ_JenD':  {'c':pqty[5],'mvol':mvol[5],'type':'diffusive'},}    
+                            'CSHQ_JenD':  {'c':pqty[5],'mvol':mvol[5],'type':'diffusive'},}  
+    if(len(mvol) == 7):
+        dp['phrqc_input_file']=input_file#'CH_CC_Ceq.phrq'
+        dp['eq_names'] = ['portlandite', 'calcite']
+        dp['ss_names']={'Tob_jen_ss':['CSHQ_TobH','CSHQ_TobD','CSHQ_JenH','CSHQ_JenD', 'SiO2am']}
+        dp['solid_phases']={'portlandite':{'c':pqty[0],'mvol':mvol[0] ,'type':'diffusive'},
+                            'calcite':    {'c':pqty[1],'mvol':mvol[1],'type':'diffusive'},
+                            'CSHQ_TobH':  {'c':pqty[2],'mvol':mvol[2],'type':'diffusive'},
+                            'CSHQ_TobD':  {'c':pqty[3],'mvol':mvol[3],'type':'diffusive'},
+                            'CSHQ_JenH':  {'c':pqty[4],'mvol':mvol[4],'type':'diffusive'},
+                            'CSHQ_JenD':  {'c':pqty[5],'mvol':mvol[5],'type':'diffusive'},
+                            'SiO2am':  {'c':pqty[6],'mvol':mvol[6],'type':'diffusive'},}      
     return dp
 
 
@@ -309,7 +320,7 @@ def init_results(pavg=True, pavg_list=[], points=[], ptype='CSH'):
         params += ['portlandite', 'calcite',
                   'Ca','C','O','H']
     elif ptype =='CSH':
-        params += ['CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH', 'portlandite', 'calcite',
+        params += ['CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH', 'SiO2am', 'portlandite', 'calcite',
                   'Ca','C','O','H','Si']
         params += ['csh','Ca_solid','Si_solid','Ca_Si','csh_density']
     results={name: [] for name in params}       

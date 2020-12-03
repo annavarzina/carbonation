@@ -8,7 +8,6 @@ Fraction = 0.004
 #%% PYTHON MODULES
 from __future__ import division  #using floating everywhere
 import sys,os
-
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(root_dir)
 src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -20,7 +19,7 @@ import numpy as np
 np.set_printoptions(precision=5, threshold=np.inf)
 import yantra
 import cell_type as ct # change the path to cell_type file
-import rt_carb_csh as rt
+import rt_carb_csh_sio2 as rt
 import misc_func as fn
 import time
 #%% PROBLEM DEFINITION
@@ -56,22 +55,38 @@ fn.make_output_dir(path)
 
 
 phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.0},
-               #'c_bc':{'type':'conc', 'value': 0.01},
                'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
                'c_liq':{'type':'eq', 'value': 'calcite'},
                'ca_mlvl':{'type':'eq', 'value': 'calcite'},    
                'ca_liq':{'type':'eq', 'value': 'calcite'}}
 
-phrqc = fn.set_phrqc_input(phrqc_input, ptype = m)            
-fn.save_phrqc_input(phrqc,root_dir, nn)  
+phrqc = rt.PhreeqcInputCSHQ(phrqc_input)            
+phrqc.save_phrqc_input(root_dir, nn)   
 #%%
-scale = 50# scale of molar volume
+scale = 100# scale of molar volume
 init_porosCH = 0.05 #initial porosity of portlandite nodes
-mvol = fn.set_mvols({}, scale, ptype = m) #m3/mol
+mvol = [33.10e-3*scale, 36.90e-3*scale,
+        55.30e-3*scale, 47.95e-3*scale,
+        75.63e-3*scale, 80.58e-3*scale, 
+        27.3e-3 *scale]
 
 max_pqty = fn.get_max_pqty(mvol) #mol/m3
-init_conc = fn.set_init_pqty(mvol, scale, init_porosCH)
-pqty = fn.get_pqty(init_conc, domain)
+init_conc = [(1 - init_porosCH) * max_pqty[0], 0.0,
+              0.1041/scale, 2.5050/scale, 
+              2.1555/scale, 3.2623/scale, 0.0]
+
+pqty_CH = init_conc[0] * (domain.nodetype == ct.Type.MULTILEVEL_CH)    
+pqty_CC = init_conc[1] * np.ones(domain.nodetype.shape)   
+pqty_CSHQ_TobH = init_conc[2] * (domain.nodetype == ct.Type.MULTILEVEL) 
+pqty_CSHQ_TobD = init_conc[3] * (domain.nodetype == ct.Type.MULTILEVEL) 
+pqty_CSHQ_JenH = init_conc[4] * (domain.nodetype == ct.Type.MULTILEVEL) 
+pqty_CSHQ_JenD = init_conc[5] * (domain.nodetype == ct.Type.MULTILEVEL) 
+pqty_SiO2 = init_conc[6] * np.ones(domain.nodetype.shape)
+pqty = [pqty_CH, pqty_CC, 
+        pqty_CSHQ_TobH, pqty_CSHQ_TobD, 
+        pqty_CSHQ_JenH, pqty_CSHQ_JenD,
+        pqty_SiO2]
+        
 
 slabels = fn.set_labels(domain, m)     
 D = 1.0e-09 # default diffusion coefficient in pure liquid
@@ -108,7 +123,7 @@ bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
 solver_params = fn.set_solver_params(tfact = tfact_default, smart_thres = 1e-8, cphi_fact = 1/3.)
 #fn.save_settings(settings, bc_params, solver_params, path, nn)
 #csh=yantra.PhrqcReactiveTransport('MultilevelDiffusion',domain,domain_params,bc_params,solver_params)
-csh=rt.CarbonationRT('MultilevelDiffusion',domain,domain_params,bc_params,solver_params, settings)
+csh=rt.CSH_Carbonation('MultilevelDiffusion',domain,domain_params,bc_params,solver_params, settings)
 #%% results dict
 
 plist =  [(1,n) for n in np.arange(3, 6)] #points list
@@ -116,7 +131,7 @@ pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation', #argumen
             'dissolution', 'portlandite_cells', 'calcite_cells'] 
 results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
 
-Ts  = 100# 36 * 3 #s
+Ts  = 30# 36 * 3 #s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
 N_res = 1e+4
@@ -132,11 +147,11 @@ S = max(1,int(N/N_res))
 '''
 #%% run
 #n=1000
-'''
+#'''
 j = 0
 it=time.time()
-nitr = 5
-while csh.iters < nitr: # csh.time <=Ts: #
+nitr = 30
+while csh.time <=Ts: #csh.iters <= nitr: #
     if(True):
         if ( (csh.time <= time_points[j]) and ((csh.time + csh.dt) > time_points[j]) ):  
             print(time_points[j])
@@ -148,7 +163,7 @@ while csh.iters < nitr: # csh.time <=Ts: #
     
 simulation_time = time.time()-it
 fn.print_time(simulation_time, csh)
-'''
+#'''
 #%%
 '''
 fn.plot_species(results, names=[])#['calcite']
@@ -168,9 +183,8 @@ plt.show()
 
 #%% PRINT
 #'''
-print('Ca %s' %str(np.array(csh.fluid.Ca._c[1,:])))
 print('Ca +ss %s' %str(np.array(csh.fluid.Ca.c[1,:]) + np.array(csh.fluid.Ca._ss[1,:])/np.array(csh.phrqc.poros[1,:])))
-print('C %s' %str(np.array(csh.fluid.C._c[1,:])))
+print('Si +ss %s' %str(np.array(csh.fluid.Si.c[1,:]) + np.array(csh.fluid.Si._ss[1,:])/np.array(csh.phrqc.poros[1,:])))
 print('C +ss %s' %str(np.array(csh.fluid.C.c[1,:]) + np.array(csh.fluid.C._ss[1,:])/np.array(csh.phrqc.poros[1,:])))
 print('H +ss %s' %str(np.array(csh.fluid.H.c[1,:]) + np.array(csh.fluid.H._ss[1,:])/np.array(csh.phrqc.poros[1,:])))
 print('O +ss %s' %str(np.array(csh.fluid.O.c[1,:]) + np.array(csh.fluid.O._ss[1,:])/np.array(csh.phrqc.poros[1,:])))
@@ -188,6 +202,7 @@ print('CSHQ TobD %s' %str(np.array(csh.solid.CSHQ_TobD.c[1,:])))
 print('CSHQ TobH %s' %str(np.array(csh.solid.CSHQ_TobH.c[1,:])))
 print('CSHQ JenD %s' %str(np.array(csh.solid.CSHQ_JenD.c[1,:])))
 print('CSHQ JenH %s' %str(np.array(csh.solid.CSHQ_JenH.c[1,:])))
+print('SiO2 %s' %str(np.array(csh.solid.SiO2am.c[1,:])))
 #'''
 #%%  SAVE
 '''
@@ -201,17 +216,3 @@ np.save(path + 'CC', csh.phrqc.selected_output()['calcite'] )
 np.save(path + 'De', csh.fluid.Ca.De )
 np.save(path + 'poros', csh.fluid.Ca.poros)
 '''
-
-#%% C-S-H profile
-linetype = np.array(['dotted', 'solid', 'dashed', 'dashdot', 'dotted'])
-x = range(1, 9)
-
-fig, ax1 = plt.subplots(figsize=(8,4))
-ax1.set_xlabel(r'Distance ($\mu$m)',fontsize = 14)
-ax1.set_ylabel('C-S-H Q phases',fontsize = 14)
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_TobD'][1,1:-2],  label='CSHQ_TobD', ls=linetype[1])
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_TobH'][1,1:-2],  label='CSHQ_TobH', ls=linetype[1])
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenD'][1,1:-2],  label='CSHQ_JenD', ls=linetype[1])
-ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenH'][1,1:-2],  label='CSHQ_JenH', ls=linetype[1])
-plt.legend(loc = "center left")
-plt.show()
