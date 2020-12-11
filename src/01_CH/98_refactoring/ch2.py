@@ -38,7 +38,7 @@ Default example. Explains possible values
 1D carbonation of portlandite/cement.
 """
 #problem type
-m = 'CH' #or 'CSH' #TODO case for cement
+m = 'CH' 
 
 #%% GEOMETRY
 ll = 5#liquid lauer in front of portlandite
@@ -75,22 +75,11 @@ phrqc = rt.PhreeqcInputCH(phrqc_input)
 phrqc.save_phrqc_input(root_dir, nn)   
 
 #%% VALUES
+tfact_default = 1./6./1#*init_porosCH
 scale = 50 # scale of molar volume
-init_porosCH = 0.05 #initial porosity of portlandite nodes
-mvol_ratio = 3.69/3.31
-mvolCH = 0.0331*scale
-mvol = [mvolCH, mvolCH*mvol_ratio]
-mvol = fn.set_mvols(mvol, ptype = m) #m3/mol
-max_pqty = fn.get_max_pqty(mvol) #mol/m3
-init_conc = fn.set_init_pqty(mvol, scale, porosCH=init_porosCH)
-pqty = fn.get_pqty(init_conc, domain)
-
-slabels = fn.set_labels(domain, m)          
+init_poros = [0.05, 1.0] #initial porosity of portlandite or calcite nodes
 D = 1.0e-09 # default diffusion coefficient in pure liquid
-porosity = fn.get_porosity(domain, pqty, mvol, m)
 app_tort_degree = 1./3.
-app_tort = 1. * porosity ** app_tort_degree
-
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/
@@ -100,48 +89,45 @@ settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
-                         'int_energy': 0.1, # internal energy
+                         'int_energy': 0.5, # internal energy
                          'pore_size': 0.01*dx, # threshold radius or distance/2
                          'crystal_size': 0.5*dx, # crystal or pore length
-                         'pore_density': 2000, #pore density per um3 - only for cylinder type
                          }, 
             'subgrid': {'fraction':0.004}, # fraction of interface cell number or None = porosity
             'app_tort':{'degree': app_tort_degree}, 
             'velocity': False, 
             'bc': phrqc_input['c_bc'],
             'dx': dx, 
-            'Dref':D
-            }
-               
-tfact_default = 1./6./1#*init_porosCH
+            'Dref':D}
+            
+mvol = rt.SettingsCH.set_mvols(scale) #dm3/mol
+max_pqty = rt.SettingsCH.get_max_pqty(mvol) #mol/dm3
+init_conc = rt.SettingsCH.set_init_pqty(mvol, init_poros, scale)
+pqty = rt.SettingsCH.get_pqty(init_conc, domain)
+slabels = rt.SettingsCH.set_labels(domain)          
+porosity = rt.SettingsCH.get_porosity(domain, pqty, mvol)
+app_tort =  rt.SettingsCH.get_app_tort(domain, app_tort_degree, porosity)
             
 #%% PARAMETERS (DOMAIN, BC, SOLVER)
-domain_params = fn.set_domain_params(D, mvol, pqty, porosity, app_tort, slabels,
-                                     input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
-bc_params = fn.set_bc_params(bc_slabels = {'left':100001})
-solver_params = fn.set_solver_params(tfact = tfact_default, smart_thres = 1e-8, cphi_fact = 1/3.)
-domain.nodetype[domain.nodetype == ct.Type.MULTILEVEL_CH] = ct.Type.MULTILEVEL
-fn.save_settings(settings, bc_params, solver_params, path, nn)
+domain_params = rt.SettingsCH.set_domain_params(D, mvol, pqty, porosity, 
+                    app_tort, slabels, database = 'cemdata07.dat',
+                    input_file = root_dir +'\\phreeqc_input\\' + nn + '.phrq')
+bc_params = rt.SettingsCH.set_bc_params(bc_slabels = {'left':100001})
+solver_params = rt.SettingsCH.set_solver_params(tfact = tfact_default, smart_thres = 1e-8, cphi_fact = 1/3.)
+domain = rt.SettingsCH.reset_portlandite_nodes(domain)
+rt.SettingsCH.save_settings(settings, bc_params, solver_params, path, nn)
 
 #%% INITIATE THE SOLVER
 carb_rt= rt.CarbonationCH('MultilevelAdvectionDiffusion',  domain, 
-                          domain_params, bc_params, solver_params,
-                          settings) 
-
+                          domain_params, bc_params, solver_params, settings) 
 #%% PARAMETERS
-
-plist =  [(1,n) for n in np.arange(1, 8)] #points list
-pavglist = ['avg_poros', 'pH', 'avg_D_eff', 'sum_vol', 'precipitation', #argument list
-            'dissolution', 'portlandite_cells', 'calcite_cells'] 
-#'delta_ch', 'delta_cc', 'precipitation','dissolution', 'portlandite_cells', 
-#'calcite_cells', 'active_cells','dt', 'pH', 'avg_poros',  'avg_D_eff', 'sum_vol'
-results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
-
+#results = fn.init_results(pavg=True, pavg_list=pavglist, points=plist, ptype=m)
+res = rt.ResultsCH(nodes= [(1,n) for n in np.arange(1, 8)])
 #%% TIME SETTINGS
 nitr =1000
-Ts =  10#3600.*3 #seconds
+Ts =  1#3600.*3 #seconds
 Ts = Ts/scale + 0.001
-step = max(int(Ts/36.),1)
+step = max(int(Ts/10.),1)
 time_points = np.concatenate((np.arange(0, step, step/10.), np.arange(step, Ts+step, step))) #time_points = np.arange(0, Ts+step, step)
 N = Ts/carb_rt.dt
 N_res = 1e+4
@@ -159,35 +145,19 @@ while carb_rt.time <=Ts: #itr < nitr: #
             j +=1
         
     carb_rt.advance()    
-    results = fn.append_results(carb_rt, results, step = S )
+    res.append_results(carb_rt, step = S)
     itr += 1
     
 #%% SIMULATION TIME
 simulation_time = time.time()-it
-fn.print_time(simulation_time, carb_rt)
+rt.ResultsCH.print_time(simulation_time, carb_rt)
   
 #%% PLOT 
-'''
-fn.plot_species(results, names=[])#['calcite']
-fn.plot_avg(results, names=['avg_poros', 'avg_D_eff'])
-fn.plot_points(results, names=['calcite', 'portlandite', 'poros', 'Ca', 'C'])
-fn.plot_fields(carb_rt, names=['calcite', 'Ca', 'poros', 'C'],fsize=(15,1))
-'''
+
+#res.plot_species(names=[])#['calcite']
+#res.plot_avg()
+#res.plot_nodes(names=[])
+#res.plot_fields(carb_rt, names=[],fsize=(15,1))
 
 #%% PRINT
-print('Ca %s' %str(np.array(carb_rt.fluid.Ca._c[1,:])))
-print('Ca +ss %s' %str(np.array(carb_rt.fluid.Ca.c[1,:]) + np.array(carb_rt.fluid.Ca._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
-print('C %s' %str(np.array(carb_rt.fluid.C._c[1,:])))
-print('C +ss %s' %str(np.array(carb_rt.fluid.C.c[1,:]) + np.array(carb_rt.fluid.C._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
-print('H +ss %s' %str(np.array(carb_rt.fluid.H.c[1,:]) + np.array(carb_rt.fluid.H._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
-print('O +ss %s' %str(np.array(carb_rt.fluid.O.c[1,:]) + np.array(carb_rt.fluid.O._ss[1,:])/np.array(carb_rt.phrqc.poros[1,:])))
-print('CH %s' %str(np.array(carb_rt.solid.portlandite.c[1,:])))
-print('dCH %s' %str(np.array(carb_rt.phrqc.dphases['portlandite'][1,:])))
-print('CC %s' %str(np.array(carb_rt.solid.calcite.c[1,:])))
-print('dCC %s' %str(np.array(carb_rt.phrqc.dphases['calcite'][1,:])))
-print('Vol %s' %str(np.array(carb_rt.solid.vol[1,:])))
-print('D %s' %str(np.array(carb_rt.fluid.C.De[1,:])))
-print('SI %s' %str(np.array(carb_rt.solid.target_SI[1,:])))
-print('pH %s' %str(np.array(carb_rt.phrqc.selected_output()['pH'][1,:])))
-print('poros %s' %str(np.array(carb_rt.solid.poros[1,:])))
-print('phrqc poros %s' %str(np.array(np.array(carb_rt.phrqc.poros[1,:]))))
+rt.ResultsCH.print_profiles(carb_rt)

@@ -300,6 +300,10 @@ class CSH_Leaching(LeachingRT):
             if fraction >0:    
                 fr[by[i], bx[i]] = fraction
                 cell_m = bf[i]+1
+                #print('===')
+                #print(self.solid.CSH.c[by[i], bx[i]])
+                #print(phrqc_poros[by[i], bx[i]])
+                #print(fraction)
                 result  = self.update_equilibrium(result, cell_m,  
                                           self.solid.CSH.c[by[i], bx[i]],
                                           phrqc_poros[by[i], bx[i]],
