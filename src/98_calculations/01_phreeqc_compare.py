@@ -119,18 +119,26 @@ def phrqc_string_mix(steps, fraction):
     return '\n'.join(phrqc_input)
 
 #%%
-scale= 1e-7
-n = 2000
+
+n = 1000
 steps=''
 for i in range(n):
-    steps = steps + ' ' +str(i)
+    steps = steps + ' ' +str(1)
+# fractions = array([1.   , 0.7  , 0.5  , 0.3  , 0.2  , 0.1  , 
+#       0.07 , 0.05 , 0.03 , 0.02 , 0.01 , 0.007,
+#       0.005, 0.003, 0.002, 0.001])
+#k = array([1.614e-04, 1.612e-04, 1.608e-04, 1.590e-04, 1.564e-04, 1.481e-04,
+#       1.412e-04, 1.327e-04, 1.159e-04, 9.989e-05, 7.037e-05, 5.606e-05,
+#       4.404e-05, 2.934e-05, 2.070e-05, 1.098e-05])
+k = 5e-5
 f = 0.004
-k = 2.e-7
-
+scale = 80
+f = k * scale
+print(f)
 it=time.time() 
 ps_k = phrqc_string_kin(steps, k)
 IPhreeqc = IPhreeqcPy.IPhreeqc()
-IPhreeqc.LoadDatabase('C:\Anaconda2\lib\site-packages\databases\cemdata07.dat')
+IPhreeqc.LoadDatabase('C:\Anaconda2\lib\site-packages\databases\cemdata18.dat')
 IPhreeqc.RunString(ps_k)
 so_k = IPhreeqc.GetSelectedOutputArray()
 simulation_time = time.time()-it
@@ -139,7 +147,7 @@ print(simulation_time)
 it=time.time() 
 ps_m = phrqc_string_mix(n, f)
 IPhreeqc = IPhreeqcPy.IPhreeqc()
-IPhreeqc.LoadDatabase('C:\Anaconda2\lib\site-packages\databases\cemdata07.dat')
+IPhreeqc.LoadDatabase('C:\Anaconda2\lib\site-packages\databases\cemdata18.dat')
 IPhreeqc.RunString(ps_m)
 so_m = IPhreeqc.GetSelectedOutputArray()
 simulation_time = time.time()-it
@@ -157,5 +165,7 @@ for i in range(len(so_k)):
 plt.figure()
 plt.plot(ca_m, label = "mix")
 plt.plot(ca_k, label = "kin")
+plt.xlabel('time (s)')
+plt.ylabel('Ca (mol/l)')
 plt.legend()
 #plt.plot(camix)

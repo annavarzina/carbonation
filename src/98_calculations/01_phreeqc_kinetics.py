@@ -27,7 +27,7 @@ def phrqc_string(steps, k):
     phrqc_input.append('-start')
     phrqc_input.append('10\tsi_p = SI("Portlandite")') #define saturation index (log(Q/K))for rate equation
     phrqc_input.append('20\tQ_K = 10^si_p') #calculate Q/K
-    phrqc_input.append('30\tk = '+ str(k))#1/s, kinetic rate constant 
+    phrqc_input.append('30\tk = '+ str(k))# kinetic rate constant 
     phrqc_input.append('40\tr = k * (1-Q_K)')#r is kinetic rate in mol/l.s, equals to k*(1-Q/K)
     phrqc_input.append('50\tmoles = r * TIME')
     phrqc_input.append('60\tSAVE moles')
@@ -60,10 +60,10 @@ def phrqc_string(steps, k):
 n = 2000
 steps=''
 for i in range(n):
-    steps = steps + ' ' +str(n)
-dt = 0.00016
-f = 0.004
-k = f*0.02/1000
+    steps = steps + ' ' +str(1)#steps + ' ' +str(i)
+#dt = 0.00016
+#f = 0.004
+k = 4e-5
 
 it=time.time() 
 ps = phrqc_string(steps, k)
