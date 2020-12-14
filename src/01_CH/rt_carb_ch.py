@@ -329,7 +329,7 @@ class SettingsCH(Settings):
         dp['solid_phases']={'portlandite': {'type':'diffusive','mvol':mvol[0],'c':pqty[0]},
                             'calcite':     {'type':'diffusive','mvol':mvol[1],'c':pqty[1]}}  
         return dp
-
+#%%
 
 class ResultsCH(Results):
     
@@ -529,7 +529,7 @@ class ResultsCH(Results):
             plot(fields[k], title[k], ylab[k])
         
     #%% SAVE
-    def save_vti(rt, phases, t, path, name):
+    def save_vti(rt, t, path, name):
         
         nx = rt.fluid.Ca.nx -1
         ny = rt.fluid.Ca.ny -1     

@@ -409,7 +409,7 @@ class Results((object)):
         Results.save_obj(rt.phases, path + str(name) +'_nodetype_' + str(t))  
         Results.save_obj(rt.solid._poros, path + str(name) +'_porosity_' + str(t)) 
         
-    def save_vti(rt, phases, t, path, name):
+    def save_vti(rt, t, path, name):
         
         nx = rt.fluid.Ca.nx -1
         ny = rt.fluid.Ca.ny -1     
@@ -428,15 +428,15 @@ class Results((object)):
                                          "porosity":porosity,
                                          })
         
-    def save_vts(domain, phases, t, path, name):
+    def save_vts(domain, t, path, name):
         filename = path + str(name) +'_nodetype_' + str(t) #"./fname"
         x,y = domain.meshgrid()
         x = x[:,:,np.newaxis]
         y = y[:,:,np.newaxis]
         z = np.zeros(x.shape)
-        p = phases[:,:,np.newaxis]
-        pointsToVTK(filename, x, y, z, data = {"phases" : p})
-        gridToVTK(filename, x, y, z, pointData = {"phases" : p})
+        p = domain.nodetype[:,:,np.newaxis]
+        pointsToVTK(filename, x, y, z, data = {"Nodetype" : p})
+        gridToVTK(filename, x, y, z, pointData = {"Nodetype" : p})
         
     
     #%% PRINT FUNCTIONS
