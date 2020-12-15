@@ -1,116 +1,112 @@
-# -*- coding: utf-8 -*-
-
-import IPhreeqcPy
 import numpy as np
 import matplotlib.pylab as plt
-import time
+from  mixing import PhreeqcMixing
+from kinetics import PhreeqcKinetics
 
-def phrqc_string(steps, fraction, csh):
+class PhreeqcMixingCSH(PhreeqcMixing):
+    def __init__(self, n, fraction, csh, database):
+        self.phase = csh['name']
+        self.csh = csh
+        self.steps = n
+        self.fraction = fraction
+        self.database = database
+        self.phrqc_input = []
+        self.selected_output = []
+        self.phrqc_string = ''
+        self.simulation_time = 0
     
-    
-    phrqc_input = []    
-    
-    s = csh['stochiometry']
-    h = s['H+']
-    h2o =  s['H2O'] +  s['H+'] - s['Ca']
-    sign1 = '+'
-    if h < 0: 
-        sign1 = '-'
-        h *= -1
-    sign2 = '+'
-    if h2o < 0: 
-        sign2 = '-'
-        h2o *= -1
-    phrqc_input.append('PHASES')  
-    phrqc_input.append(csh['name'])  
-    phrqc_input.append('\t(CaO)' + str(s['Ca']) +'(SiO2)'+ str(s['Si']) + \
-                       '(H2O)' + str(s['H2O']) + ' ' + sign1 + ' ' + str(h) + 'H+ = ' + \
-                       str(s['Ca']) + 'Ca+2 + ' + str(s['Si']) + 'SiO2 '  + sign2 +\
-                       ' ' + str(h2o) + ' H2O') 
-    #phrqc_input.append('\t-Vm\t' + str(csh['vm']) ) 
-    phrqc_input.append('\t-log_K\t' + str(csh['log_k']) + '\n')
-    
-    phrqc_input.append('solution\t1')
-    phrqc_input.append('\t-units\tmol/kgw')
-    phrqc_input.append('\t-water\t1')
-    phrqc_input.append('\tpH\t7\tcharge')
-    phrqc_input.append('\tCa\t0\n')
-    phrqc_input.append('equilibrium_phases\t1')
-    phrqc_input.append('\t' + csh['name'] +'\t0\t0')
-    phrqc_input.append('end\n')
-    
-    phrqc_input.append('solution\t2')
-    phrqc_input.append('\t-units\tmol/kgw')
-    phrqc_input.append('\t-water\t1')
-    phrqc_input.append('\tpH\t7\tcharge')
-    phrqc_input.append('\tCa\t0\n')
-    phrqc_input.append('equilibrium_phases\t2')
-    phrqc_input.append('\t' + csh['name'] +'\t0\t1')
-    phrqc_input.append('end\n')
-    
-    for i in np.arange(0, steps):
-        phrqc_input.append('mix\t2')
-        phrqc_input.append('1\t' + str(fraction))
-        phrqc_input.append('use solution 1')
-        phrqc_input.append('use equilibrium_phase 2')
-        phrqc_input.append('save equilibrium_phase 2')
-        phrqc_input.append('save solution 2')
-        phrqc_input.append('end\n')
+    def generate_phrqc_string(self):
+        self.phases()
+        self.solution_1()
+        self.solution_2()        
+        for i in np.arange(0, self.steps):
+            self.mix_2()
+            self.selected_output_1()
+            self.user_punch()
+            self.mix_3()            
+        self.phrqc_string = '\n'.join(self.phrqc_input)
         
-        phrqc_input.append('SELECTED_OUTPUT 1')
-        phrqc_input.append('\t-reset false')
-        phrqc_input.append('\t-time false')
-        phrqc_input.append('\t-high_precision true')
-        phrqc_input.append('\t-solution true')
-        phrqc_input.append('\t-pH false')
-        phrqc_input.append('\t-pe false')
-        phrqc_input.append('\t-charge_balance false')
-        phrqc_input.append('\t-alkalinity false')
-        phrqc_input.append('\t-ionic_strength false')
-        phrqc_input.append('\t-percent_error false')
+    def phases(self):
+        phrqc_input = []   
+        # CSH stochiometry
+        s = self.csh['stochiometry']
+        h = s['H+']
+        h2o =  s['H2O'] +  s['H+'] - s['Ca']
+        sign1 = '+'
+        if h < 0: 
+            sign1 = '-'
+            h *= -1
+        sign2 = '+'
+        if h2o < 0: 
+            sign2 = '-'
+            h2o *= -1
+        # input 
+        phrqc_input.append('PHASES')  
+        phrqc_input.append(self.phase)  
+        phrqc_input.append('\t(CaO)' + str(s['Ca']) +'(SiO2)'+ str(s['Si']) + \
+                           '(H2O)' + str(s['H2O']) + ' ' + sign1 + ' ' + str(h) + 'H+ = ' + \
+                           str(s['Ca']) + 'Ca+2 + ' + str(s['Si']) + 'SiO2 '  + sign2 +\
+                           ' ' + str(h2o) + ' H2O') 
+        #phrqc_input.append('\t-Vm\t' + str(csh['vm']) ) 
+        phrqc_input.append('\t-log_K\t' + str(self.csh['log_k']) + '\n')
+        self.phrqc_input +=  phrqc_input
         
+    
+    def user_punch(self):
+        phrqc_input = []         
         phrqc_input.append('USER_PUNCH')
-        phrqc_input.append('\t-headings\tCa\t' + csh['name'])
+        phrqc_input.append('\t-headings\tCa\t' + self.phase)
         phrqc_input.append('\t-start')
         phrqc_input.append('\t10\tpunch\ttot("Ca")')
-        phrqc_input.append('\t20\tpunch\ttot("' + csh['name'] +'")')
+        phrqc_input.append('\t15\tpunch\ttot("Si")')
+        phrqc_input.append('\t20\tpunch\ttot("' + self.phase + '")')
         phrqc_input.append('\t30\tpunch')
         phrqc_input.append('\t-end')
-        phrqc_input.append('END') 
-                
-        phrqc_input.append('mix\t3')
-        phrqc_input.append('2\t1')
-        phrqc_input.append('1\t' + str(1.-fraction))
-        phrqc_input.append('use solution 2')
-        phrqc_input.append('use equilibrium_phase 1')
-        phrqc_input.append('save solution 1')
-        phrqc_input.append('end\n')
+        phrqc_input.append('END')         
+        self.phrqc_input +=  phrqc_input
         
-    return '\n'.join(phrqc_input)
-#%%
-csh = {'name':'CSH', 
-       'stochiometry':{'Ca':1.67,
-                       'Si':1.0,
-                       'H2O':4.34,
-                       'H+':3.34},
-       'log_k':29.133,
-       'vm':73.1}
-steps = 2000
-fraction = 0.004
-it=time.time() 
-ps = phrqc_string(steps, fraction, csh)
-IPhreeqc = IPhreeqcPy.IPhreeqc()
-#IPhreeqc.LoadDatabase('C:\Anaconda2\lib\site-packages\databases\phreeqc.dat')
-IPhreeqc.LoadDatabase('C:\Anaconda2\lib\site-packages\databases\cemdata18.dat')
-IPhreeqc.RunString(ps)
-#print(IPhreeqc.GetSelectedOutputArray())
-so = IPhreeqc.GetSelectedOutputArray()
-simulation_time = time.time()-it
-print(simulation_time)
-#%%
-ca = []
-for i in range(len(so)):
-    if so[i][0]==3:
-        ca.append(so[i][1])
+        #%% PARAMETERS
+database = 'C:\Anaconda2\lib\site-packages\databases\cemdata18.dat'
 
-plt.plot(ca)
+csh = {'name':'CSH', 'stochiometry':{'Ca':1.67, 'Si':1.0, 'H2O':4.34, 'H+':3.34}, 'log_k':29.133,}
+
+n = 400000 # time should be ~10 minutes
+krate = 10**(-8.0) #1e-7
+s = 800#scale factor
+fraction = krate * s 
+print('Kinetic rate = ' + str(krate))
+print('Mixing fraction = ' + str(fraction))
+
+#%% RUN
+pm = PhreeqcMixingCSH(n, fraction, csh, database)
+pm.run_phreeqc()
+
+
+print('Mixing fraction simulation time = ' + str(pm.simulation_time))
+
+#%% PLOT
+h = 1
+
+t = range(1, n+1)
+t = [i/3600. for i in t]
+
+ca_m = []
+si_m = []
+for i in range(len(pm.selected_output)):
+    if pm.selected_output[i][0]==3:
+        ca_m.append(pm.selected_output[i][1])
+        si_m.append(pm.selected_output[i][2])
+
+     
+plt.figure()
+plt.plot(t, ca_m, label = "mix")
+plt.xlabel('time (h)')
+plt.ylabel('Ca (mol/l)')
+plt.legend()
+
+plt.figure()
+plt.plot(t, si_m, label = "mix")
+plt.xlabel('time (h)')
+plt.ylabel('Si (mol/l)')
+plt.legend()
+plt.show()
