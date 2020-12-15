@@ -4,17 +4,20 @@ import sys, os
 src_dir = os.path.dirname(__file__)
 sys.path.append(src_dir)
 import numpy as np
+import matplotlib.pylab as plt
 from copy import deepcopy
 import yantra
 import cell_type as ct # change the path to cell_type file
 import defaults as df
 from rt_carb import CarbonationRT
 from phrqc_input import PhreeqcInput
+from settings import Settings, Results
+from yantra._pyevtk.hl  import imageToVTK
 
 class PhreeqcInputCSHQ(PhreeqcInput):
     
     def make_phrqc_input(self):
-        self.phrqc_CSHQ_phases()
+        self.phrqc_CSHQ_phases_cemdata18()
         self.phrqc_boundary_voxel(self.c['c_bc'])
         self.phrqc_liquid_voxel(self.c['c_liq'], self.c['ca_liq'])
         self.phrqc_multilevel_voxel_CH(self.c['c_mlvl'], self.c['ca_mlvl'])        
@@ -22,7 +25,40 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         self.phrqc_solid_voxel()
         return(self.phrqc_input)
         
-    def phrqc_CSHQ_phases(self):
+    def phrqc_CSHQ_phases_cemdata18(self):
+        phrqc_input = [] 
+        
+        phrqc_input.append('PHASES')  
+        phrqc_input.append('calcite')  
+        phrqc_input.append('\tCaCO3 = CO3-2 + Ca+2') 
+        phrqc_input.append('\t-log_K\t-8.479966')  
+        phrqc_input.append('\t-analytical_expression\t130.276347\t0\t-5689.203921\t-48.36444\t0\t0\t0')  
+        phrqc_input.append('sio2am')  
+        phrqc_input.append('\tSiO2 = SiO2') 
+        phrqc_input.append('\t-log_K\t-2.714066')  
+        phrqc_input.append('\t-analytical_expression\t0\t0\t-809.189752\t0\t0\t0\t0') 
+        phrqc_input.append('CSHQ_TobH')  
+        phrqc_input.append('\t(CaO)0.6667(SiO2)1(H2O)1.5 + 1.3334H+ = 0.6667Ca+2 + 2.1667H2O + SiO2') 
+        phrqc_input.append('\t-log_K\t8.286642') 
+        phrqc_input.append('\t-analytical_expression\t-12.519254 0 2163.381583 5.476331 0 0 0') 
+        phrqc_input.append('CSHQ_TobD') 
+        phrqc_input.append('\t((CaO)1.25(SiO2)1(H2O)2.75)0.6667 + 1.66675H+ = 0.833375Ca+2 + 2.6668H2O + 0.6667SiO2') 
+        phrqc_input.append('\t-log_K\t13.655314') 
+        phrqc_input.append('\t-analytical_expression\t-10.916344 0 3959.367696 4.563888 0 0 0') 
+        phrqc_input.append('CSHQ_JenH') 
+        phrqc_input.append('\t(CaO)1.3333(SiO2)1(H2O)2.1667 + 2.6666H+ = 1.3333Ca+2 + 3.5H2O + SiO2') 
+        phrqc_input.append('\t-log_K\t22.179305') 
+        phrqc_input.append('\t-analytical_expression\t-17.10944 0 6470.553982 7.107847 0 0 0') 
+        phrqc_input.append('CSHQ_JenD') 
+        phrqc_input.append('\t(CaO)1.5(SiO2)0.6667(H2O)2.5 + 3H+ = 1.5Ca+2 + 4H2O + 0.6667SiO2') 
+        phrqc_input.append('\t-log_K\t28.730362')  
+        phrqc_input.append('\t-analytical_expression\t-15.591756 0 8609.739692 6.24251 0 0 0') 
+        
+        phrqc_input.append('knobs') 
+        phrqc_input.append('\t-iterations 8000\n') 
+        self.phrqc_input +=  phrqc_input
+    
+    def phrqc_CSHQ_phases_cemdata07(self):
         phrqc_input = [] 
         
         phrqc_input.append('PHASES')  
@@ -38,7 +74,7 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         phrqc_input.append('CSHQ_JenD') 
         phrqc_input.append('\t(CaO)1.5(SiO2)0.6666666667(H2O)2.5 = 1.5 Ca++ + 0.6666666667 SiO(OH)3- + 2.3333333333 OH- + 0.3333333333 H2O') 
         phrqc_input.append('\tlog_K -10.47635') 
-        phrqc_input.append('SiO2am') 
+        phrqc_input.append('sio2am') 
         phrqc_input.append('\tSiO2 + 1OH- + 1H2O = SiO(OH)3-') 
         phrqc_input.append('\tlog_K -1.475988') 
         phrqc_input.append('\t-analytical_expression\t-2.14181238156\t0\t664.05554528339\t0.5620295123\t0') 
@@ -46,7 +82,6 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         phrqc_input.append('\t-iterations 8000\n') 
         
         self.phrqc_input +=  phrqc_input
-    
     def phrqc_multilevel_voxel_CH(self, c, ca):
         phrqc_input = [] 
         phrqc_input.append('#solution_multilevel')    
@@ -88,16 +123,16 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         phrqc_input.append('\t-comp\tCSHQ_TobD\t2.5050') 
         phrqc_input.append('\t-comp\tCSHQ_JenH\t2.1555') 
         phrqc_input.append('\t-comp\tCSHQ_JenD\t3.2623') 
-        phrqc_input.append('\t-comp\tSiO2am\t0.0') 
+        phrqc_input.append('\t-comp\tsio2am\t0.0') 
         phrqc_input.append('EQUILIBRIUM_PHASES\t100004')
         phrqc_input.append('portlandite\t0\t0')
         phrqc_input.append('calcite\t0\t0\n')
         
         self.phrqc_input +=  phrqc_input
 
-class CSH_Carbonation(CarbonationRT):  
+class CarbonationCSHQ(CarbonationRT):  
     def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):
-        super(CSH_Carbonation, self).__init__(eqn,domain,domain_params,bc_params,solver_params, settings)
+        super(CarbonationCSHQ, self).__init__(eqn,domain,domain_params,bc_params,solver_params, settings)
         self.ptype ='CH'
      
     def update_bc(self, settings):
@@ -308,7 +343,7 @@ class CSH_Carbonation(CarbonationRT):
                   self.solid.CSHQ_JenH.c * self.solid.CSHQ_JenH.mvol +\
                   self.solid.CSHQ_TobD.c * self.solid.CSHQ_TobD.mvol +\
                   self.solid.CSHQ_TobH.c * self.solid.CSHQ_TobH.mvol + \
-                  self.solid.SiO2am.c * self.solid.SiO2am.mvol
+                  self.solid.sio2am.c * self.solid.sio2am.mvol
         return CSH_vol
 
        
@@ -321,6 +356,385 @@ class CSH_Carbonation(CarbonationRT):
     def csh_conc(self):    
         csh = self.solid.CSHQ_TobH.c+ self.solid.CSHQ_TobD.c +\
                 self.solid.CSHQ_JenH.c + self.solid.CSHQ_JenD.c +\
-                self.solid.SiO2am.c
+                self.solid.sio2am.c
         return csh 
                 
+#%% Additional funcrions              
+class SettingsCSHQ(Settings):
+    
+    @staticmethod
+    def set_mvols(scale=50):
+        '''
+        idx 0 - portlandite,
+        idx 1 - calcite
+        '''
+        mvolCH = df.MOLAR_VOLUME['CH']*scale
+        mvolCC = df.MOLAR_VOLUME['CC']*scale
+        mvolCSH_TobH = df.MOLAR_VOLUME['CSH_TobH']*scale
+        mvolCSH_TobD = df.MOLAR_VOLUME['CSH_TobD']*scale
+        mvolCSH_JenH = df.MOLAR_VOLUME['CSH_JenH']*scale
+        mvolCSH_JenD = df.MOLAR_VOLUME['CSH_JenD']*scale
+        mvolSiO2 = df.MOLAR_VOLUME['SiO2']*scale
+        mvol =  [mvolCH, mvolCC, mvolCSH_TobH, mvolCSH_TobD,
+                 mvolCSH_JenH, mvolCSH_JenD, mvolSiO2]
+        return(mvol)
+    
+    @staticmethod
+    def set_init_pqty(mvol, poros, scale=50): 
+        max_pqty = Settings.get_max_pqty(mvol)
+        init_conc = [0.0]*len(mvol)
+        for i in range(len(mvol)):
+            init_conc[i] = (1 - poros[i]) * max_pqty[i]
+        return init_conc
+        
+    @staticmethod
+    def get_pqty(init_pqty, domain):
+        pqty_CH = init_pqty[0] * (domain.nodetype == ct.Type.MULTILEVEL_CH)
+        pqty_CC = init_pqty[1] * np.ones(domain.nodetype.shape)   
+        pqty_CSHQ_TobH = init_pqty[2] * (domain.nodetype == ct.Type.MULTILEVEL) 
+        pqty_CSHQ_TobD = init_pqty[3] * (domain.nodetype == ct.Type.MULTILEVEL) 
+        pqty_CSHQ_JenH = init_pqty[4] * (domain.nodetype == ct.Type.MULTILEVEL) 
+        pqty_CSHQ_JenD = init_pqty[5] * (domain.nodetype == ct.Type.MULTILEVEL) 
+        pqty_SiO2 = init_pqty[6] * (domain.nodetype == ct.Type.MULTILEVEL) 
+        pqty = [pqty_CH, pqty_CC, 
+                pqty_CSHQ_TobH, pqty_CSHQ_TobD, 
+                pqty_CSHQ_JenH, pqty_CSHQ_JenD,
+                pqty_SiO2]    
+        return(pqty)
+        
+    @staticmethod
+    def set_labels(domain):
+        slabels = np.zeros(domain.nodetype.shape)
+        slabels = 100002 * (domain.nodetype == ct.Type.LIQUID) + \
+          100002 * (domain.nodetype == ct.Type.INTERFACE) + \
+          100003 * (domain.nodetype == ct.Type.MULTILEVEL_CH) + \
+          100004 * (domain.nodetype == ct.Type.MULTILEVEL)  + \
+          100005 * (domain.nodetype == ct.Type.SOLID)
+        return(slabels)
+    
+    @staticmethod
+    def get_porosity(domain, pqty, mvol):
+        #print(pqty)
+        #print(mvol)
+        poros = np.zeros(domain.nodetype.shape)
+        poros = (1- pqty[2]*mvol[2] - pqty[3]*mvol[3] - pqty[4]*mvol[4] - \
+            pqty[5]*mvol[5]-pqty[6]*mvol[6])*(domain.nodetype == ct.Type.MULTILEVEL) +\
+            (1 - pqty[0]*mvol[0])*(domain.nodetype == ct.Type.MULTILEVEL_CH) +\
+            1*(domain.nodetype == ct.Type.LIQUID )+\
+            1*(domain.nodetype == ct.Type.INTERFACE )+\
+            1*(domain.nodetype == ct.Type.SOLID )
+        return(poros)
+    
+    @staticmethod
+    def set_domain_params(D, mvol, pqty, poros, app_tort, slabels, 
+                          input_file, database = 'cemdata18.dat' ):
+        dp={}
+        
+        dp['D0'] = D                     
+        dp['voxel_vol']=1
+        dp['mvol']= mvol        
+        dp['poros'] = poros                 
+        dp['app_tort'] = app_tort         
+        dp['solution_labels'] =slabels
+        dp['database'] = database
+        
+        dp['phrqc_input_file']=input_file#'CH_CC_Ceq.phrq'
+        dp['eq_names'] = ['portlandite', 'calcite']
+        dp['ss_names']={'Tob_jen_ss':['CSHQ_TobH','CSHQ_TobD','CSHQ_JenH','CSHQ_JenD', 'sio2am']}
+        dp['solid_phases']={'portlandite': {'c':pqty[0],'mvol':mvol[0], 'type':'diffusive'},
+                            'calcite':     {'c':pqty[1],'mvol':mvol[1], 'type':'diffusive'},
+                            'CSHQ_TobH':   {'c':pqty[2],'mvol':mvol[2],'type':'diffusive'},
+                            'CSHQ_TobD':   {'c':pqty[3],'mvol':mvol[3],'type':'diffusive'},
+                            'CSHQ_JenH':   {'c':pqty[4],'mvol':mvol[4],'type':'diffusive'},
+                            'CSHQ_JenD':   {'c':pqty[5],'mvol':mvol[5],'type':'diffusive'},
+                            'sio2am':   {'c':pqty[6],'mvol':mvol[6],'type':'diffusive'},}    
+        return dp
+
+#%% Results
+
+class ResultsCSHQ(Results):
+    
+    def init_results(self, nodes=[]):
+        '''
+        pavg_list - list of average values to save 
+        nodes - list of parameters per node to save 
+        '''
+        results = {}     
+        params = [] 
+        params += ['portlandite', 'calcite', 'sio2am',
+                   'CSHQ_TobD', 'CSHQ_JenD', 'CSHQ_JenH', 'CSHQ_TobH',                   
+                   'Ca', 'Si', 'C', 'O', 'H'] # always save these parameters
+        params += ['solid_CSHQ', 'solid_Ca', 'solid_Si', 
+                   'ratio_CaSi','density_CSHQ']
+        results={name: [] for name in params}       
+        results['params'] = params
+        pavg_list = ['tot_vol', 'mean_D_eff', 'mean_poros', 
+                          'dissolution_CH', 'nodes_CH', 'active_nodes', 
+                          'mean_pH', 'dCH', 'dt', 'nodes_CSH',
+                          'precipitation_CC', 'nodes_CC', 'dCC']  
+        results.update({name: [] for name in pavg_list})
+        results['pavg_list'] = pavg_list
+        if nodes: 
+            pointparamslist = []
+            pointparamslist += params
+            pointparamslist += ['vol', 'poros', 'pH', 'De', 'vol_CH', 'vol_CC',
+                                'vol_CSHQ', 'solid_CSHQ'] 
+            l = [[m+ ' '+n for n in [str(n) for n in nodes]] for m in [str(m) for m in pointparamslist]]
+            par_points = [item for sublist in l for item in sublist] #sum(l, [])
+            results.update({name: [] for name in par_points}) 
+            results['pointparamslist'] = pointparamslist
+        results['nodes'] = nodes    
+        results['time'] = []   
+        self.results = results
+    
+    def append_results(self, rtmodel, step = 1e+2):
+        if (rtmodel.iters%step == 0):
+            self.results['time'].append(rtmodel.time)
+            for num, phase in enumerate(rtmodel.solid.diffusive_phase_list, start=1):
+                self.results[phase].append(np.sum(rtmodel.solid._diffusive_phaseqty[num-1]))        
+            for num, comp in enumerate(rtmodel.fluid.components, start=1):
+                self.results[comp].append(np.mean(getattr(rtmodel.fluid, comp)._c*getattr(rtmodel.fluid, comp).poros))  
+            #cshq
+            self.results['solid_CSHQ'].append(self.__class__.CSHQ_solid(rtmodel))
+            self.results['solid_Ca'].append(self.__class__.Ca_solid(rtmodel))
+            self.results['solid_Si'].append(self.__class__.Si_solid(rtmodel))
+            self.results['ratio_CaSi'].append(self.__class__.CaSi_ratio(rtmodel))
+            self.results['density_CSHQ'].append(self.__class__.CSHQ_density(rtmodel))
+            #general
+            self.results['tot_vol'].append(self.__class__.total_mineral_volume(rtmodel))
+            self.results['mean_D_eff'].append(self.__class__.mean_effective_D(rtmodel))
+            self.results['mean_poros'].append(self.__class__.mean_porosity(rtmodel))
+            self.results['nodes_CH'].append(self.__class__.CH_nodes(rtmodel))
+            self.results['nodes_CC'].append(self.__class__.CC_nodes(rtmodel))
+            self.results['nodes_CSH'].append(self.__class__.CSH_nodes(rtmodel))
+            self.results['active_nodes'].append(self.__class__.active_nodes(rtmodel))
+            self.results['dt'].append(self.__class__.get_dt(rtmodel))
+            self.results['mean_pH'].append(self.__class__.mean_pH(rtmodel))
+            self.results['dissolution_CH'].append(self.__class__.CH_dissolution(rtmodel))
+            self.results['precipitation_CC'].append(self.__class__.CC_precipitation(rtmodel))
+            if (rtmodel.iters ==0): 
+                self.results['dCH'].append(0) 
+                self.results['dCC'].append(0) 
+            else:
+                self.results['dCH'].append(self.__class__.delta_CH(rtmodel))
+                self.results['dCC'].append(self.__class__.delta_CC(rtmodel))
+            
+            # nodes
+            if self.results['nodes']: # points
+                for p in self.results['nodes']:
+                    self.results['portlandite'+' ' + str(p)].append(rtmodel.solid.portlandite.c[p])
+                    self.results['Ca'+' ' + str(p)].append(rtmodel.fluid.Ca._c[p]+\
+                                 rtmodel.fluid.Ca._ss[p]/rtmodel.fluid.Ca.poros[p])
+                    self.results['H'+' ' + str(p)].append(rtmodel.fluid.H._c[p]+\
+                                 rtmodel.fluid.H._ss[p]/rtmodel.fluid.H.poros[p])
+                    self.results['O'+' ' + str(p)].append(rtmodel.fluid.O._c[p]+\
+                                 rtmodel.fluid.O._ss[p]/rtmodel.fluid.O.poros[p])
+                    self.results['poros'+' ' + str(p)].append(rtmodel.solid.poros[p])
+                    self.results['vol'+' ' + str(p)].append(rtmodel.solid.vol[p])
+                    self.results['De'+' ' + str(p)].append(rtmodel.fluid.H.De[p])
+                    self.results['vol_CH'+' ' + str(p)].append(rtmodel.solid.portlandite.vol[p])
+                    self.results['pH'+' ' + str(p)].append(rtmodel.phrqc.selected_output()['pH'][p])
+                    self.results['calcite'+' ' + str(p)].append(rtmodel.solid.calcite.c[p])
+                    self.results['C'+' ' + str(p)].append(rtmodel.fluid.C._c[p]+\
+                                 rtmodel.fluid.C._ss[p]/rtmodel.fluid.C.poros[p])
+                    self.results['vol_CC'+' ' + str(p)].append(rtmodel.solid.calcite.vol[p])
+                    self.results['solid_CSHQ'+' ' + str(p)].append(rtmodel.solid.CSHQ_TobD.c[p] + \
+                                 rtmodel.solid.CSHQ_TobH.c[p] + rtmodel.solid.CSHQ_JenD.c[p] + \
+                                 rtmodel.solid.CSHQ_JenH.c[p] )
+                    self.results['vol_CSHQ'+' ' + str(p)].append(rtmodel.solid.csh_vol[p])
+                    
+    @staticmethod
+    def delta_CC(rt):
+        '''
+        Differentiation of Portladite
+        '''
+        s = np.sum(rt.phrqc.dphases['calcite'])#*getattr(rt.solid, 'calcite').mvol)
+        return(s)
+    
+    @staticmethod
+    def CC_precipitation(rt):
+        '''
+        N cells that are dissolving
+        '''
+        s = np.sum(rt.phrqc.dphases['calcite']>0)
+        return(s)
+         
+    @staticmethod
+    def CC_nodes(rt):
+        '''
+        N cells containing portlandite
+        '''
+        s = np.sum(rt.solid.calcite.c>0)
+        return(s)
+        
+    @staticmethod
+    def CSH_nodes(rt):
+        '''
+        N cells containing portlandite
+        '''
+        s = np.sum(rt.solid.csh_vol>0)
+        return(s)
+        
+    @staticmethod
+    def CSHQ_solid(rt): #TODO check
+        csh = np.sum(rt.solid.CSHQ_TobD.c + rt.solid.CSHQ_TobH.c + 
+                     rt.solid.CSHQ_JenH.c + 1.5*rt.solid.CSHQ_JenD.c)
+        return(csh)
+        
+    @staticmethod
+    def Ca_solid(rt): #TODO check
+        ca = np.sum(0.8333333*rt.solid.CSHQ_TobD.c[:,:] + 0.6666667*rt.solid.CSHQ_TobH.c[:,:] + 
+                    1.3333333*rt.solid.CSHQ_JenH.c[:,:] + 1.5*rt.solid.CSHQ_JenD.c[:,:])
+        return(ca)
+        
+    @staticmethod
+    def Si_solid(rt): #TODO check
+        si = np.sum(0.6666667*rt.solid.CSHQ_TobD.c[:,:] + 1.0*rt.solid.CSHQ_TobH.c[:,:] + 
+                    1.0*rt.solid.CSHQ_JenH.c[:,:] + 0.6666667*rt.solid.CSHQ_JenD.c[:,:])
+        return (si)
+    
+    @staticmethod
+    def CaSi_ratio(rt):
+        r = ResultsCSHQ.Ca_solid(rt)/ResultsCSHQ.Si_solid(rt)
+        return(r)
+
+    @staticmethod
+    def CSHQ_density(rt):
+        m_ca = 56.0774 #g/mol
+        m_si = 60.08 #g/mol
+        m_h2o = 18.01528 #g/mol
+        h2o= np.sum(1.8333333333*rt.solid.CSHQ_TobD.c[:,:] + 1.5*rt.solid.CSHQ_TobH.c[:,:] + 
+            2.1666666667*rt.solid.CSHQ_JenH.c[:,:] + 2.5*rt.solid.CSHQ_JenD.c[:,:])
+        d = h2o*m_h2o + ResultsCSHQ.Ca_solid(rt)*m_ca + ResultsCSHQ.Si_solid(rt)*m_si
+        return(d)
+    #%% PRINT and PLOT
+    
+    @staticmethod
+    def print_profiles(rt):    
+        Results.print_profiles(rt)
+        print('C +ss %s' %str(np.array(rt.fluid.C.c[1,:]) + \
+               np.array(rt.fluid.C._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
+        print('Si +ss %s' %str(np.array(rt.fluid.Si.c[1,:]) + \
+               np.array(rt.fluid.Si._ss[1,:])/np.array(rt.phrqc.poros[1,:])))
+        print('CC %s' %str(np.array(rt.solid.calcite.c[1,:])))
+        print('dCC %s' %str(np.array(rt.phrqc.dphases['calcite'][1,:])))
+        print('CSHQ TobD %s' %str(np.array(rt.solid.CSHQ_TobD.c[1,:])))
+        #print('PHRQC CSHQ TobD %s' %str(np.array(rt.phrqc.selected_output()['CSHQ_TobD'][1,:])))
+        print('CSHQ TobH %s' %str(np.array(rt.solid.CSHQ_TobH.c[1,:])))
+        #print('PHRQC CSHQ TobH %s' %str(np.array(rt.phrqc.selected_output()['CSHQ_TobH'][1,:])))
+        print('CSHQ JenD %s' %str(np.array(rt.solid.CSHQ_JenD.c[1,:])))
+        print('CSHQ JenH %s' %str(np.array(rt.solid.CSHQ_JenH.c[1,:])))
+        print('SiO2 am %s' %str(np.array(rt.solid.sio2am.c[1,:])))
+        
+    def get_titles(self):
+        title = {'Ca': 'Calcium',
+                 'C': 'Carbon',
+                 'O': 'Oxygen',
+                 'H': 'Hydrogen',
+                 'portlandite':'Portlandite',
+                 'calcite': 'Calcite',
+                 'De':  'Effective diffusivity',
+                 'poros': 'Porosity',
+                 'vol_CH': 'Portlandite volume',
+                 'vol_CC': 'Calcite volume',
+                 'vol':'Mineral volume',
+                 'dt':'Time step',
+                 'pH': 'pH',
+                 'active_nodes':'Number of active nodes (PHREEQC)',
+                 'mean_poros':'Average porosity',
+                 'mean_D_eff':'Average effective diffusivity',
+                 'mean_pH': 'Average pH ',
+                 'dCH': 'Portlandite differentiation',
+                 'dissolution_CH':'Number of dissolving nodes',
+                 'nodes_CH':'Number of Portlandite nodes',
+                 'tot_vol':'Total mineral volume',
+                 'dCC': 'Calcite differentiation',
+                 'precipitation_CC':'Number of precipitating nodes',
+                 'nodes_CC':'Number of Calcite nodes',
+                 }
+        return(title)
+         
+    def get_ylabs(self):
+        ylab = {'Ca':'Ca (*1e-12) [mol]',
+                'C':'C (*1e-12) [mol]',
+                'O':'O (*1e-12) [mol]',
+                'H':'H (*1e-12) [mol]',
+                'portlandite': 'CH (*1e-12) [mol]',
+                'calcite': 'CC (*1e-12) [mol]',
+                'De':  'D_eff [m^2/s]',
+                'poros': 'Porosity [-]',
+                'vol_CH': 'Portlandite volume [um^3]',
+                'vol_CC': 'Calcite volume [um^3]',
+                'vol':'Mineral volume [um^3]',
+                'dt':'dt [s]',
+                'pH': 'pH [-]',                
+                'active_nodes':'Nodes [-]',
+                'mean_poros':'Average porosity [-]',
+                'mean_D_eff':'Average D_eff [m^2/s]',
+                'mean_pH': 'Average  pH [-]',              
+                'dCH':'dCH [mol]',
+                'dissolution_CH':'Nodes [-]',
+                'nodes_CH':'Nodes [-]',
+                'tot_vol': 'Total mineral volume [um^3]',
+                'dCC':'dCC [mol]',
+                'precipitation_CC':'Nodes [-]',
+                'nodes_CC':'Nodes [-]',
+                }
+        return(ylab)
+    
+    def plot_fields(self, rt, names={}, fsize = (8,4)):
+        #nl = {name: limit}
+        
+        def plot(field, title, ylab, limit=[], size=fsize):
+            plt.figure() 
+            if not limit:
+                plt.imshow(field)
+            else:
+                plt.imshow(field, vmin = limit[0], vmax = limit[1])
+            
+            clb = plt.colorbar()
+            clb.ax.get_yaxis().labelpad = 15
+            clb.ax.set_ylabel(ylab, rotation=270)
+            
+            plt.title(title)
+            plt.show()
+        
+        fields = {'portlandite': rt.solid.portlandite.c[1:-1,1:-1],
+                  'calcite': rt.solid.calcite.c[1:-1,1:-1],
+                  'Ca': rt.fluid.Ca.c[1:-1,0:-1],
+                  'C': rt.fluid.C.c[1:-1,0:-1],
+                  'H':  rt.fluid.H.c[1:-1,0:-1],
+                  'O':  rt.fluid.O.c[1:-1,0:-1],
+                  'poros': rt.solid.poros[1:-1,0:-1]}
+            
+        if not names:
+            names = fields.keys()
+        
+        ylab = self.get_ylabs()
+        title = self.get_titles()
+        for k in names: 
+            plot(fields[k], title[k], ylab[k])
+        
+    #%% SAVE
+    def save_vti(rt, t, path, name):
+        
+        nx = rt.fluid.Ca.nx -1
+        ny = rt.fluid.Ca.ny -1     
+        filename = path + str(name) +'_all_' + str(t) 
+        
+        cCa = rt.fluid.Ca.c[1:ny,1:nx,np.newaxis]
+        cH = rt.fluid.H.c[1:ny,1:nx,np.newaxis]
+        cO = rt.fluid.O.c[1:ny,1:nx,np.newaxis]
+        cC = rt.fluid.C.c[1:ny,1:nx,np.newaxis]
+        cCC = rt.solid.calcite.c[1:ny,1:nx,np.newaxis]
+        cCH = rt.solid.portlandite.c[1:ny,1:nx,np.newaxis]
+        porosity = rt.solid._poros[1:ny,1:nx,np.newaxis]
+        
+        imageToVTK(filename, cellData = {"Ca":cCa,
+                                         "C":cC,
+                                         "O":cO,
+                                         "H":cH,
+                                         "Calcite":cCC,
+                                         "Portlandite":cCH,
+                                         "porosity":porosity,
+                                         })

@@ -36,7 +36,7 @@ import numpy as np
 np.set_printoptions(precision=5, threshold=np.inf)
 import yantra
 import cell_type as ct # change the path to cell_type file
-import rt_carb_csh as rt #rt_r as rt
+import rt_carb_csh_sio2 as rt #rt_r as rt
 import misc_func as fn
 #%% PROBLEM DEFINITION
 __doc__= """ 
@@ -81,7 +81,7 @@ phrqc.save_phrqc_input(root_dir, nn)
 
 tfact_default = 1./6./1#*init_porosCH
 scale = 50 # scale of molar volume
-init_poros = [0.05, 1.0, 0.99424327, 0.87988525, 0.83697953, 0.73712387] #initial porosity of portlandite or calcite nodes
+init_poros = [0.05, 1.0, 0.99424327, 0.87988525, 0.83697953, 0.73712387, 1.0] #initial porosity of portlandite or calcite nodes
 D = 1.0e-09 # default diffusion coefficient in pure liquid
 app_tort_degree = 1./3.
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
@@ -173,7 +173,8 @@ plt.show()
 '''
 
 #%% PRINT
-#rt.ResultsCSHQ.print_profiles(csh)
+rt.ResultsCSHQ.print_profiles(csh)
+#'''
 
 
 #%% C-S-H profile
