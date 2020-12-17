@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pylab as plt
 from copy import deepcopy
 import yantra
+from sklearn.linear_model import LinearRegression
 import cell_type as ct # change the path to cell_type file
 import defaults as df
 from rt_carb import CarbonationRT
@@ -15,7 +16,7 @@ from settings import Settings, Results
 from yantra._pyevtk.hl  import imageToVTK
 
 class PhreeqcInputCSHQ(PhreeqcInput):
-    
+    #TODO check that for subgrid there is no mineral
     def make_phrqc_input(self):
         self.phrqc_CSHQ_phases_cemdata18()
         self.phrqc_boundary_voxel(self.c['c_bc'])
@@ -114,15 +115,15 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         phrqc_input.append('\t-water\t0.448230266981165') 
         phrqc_input.append('\t-units\tmol/kgw')
         phrqc_input.append('\tpH\t12\tcharge') 
-        phrqc_input.append('\tCa\t1.955e-002') 
+        phrqc_input.append('\tCa\t1.955e-002')  #0?
         phrqc_input.append('\tSi\t3.018e-005') 
         
         phrqc_input.append('SOLID_SOLUTIONS\t100004') 
         phrqc_input.append('Tob_jen_ss') 
-        phrqc_input.append('\t-comp\tCSHQ_TobH\t0.1041') 
-        phrqc_input.append('\t-comp\tCSHQ_TobD\t2.5050') 
-        phrqc_input.append('\t-comp\tCSHQ_JenH\t2.1555') 
-        phrqc_input.append('\t-comp\tCSHQ_JenD\t3.2623') 
+        phrqc_input.append('\t-comp\tCSHQ_TobH\t0')#0.1041') 
+        phrqc_input.append('\t-comp\tCSHQ_TobD\t0')#2.5050') 
+        phrqc_input.append('\t-comp\tCSHQ_JenH\t0')#2.1555') 
+        phrqc_input.append('\t-comp\tCSHQ_JenD\t0')#3.2623') 
         phrqc_input.append('\t-comp\tsio2am\t0.0') 
         phrqc_input.append('EQUILIBRIUM_PHASES\t100004')
         phrqc_input.append('portlandite\t0\t0')
@@ -133,8 +134,26 @@ class PhreeqcInputCSHQ(PhreeqcInput):
 class CarbonationCSHQ(CarbonationRT):  
     def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):
         super(CarbonationCSHQ, self).__init__(eqn,domain,domain_params,bc_params,solver_params, settings)
-        self.ptype ='CH'
-     
+        self.ptype ='CSH'
+        self.fraction_model = self.model_fraction()
+        
+    
+    def model_fraction(self):
+        casi = np.array([1.67, 1.65, 1.60, 1.55, 1.50, 1.45, 1.40, 1.35, 1.30, 1.25,
+                  1.20, 1.15, 1.10, 1.05, 1.00, 0.95, 0.90, 0.85, 0.83])
+        d = np.array([-8.40, -8.47, -8.53, -8.53, -8.56, -8.67, -8.89, -9.20, -9.58,
+              -9.98, -10.36, -10.67, -10.88, -10.97, -10.95, -10.86, -10.79, 
+              -10.87, -10.99])
+        s = np.array([865, 880, 925,  970, 1015, 1060, 1105, 1150, 1195, 1240, 1285, 1330,
+              1375, 1420, 1465, 1510, 1555, 1600, 1615])
+        sigma = (10**d) * s
+        
+        X = casi.reshape(-1,1) # put your dates in here
+        y = sigma # put your kwh in here
+        model = LinearRegression()
+        model.fit(X, y)       
+        return(model)        
+
     def update_bc(self, settings):
         for key in self.phrqc.boundary_solution_labels:  
             self.fluid.Ca.bc[key] = ['flux', 0.0]
@@ -161,18 +180,20 @@ class CarbonationCSHQ(CarbonationRT):
         self.phrqc.nodetype = self.nodetype 
         if self.solid.nphases >0:
             phaseqty = self.solid.phaseqty_for_phrqc()
-            self.phrqc.modify_solid_phases(phaseqty) 
+            self.phrqc.modify_solid_phases(phaseqty)             
             
-            
-    def update_source(self):        
-        
+    def update_source(self):                
         c=self.fluid.get_attr('c')
         phaseqty=self.solid.phaseqty_for_phrqc()
         phase_list = self.solid.diffusive_phase_list
         for num, phase in enumerate(phase_list, start=1):
             phaseqty[phase] = deepcopy(self.solid._diffusive_phaseqty[num-1])  
         if(self.settings['dissolution']=='subgrid'):
-            phaseqty['portlandite'][np.where(self.solid.border)]=0
+            phaseqty['CSHQ_TobH'][np.where(self.solid.csh_vol>0)]=0 #border
+            phaseqty['CSHQ_TobD'][np.where(self.solid.csh_vol)]=0
+            phaseqty['CSHQ_JenH'][np.where(self.solid.csh_vol)]=0
+            phaseqty['CSHQ_JenD'][np.where(self.solid.csh_vol)]=0
+            #phaseqty['portlandite'][np.where(self.solid.border)]=0
             #phaseqty['portlandite'] = np.zeros(phaseqty['portlandite'].shape)
         self.phrqc.modify_solid_phases(phaseqty)        
         ss = self.phrqc.modify_solution(c,self.dt,self.solid.nodetype)  
@@ -181,8 +202,7 @@ class CarbonationCSHQ(CarbonationRT):
         else:
             if self.iters >1 :pqty=self.solid.update(self.phrqc.dphases)  
             self.update_solid_params() 
-            ss=self.update_border_solution(c,ss)
-                  
+            ss=self.update_border_solution(c,ss)                  
         self.update_solid_params()  
         self.update_target_SI() 
         self.update_phrqc()  
@@ -309,12 +329,145 @@ class CarbonationCSHQ(CarbonationRT):
               np.roll(temp, -1, axis = 0)/4+np.roll(temp, 1, axis = 0)/4
         border = (rolled!=val)&(is_port|is_csh)
         self.solid.border = border
-           
+
+       
+    def casi_ratio(self):
+        ca = 0.8333333/3.3333333333*self.solid.CSHQ_TobD.c[:,:] + \
+             0.6666667/3.16666667*self.solid.CSHQ_TobH.c[:,:] + \
+             1.3333333/4.5*self.solid.CSHQ_JenH.c[:,:] + \
+             1.5/4.666666666699999*self.solid.CSHQ_JenD.c[:,:]
+        si = 0.6666667/3.3333333333*self.solid.CSHQ_TobD.c[:,:] + \
+             1.0/3.16666667*self.solid.CSHQ_TobH.c[:,:] + \
+             1.0/4.5*self.solid.CSHQ_JenH.c[:,:] + \
+             0.6666667/4.666666666699999*self.solid.CSHQ_JenD.c[:,:]
+        r = ca/si     
+        self.solid.casi = r[self.solid.csh_vol>0]
+        return(r[self.solid.csh_vol>0])
             
-    def update_border_solution(self,c,ss):
+    def predict_fraction(self):
+        model = self.fraction_model
+        y_predict = np.zeros(np.shape(self.casi_ratio()))
+        for i in range(0, len(self.casi_ratio())):
+            casi = self.casi_ratio()[i]
+            #print(casi)
+            if(casi>1.67):
+                y_predict[i] = 5.0e-06
+            elif(casi<0.83):
+                y_predict[i] = 1.0e-11
+            else:
+                X_predict = np.array([casi]).reshape(-1,1)  # put the dates of which you want to predict kwh here
+                y_predict[i] = model.predict(X_predict)
+        return(y_predict)
+        
+    def update_border_solution(self,c,ss): #TODO rename csh
+        phrqc_poros = self.solid.poros#self.phrqc.selected_output()['poros'] #
+        #fraction = self.settings['subgrid']['fraction']
+        #TODO fraction array!
+        fraction = self.predict_fraction()
+        #print(self.solid.casi)
+        #print(fraction)
+        result = {}
+        by = np.where(self.solid.csh_vol)[0]#np.where(self.solid.border)[0]
+        bx = np.where(self.solid.csh_vol)[1]#np.where(self.solid.border)[1]
+        bf = np.where(self.solid.csh_vol.flatten())[0]#np.where(self.solid.border.flatten())[0]
+        #for i in np.arange(0, np.sum(self.solid.border)):          
+        for i in np.arange(0, np.sum(self.solid.csh_vol>0)): 
+            if fraction[i] >0:    
+                cell_m = bf[i]+1                
+                #print(cell_m)
+                m_csh = [self.solid.CSHQ_TobH.c[by[i], bx[i]],
+                         self.solid.CSHQ_TobD.c[by[i], bx[i]],
+                         self.solid.CSHQ_JenH.c[by[i], bx[i]],
+                         self.solid.CSHQ_JenD.c[by[i], bx[i]],
+                         self.solid.sio2am.c[by[i], bx[i]]]
+                result  = self.update_equilibrium(result, cell_m,  
+                                          m_csh,
+                                          phrqc_poros[by[i], bx[i]],
+                                          fraction[i])
+                ssnew={}
+                for name in self.phrqc.components:
+                    ssnew[name] = (result[str(cell_m)][name]-c[name][by[i], bx[i]])/self.dt
+                    ssnew[name] *= phrqc_poros[by[i], bx[i]]
+                    ss[name][by[i], bx[i]] = ssnew[name]
+        
+        #for i in np.arange(0, np.sum(self.solid.border)):
+        for i in np.arange(0, np.sum(self.solid.csh_vol>0)):
+            self.solid.CSHQ_TobH.c[by[i], bx[i]] = result[str(bf[i]+1)]['CSHQ_TobH_m']
+            self.solid.CSHQ_TobD.c[by[i], bx[i]] = result[str(bf[i]+1)]['CSHQ_TobD_m']
+            self.solid.CSHQ_JenH.c[by[i], bx[i]] = result[str(bf[i]+1)]['CSHQ_JenH_m']
+            self.solid.CSHQ_JenD.c[by[i], bx[i]] = result[str(bf[i]+1)]['CSHQ_JenD_m']
+            self.solid.sio2am.c[by[i], bx[i]] = result[str(bf[i]+1)]['sio2am_m']
+            #self.solid.calcite.c[by[i], bx[i]] = result[str(bf[i]+1)]['calcite_m']
         return ss
     
-    def update_equilibrium(self, result, n_ch, m_ch, porosity, fraction=1):
+    def update_equilibrium(self, result, n_csh, m_csh, porosity, fraction=1):
+        ncell = 123456
+        fract = fraction/porosity
+        if fract>1: fract =1
+        #print(fract)
+        modify_str = []
+        modify_str.append("SOLID_SOLUTIONS %i" % ncell)
+        modify_str.append('Tob_jen_ss') #TODO dissolve only?
+        modify_str.append("-comp\tCSHQ_TobH\t%.20e" %(m_csh[0]))
+        modify_str.append("-comp\tCSHQ_TobD\t%.20e" %(m_csh[1]))
+        modify_str.append("-comp\tCSHQ_JenH\t%.20e" %(m_csh[2]))
+        modify_str.append("-comp\tCSHQ_JenD\t%.20e" %(m_csh[3]))
+        modify_str.append("-comp\tsio2am\t%.20e" %(m_csh[4]))
+        modify_str.append("END") 
+        modify_str.append('MIX %i' % ncell)         
+        modify_str.append('%i %.20e' %( n_csh, fract)) #modify_str.append('%i 1' %n_int)  
+        modify_str.append('SAVE SOLUTION %i' % ncell)  
+        modify_str.append("END") 
+        modify_str.append('USE SOLUTION %i' % ncell)  
+        modify_str.append('USE SOLID_SOLUTIONS %i' % ncell)
+        modify_str.append('SAVE SOLUTION %i' % ncell)   
+        modify_str.append("END") 
+        modify_str.append("END") 
+        modify_str ='\n'.join(modify_str)
+        self.phrqc.IPhreeqc.RunString(modify_str) 
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        #print(modify_str)
+        #print(output)
+        
+        tobh = output[2][15]
+        tobd = output[2][17]
+        jenh = output[2][19]
+        jend = output[2][21] 
+        sio2 = output[2][23]
+        modify_str = [] 
+        modify_str.append("SOLID_SOLUTIONS %i" %n_csh)
+        modify_str.append('Tob_jen_ss')
+        modify_str.append("-comp\tCSHQ_TobH\t%.20e" %(0))
+        modify_str.append("-comp\tCSHQ_TobD\t%.20e" %(0))
+        modify_str.append("-comp\tCSHQ_JenH\t%.20e" %(0))
+        modify_str.append("-comp\tCSHQ_JenD\t%.20e" %(0))
+        modify_str.append("-comp\tsio2am\t%.20e" %(0))
+        modify_str.append("END") 
+        modify_str.append('USE SOLID_SOLUTIONS %i' %n_csh)      
+        modify_str.append('MIX %i' % ncell)      
+        modify_str.append('%i 1' % ncell)   
+        modify_str.append('%i %.20e' %(n_csh, 1.-fract)) #modify_str.append('%i 0' %n_int)   
+        modify_str.append('SAVE SOLUTION %i' %(n_csh))  
+        modify_str.append('SAVE SOLID_SOLUTIONS %i' %(n_csh))  
+        modify_str.append("END") 
+        modify_str ='\n'.join(modify_str)
+        self.phrqc.IPhreeqc.RunString(modify_str)  
+        output=self.phrqc.IPhreeqc.GetSelectedOutputArray()
+        #print(modify_str)
+        #print(output)
+        comp = {}        
+        comp['CSHQ_TobH_m'] = tobh
+        comp['CSHQ_TobD_m'] = tobd
+        comp['CSHQ_JenH_m'] = jenh
+        comp['CSHQ_JenD_m'] = jend
+        comp['sio2am_m'] = sio2
+        comp['C'] = output[1][6] 
+        comp['Ca'] = output[1][7]
+        comp['Si'] = output[1][8]
+        comp['H'] = (output[1][9] - self.phrqc.H_norm)
+        comp['O'] = (output[1][10] - self.phrqc.O_norm)
+        result[str(n_csh)] = comp        
+        #print(comp)
         return(result)     
 
     def update_volume(self):
@@ -637,6 +790,8 @@ class ResultsCSHQ(Results):
                  'poros': 'Porosity',
                  'vol_CH': 'Portlandite volume',
                  'vol_CC': 'Calcite volume',
+                 'vol_CSHQ': 'CSH volume',
+                 'solid_CSHQ': 'CSH',
                  'vol':'Mineral volume',
                  'dt':'Time step',
                  'pH': 'pH',
@@ -651,6 +806,17 @@ class ResultsCSHQ(Results):
                  'dCC': 'Calcite differentiation',
                  'precipitation_CC':'Number of precipitating nodes',
                  'nodes_CC':'Number of Calcite nodes',
+                 'Si': 'Silicium',
+                 'CSHQ_TobH': 'Tobermorite H',
+                 'CSHQ_TobD': 'Tobermorite D',
+                 'CSHQ_JenH': 'Jennite H',
+                 'CSHQ_JenD': 'Jennite D',
+                 'sio2am': 'SiO2',
+                 'nodes_CSH':'Number of CSH nodes',
+                 'solid_Ca': 'Ca in CSH',
+                 'solid_Si': 'Si in CSH',
+                 'ratio_CaSi': 'Ca/Si',
+                 'density_CSHQ': 'CSH density',                 
                  }
         return(title)
          
@@ -665,6 +831,8 @@ class ResultsCSHQ(Results):
                 'poros': 'Porosity [-]',
                 'vol_CH': 'Portlandite volume [um^3]',
                 'vol_CC': 'Calcite volume [um^3]',
+                'vol_CSHQ': 'CSH volume [um^3]',
+                'solid_CSHQ': 'CSH (*1e-12) [mol]',
                 'vol':'Mineral volume [um^3]',
                 'dt':'dt [s]',
                 'pH': 'pH [-]',                
@@ -679,6 +847,17 @@ class ResultsCSHQ(Results):
                 'dCC':'dCC [mol]',
                 'precipitation_CC':'Nodes [-]',
                 'nodes_CC':'Nodes [-]',
+                 'Si': 'Si (*1e-12) [mol]',
+                 'CSHQ_TobH': 'TobH (*1e-12) [mol]',
+                 'CSHQ_TobD': 'TobD (*1e-12) [mol]',
+                 'CSHQ_JenH': 'JenH (*1e-12) [mol]',
+                 'CSHQ_JenD': 'JenD (*1e-12) [mol]',
+                 'sio2am': 'SiO2 (*1e-12) [mol]',
+                 'nodes_CSH':'Nodes [-]',
+                 'solid_Ca': 'Ca in CSH (*1e-12) [mol]',
+                 'solid_Si': 'Si in CSH (*1e-12) [mol]',
+                 'ratio_CaSi': 'Ca/Si [-]',
+                 'density_CSHQ': 'CSH density [g/l]',      
                 }
         return(ylab)
     
@@ -723,18 +902,30 @@ class ResultsCSHQ(Results):
         filename = path + str(name) +'_all_' + str(t) 
         
         cCa = rt.fluid.Ca.c[1:ny,1:nx,np.newaxis]
+        cSi = rt.fluid.Si.c[1:ny,1:nx,np.newaxis]
         cH = rt.fluid.H.c[1:ny,1:nx,np.newaxis]
         cO = rt.fluid.O.c[1:ny,1:nx,np.newaxis]
         cC = rt.fluid.C.c[1:ny,1:nx,np.newaxis]
         cCC = rt.solid.calcite.c[1:ny,1:nx,np.newaxis]
         cCH = rt.solid.portlandite.c[1:ny,1:nx,np.newaxis]
+        cSiO2 = rt.solid.sio2am.c[1:ny,1:nx,np.newaxis]
+        cTobH = rt.solid.CSHQ_TobH.c[1:ny,1:nx,np.newaxis]
+        cTobD = rt.solid.CSHQ_TobD.c[1:ny,1:nx,np.newaxis]
+        cJenH = rt.solid.CSHQ_JenH.c[1:ny,1:nx,np.newaxis]
+        cJenD = rt.solid.CSHQ_JenD.c[1:ny,1:nx,np.newaxis]
         porosity = rt.solid._poros[1:ny,1:nx,np.newaxis]
         
         imageToVTK(filename, cellData = {"Ca":cCa,
+                                         "Si":cSi,
                                          "C":cC,
                                          "O":cO,
                                          "H":cH,
                                          "Calcite":cCC,
                                          "Portlandite":cCH,
+                                         "SiO2":cSiO2,
+                                         "TobH":cTobH,
+                                         "TobD":cTobD,
+                                         "JenH":cJenH,
+                                         "JenD":cJenD,
                                          "porosity":porosity,
                                          })

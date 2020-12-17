@@ -32,7 +32,8 @@ class PhreeqcMixing():
             self.user_punch()
             self.mix_3()            
         self.phrqc_string = '\n'.join(self.phrqc_input)
-    
+        
+        
     def solution_1(self):
         phrqc_input = []         
         phrqc_input.append('SOLUTION\t1')

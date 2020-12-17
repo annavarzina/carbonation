@@ -118,7 +118,7 @@ class PhreeqcInputCSHQ(PhreeqcInput):
 class CarbonationCSHQ(CarbonationRT):  
     def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):
         super(CarbonationCSHQ, self).__init__(eqn,domain,domain_params,bc_params,solver_params, settings)
-        self.ptype ='CH'
+        self.ptype ='CSH'
      
     def update_bc(self, settings):
         for key in self.phrqc.boundary_solution_labels:  
