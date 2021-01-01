@@ -68,7 +68,7 @@ path = root_dir+'\\results\\output_csh\\01_default\\' + nn + '\\'
 fn.make_output_dir(path)
 
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 1.0},
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 0.1},
                #'c_bc':{'type':'conc', 'value': 0.01},
                'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
                'c_liq':{'type':'eq', 'value': 'calcite'},
@@ -82,15 +82,16 @@ phrqc.save_phrqc_input(root_dir, nn)
 tfact_default = 1./6./1#*init_porosCH
 scale = 50 # scale of molar volume
 init_poros = [0.05, 1.0, 0.99424327, 0.87988525, 0.83697953, 0.73712387, 1.0] #initial porosity of portlandite or calcite nodes
+#init_poros = [0.05, 1.0, 0.99424327, 0.87988525, 0.83697953, 0.73712387, 1.0]
 D = 1.0e-09 # default diffusion coefficient in pure liquid
-app_tort_degree = 1./3.
+app_tort_degree = 7.43#1./3.
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
             'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CC': ('inverse', 1e-11), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
-                           'CSH': ('const', 1e-11), # fixed diffusivity in CSH node 'archie'/'const'/'inverse'
+                           'CC': ('inverse', 1e-13), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
+                           'CSH': ('inverse', 1e-11), # fixed diffusivity in CSH node 'archie'/'const'/'inverse'
                            }, 
             'pcs_mode': {'pcs': True, #Pore-Size Controlled Solubility concept
                          'pores': 'block', #'block'/'cylinder'
@@ -125,9 +126,9 @@ solver_params = rt.SettingsCSHQ.set_solver_params(tfact = tfact_default, smart_t
 
 csh= rt.CarbonationCSHQ('MultilevelDiffusion',  domain, 
                           domain_params, bc_params, solver_params, settings) 
-res = rt.ResultsCSHQ(nodes= [(1,n) for n in np.arange(3, 6)])
+res = rt.ResultsCSHQ(nodes= [(1,n) for n in np.arange(3, 9)])
 #%% results dict
-nitr = 1000
+#nitr = 5000
 Ts  = 30# 36 * 3 #s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
@@ -141,7 +142,7 @@ it=time.time()
 #%% run
 itr = 0 
 j = 0
-while itr < nitr: # csh.time <=Ts: # 
+while csh.time <=Ts: # itr < nitr: # 
     if(True):
         if ( (csh.time <= time_points[j]) and \
             ((csh.time + csh.dt) > time_points[j]) ): 
@@ -186,4 +187,25 @@ ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenD'][1,1:-2],  label='CSHQ_JenD'
 ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenH'][1,1:-2],  label='CSHQ_JenH', ls=linetype[1])
 plt.legend(loc = "center left")
 plt.show()
+'''
+#%% SAVE
+'''
+rt.ResultsCSHQ.save_obj(res.results, path + str(nn) +'_results')
+np.save(path + 'SI', csh.phrqc.selected_output()['SI_calcite'][1,:])
+np.save(path + 'pH', csh.phrqc.selected_output()['pH'][1,:])
+np.save(path + 'Ca', np.array(csh.fluid.Ca.c[1,:]) + \
+               np.array(csh.fluid.Ca._ss[1,:])/np.array(csh.phrqc.poros[1,:]))
+np.save(path + 'Si', np.array(csh.fluid.Si.c[1,:]) + \
+               np.array(csh.fluid.Si._ss[1,:])/np.array(csh.phrqc.poros[1,:]))
+np.save(path + 'C', np.array(csh.fluid.C.c[1,:]) + \
+               np.array(csh.fluid.C._ss[1,:])/np.array(csh.phrqc.poros[1,:]))
+np.save(path + 'CC', csh.solid.calcite.c[1,:] )
+np.save(path + 'De', csh.fluid.Ca.De[1,:])
+np.save(path + 'poros', csh.fluid.Ca.poros[1,:])
+
+np.save(path + 'CSHQ_TobD', np.array(csh.solid.CSHQ_TobD.c[1,:]))
+np.save(path + 'CSHQ_TobH', np.array(csh.solid.CSHQ_TobH.c[1,:]))
+np.save(path + 'CSHQ_JenD', np.array(csh.solid.CSHQ_JenD.c[1,:]))
+np.save(path + 'CSHQ_JenH', np.array(csh.solid.CSHQ_JenH.c[1,:]))
+np.save(path + 'SiO2_am', np.array(csh.solid.sio2am.c[1,:]))
 '''

@@ -13,6 +13,7 @@ import phrqc
 #%% PORE-SIZE CONTROLLED SOLUBILITY     
 class PCS():
     def __init__(self, settings, solid, dx):
+        self.solid = solid
         self.dx = dx
         self.pore_type = settings['pcs_mode']['pores']
         self.internal_energy = settings['pcs_mode']['int_energy']
@@ -38,6 +39,7 @@ class PCS():
             self.pore_volume_cc = self.pore_volume_CC() 
     
     def update_target_SI(self, solid):
+        self.solid = solid
         if(self.pore_type=='block'): 
             # Pores are considered as a space between calcite crystals   
 			self.free_vol_cc = (solid.voxel_vol-
@@ -66,6 +68,7 @@ class PCS():
         si = self.saturation_index(pore_size)  
         not_critical = (pore_size >= self.threshold_pore_size) 
         si[not_critical]= 0
+        si = np.nan_to_num(si,10.0)
         return si  
     
     def saturation_index(self, size):   

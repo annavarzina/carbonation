@@ -86,7 +86,7 @@ init_poros = [0.05, 1.0, 0.99424327, 0.87988525, 0.83697953, 0.73712387, 1.0] #i
 D = 1.0e-09 # default diffusion coefficient in pure liquid
 app_tort_degree = 7.43#1./3.
 settings = {'precipitation': 'interface', # 'interface'/'all'/'mineral' nodes
-            'dissolution':'multilevel', #'multilevel'/'subgrid'
+            'dissolution':'subgrid', #'multilevel'/'subgrid'
             'active_nodes': 'all', # 'all'/'smart'/
             'diffusivity':{'border': D, ##diffusivity at border
                            'CH': ('const', 1e-15), # fixed diffusivity in portlandite node 'archie'/'const'/'inverse'
@@ -129,7 +129,7 @@ csh= rt.CarbonationCSHQ('MultilevelDiffusion',  domain,
 res = rt.ResultsCSHQ(nodes= [(1,n) for n in np.arange(0, 4)])
 #%% results dict
 nitr = 5
-Ts  = 5.0*3600# 36 * 3 #s
+Ts  = 3.0#*3600# 36 * 3 #s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
 N_res = 1e+4
@@ -187,26 +187,4 @@ ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenD'][1,1:-2],  label='CSHQ_JenD'
 ax1.plot(x, csh.phrqc.selected_output()['CSHQ_JenH'][1,1:-2],  label='CSHQ_JenH', ls=linetype[1])
 plt.legend(loc = "center left")
 plt.show()
-'''
-
-#%% SAVE
-'''
-rt.ResultsCSHQ.save_obj(res.results, path + str(nn) +'_results')
-np.save(path + 'SI', csh.phrqc.selected_output()['SI_calcite'][1,:])
-np.save(path + 'pH', csh.phrqc.selected_output()['pH'][1,:])
-np.save(path + 'Ca', np.array(csh.fluid.Ca.c[1,:]) + \
-               np.array(csh.fluid.Ca._ss[1,:])/np.array(csh.phrqc.poros[1,:]))
-np.save(path + 'Si', np.array(csh.fluid.Si.c[1,:]) + \
-               np.array(csh.fluid.Si._ss[1,:])/np.array(csh.phrqc.poros[1,:]))
-np.save(path + 'C', np.array(csh.fluid.C.c[1,:]) + \
-               np.array(csh.fluid.C._ss[1,:])/np.array(csh.phrqc.poros[1,:]))
-np.save(path + 'CC', csh.solid.calcite.c[1,:] )
-np.save(path + 'De', csh.fluid.Ca.De[1,:])
-np.save(path + 'poros', csh.fluid.Ca.poros[1,:])
-
-np.save(path + 'CSHQ_TobD', np.array(csh.solid.CSHQ_TobD.c[1,:]))
-np.save(path + 'CSHQ_TobH', np.array(csh.solid.CSHQ_TobH.c[1,:]))
-np.save(path + 'CSHQ_JenD', np.array(csh.solid.CSHQ_JenD.c[1,:]))
-np.save(path + 'CSHQ_JenH', np.array(csh.solid.CSHQ_JenH.c[1,:]))
-np.save(path + 'SiO2_am', np.array(csh.solid.sio2am.c[1,:]))
 '''

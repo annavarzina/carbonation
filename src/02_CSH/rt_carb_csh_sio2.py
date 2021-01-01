@@ -10,7 +10,7 @@ import yantra
 from sklearn.linear_model import LinearRegression
 import cell_type as ct # change the path to cell_type file
 import defaults as df
-from rt_carb import CarbonationRT
+from rt_carb import CarbonationRT, PCS
 from phrqc_input import PhreeqcInput
 from settings import Settings, Results
 from yantra._pyevtk.hl  import imageToVTK
@@ -101,10 +101,12 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         elif(ca['type'] == 'eq'):
             phrqc_input.append('\tCa\t1\t' + str(ca['value']))
         else:
-            pass        
+            pass     
+        phrqc_input.append('\tSi\t0')   
         phrqc_input.append('EQUILIBRIUM_PHASES\t100003')
         phrqc_input.append('portlandite\t0\t1')
         phrqc_input.append('calcite\t0\t0\n')
+        phrqc_input.append('sio2am\t0\t0\n')
         
         self.phrqc_input +=  phrqc_input
                            
@@ -124,18 +126,62 @@ class PhreeqcInputCSHQ(PhreeqcInput):
         phrqc_input.append('\t-comp\tCSHQ_TobD\t0')#2.5050') 
         phrqc_input.append('\t-comp\tCSHQ_JenH\t0')#2.1555') 
         phrqc_input.append('\t-comp\tCSHQ_JenD\t0')#3.2623') 
-        phrqc_input.append('\t-comp\tsio2am\t0.0') 
         phrqc_input.append('EQUILIBRIUM_PHASES\t100004')
         phrqc_input.append('portlandite\t0\t0')
-        phrqc_input.append('calcite\t0\t0\n')
+        phrqc_input.append('calcite\t0\t0')
+        phrqc_input.append('sio2am\t0\t0\n') 
         
         self.phrqc_input +=  phrqc_input
 
+class PCS_CSHQ(PCS):
+    def get_distance(self):   
+        # vol - initial volume for precipitation
+        d = self.block_size - self.crystal_size
+        self.dcsh = self.solid.init_csh - self.solid.csh_vol  
+        '''
+        print('dCSH %.2f', self.dcsh )     
+        print('Old size  %.2f', vol**(1./3.)* self.dx/self.ncrystals[self.solid.init_csh>0])
+        print('New size  %.2f', np.sign(self.dcsh[self.solid.init_csh>0]) * 
+              np.abs(self.dcsh[self.solid.init_csh>0])**(1./3.)* 
+              self.dx/self.ncrystals[self.solid.init_csh>0])
+        '''
+        
+        d[self.solid.init_csh>0] = np.sign(self.dcsh[self.solid.init_csh>0]) *\
+            np.abs(self.dcsh[self.solid.init_csh>0])**(1./3.)* \
+            self.dx/self.ncrystals[self.solid.init_csh>0] - \
+            self.crystal_size[self.solid.init_csh>0]
+        #print('Distanse %.2f', d)
+        #d[self.dcsh<0] = self.threshold_distance/10
+        d[d<0] = self.threshold_distance
+        return(d)
+    #'''
+    def target_SI(self):
+        pore_size = self.pore_size
+        si = self.saturation_index(pore_size)  
+        not_critical = (pore_size > self.threshold_pore_size) 
+        si[not_critical]= 0
+         
+        si_const = 1.0
+        si = np.nan_to_num(si, si_const)
+        #si[self.dcsh<0] = si_const
+        #si[self.distance<0] = si_const
+        #print('Target SI %.2f', si)       
+        
+        return si  
+    
+    #'''
 class CarbonationCSHQ(CarbonationRT):  
     def __init__(self,eqn,domain,domain_params,bc_params,solver_params, settings):
         super(CarbonationCSHQ, self).__init__(eqn,domain,domain_params,bc_params,solver_params, settings)
         self.ptype ='CSH'
         self.fraction_model = self.model_fraction()
+        self.solid.init_poros = deepcopy(self.solid.poros)
+        self.solid.init_csh = deepcopy(self.solid.csh_vol)
+        self.solid.pcs = PCS_CSHQ(settings, self.solid, self.dx)        
+        self.update_target_SI() 
+        
+        #print(self.solid.init_poros )
+        #print(self.solid.init_csh )
         
     
     def model_fraction(self):
@@ -297,10 +343,16 @@ class CarbonationCSHQ(CarbonationRT):
         elif(ch[0] == 'inverse'):            
             mineral = self.solid.vol
             D_CH =np.nan_to_num(1./((1-mineral)/Dref/self.solid.poros/self.solid.app_tort + \
-                                    mineral/ch[1]), Dref)           
+                                    mineral/ch[1]), Dref)  
+            D_CH[D_CH>Dref]=Dref         
         
         if(csh[0] == 'const'):
             D_CSH = csh[1]*np.ones(D_CSH.shape)
+        if(csh[0] == 'inverse'):
+            mineral = self.solid.calcite.c * self.solid.calcite.mvol
+            D_CSH = np.nan_to_num(1./((1-mineral)/D_CSH + \
+                                    mineral/cc[1]), Dref) 
+            D_CSH[D_CSH>Dref]=Dref
         
         De = D_CH*is_port + D_CSH*is_csh + \
             D_CC*is_calc + D_CC*is_border + Dref*is_liquid 
@@ -339,17 +391,17 @@ class CarbonationCSHQ(CarbonationRT):
         si = 0.6666667/3.3333333333*self.solid.CSHQ_TobD.c[:,:] + \
              1.0/3.16666667*self.solid.CSHQ_TobH.c[:,:] + \
              1.0/4.5*self.solid.CSHQ_JenH.c[:,:] + \
-             0.6666667/4.666666666699999*self.solid.CSHQ_JenD.c[:,:]
-        r = ca/si     
-        self.solid.casi = r[self.solid.csh_vol>0]
-        return(r[self.solid.csh_vol>0])
+             0.6666667/4.666666666699999*self.solid.CSHQ_JenD.c[:,:]+ \
+             self.solid.sio2am.c[:,:]
+        r = ca[self.solid.csh_vol>0]/si[self.solid.csh_vol>0] 
+        self.solid.casi = r
+        return(r)
             
     def predict_fraction(self):
         model = self.fraction_model
         y_predict = np.zeros(np.shape(self.casi_ratio()))
         for i in range(0, len(self.casi_ratio())):
             casi = self.casi_ratio()[i]
-            #print(casi)
             if(casi>1.67):
                 y_predict[i] = 5.0e-06
             elif(casi<0.83):
@@ -396,7 +448,7 @@ class CarbonationCSHQ(CarbonationRT):
             self.solid.CSHQ_TobD.c[by[i], bx[i]] = result[str(bf[i]+1)]['CSHQ_TobD_m']
             self.solid.CSHQ_JenH.c[by[i], bx[i]] = result[str(bf[i]+1)]['CSHQ_JenH_m']
             self.solid.CSHQ_JenD.c[by[i], bx[i]] = result[str(bf[i]+1)]['CSHQ_JenD_m']
-            self.solid.sio2am.c[by[i], bx[i]] = result[str(bf[i]+1)]['sio2am_m']
+            #self.solid.sio2am.c[by[i], bx[i]] = result[str(bf[i]+1)]['sio2am_m']
             #self.solid.calcite.c[by[i], bx[i]] = result[str(bf[i]+1)]['calcite_m']
         return ss
     
@@ -412,7 +464,7 @@ class CarbonationCSHQ(CarbonationRT):
         modify_str.append("-comp\tCSHQ_TobD\t%.20e" %(m_csh[1]))
         modify_str.append("-comp\tCSHQ_JenH\t%.20e" %(m_csh[2]))
         modify_str.append("-comp\tCSHQ_JenD\t%.20e" %(m_csh[3]))
-        modify_str.append("-comp\tsio2am\t%.20e" %(m_csh[4]))
+        #modify_str.append("-comp\tsio2am\t%.20e" %(m_csh[4]))
         modify_str.append("END") 
         modify_str.append('MIX %i' % ncell)         
         modify_str.append('%i %.20e' %( n_csh, fract)) #modify_str.append('%i 1' %n_int)  
@@ -441,7 +493,7 @@ class CarbonationCSHQ(CarbonationRT):
         modify_str.append("-comp\tCSHQ_TobD\t%.20e" %(0))
         modify_str.append("-comp\tCSHQ_JenH\t%.20e" %(0))
         modify_str.append("-comp\tCSHQ_JenD\t%.20e" %(0))
-        modify_str.append("-comp\tsio2am\t%.20e" %(0))
+        #modify_str.append("-comp\tsio2am\t%.20e" %(0))
         modify_str.append("END") 
         modify_str.append('USE SOLID_SOLUTIONS %i' %n_csh)      
         modify_str.append('MIX %i' % ncell)      
@@ -482,6 +534,7 @@ class CarbonationCSHQ(CarbonationRT):
         self.solid.csh_vol = self.volume_CSH()
         self.solid.dissolving_mineral_vol = self.solid.portlandite.vol + \
             self.solid.csh_vol
+            #TODO pore size for csh
         
     def volume_CH(self):
         CH_vol = self.solid.portlandite.c * self.solid.portlandite.mvol
@@ -648,11 +701,11 @@ class ResultsCSHQ(Results):
             for num, comp in enumerate(rtmodel.fluid.components, start=1):
                 self.results[comp].append(np.mean(getattr(rtmodel.fluid, comp)._c*getattr(rtmodel.fluid, comp).poros))  
             #cshq
-            self.results['solid_CSHQ'].append(self.__class__.CSHQ_solid(rtmodel))
-            self.results['solid_Ca'].append(self.__class__.Ca_solid(rtmodel))
-            self.results['solid_Si'].append(self.__class__.Si_solid(rtmodel))
-            self.results['ratio_CaSi'].append(self.__class__.CaSi_ratio(rtmodel))
-            self.results['density_CSHQ'].append(self.__class__.CSHQ_density(rtmodel))
+            self.results['solid_CSHQ'].append(self.__class__.sum_CSHQ_solid(rtmodel))
+            self.results['solid_Ca'].append(self.__class__.sum_Ca_solid(rtmodel))
+            self.results['solid_Si'].append(self.__class__.sum_Si_solid(rtmodel))
+            self.results['ratio_CaSi'].append(self.__class__.sum_CaSi_ratio(rtmodel))
+            self.results['density_CSHQ'].append(self.__class__.sum_CSHQ_density(rtmodel))
             #general
             self.results['tot_vol'].append(self.__class__.total_mineral_volume(rtmodel))
             self.results['mean_D_eff'].append(self.__class__.mean_effective_D(rtmodel))
@@ -678,23 +731,33 @@ class ResultsCSHQ(Results):
                     self.results['portlandite'+' ' + str(p)].append(rtmodel.solid.portlandite.c[p])
                     self.results['Ca'+' ' + str(p)].append(rtmodel.fluid.Ca._c[p]+\
                                  rtmodel.fluid.Ca._ss[p]/rtmodel.fluid.Ca.poros[p])
+                    self.results['Si'+' ' + str(p)].append(rtmodel.fluid.Si._c[p]+\
+                                 rtmodel.fluid.Si._ss[p]/rtmodel.fluid.Si.poros[p])
                     self.results['H'+' ' + str(p)].append(rtmodel.fluid.H._c[p]+\
                                  rtmodel.fluid.H._ss[p]/rtmodel.fluid.H.poros[p])
                     self.results['O'+' ' + str(p)].append(rtmodel.fluid.O._c[p]+\
                                  rtmodel.fluid.O._ss[p]/rtmodel.fluid.O.poros[p])
+                    self.results['C'+' ' + str(p)].append(rtmodel.fluid.C._c[p]+\
+                                 rtmodel.fluid.C._ss[p]/rtmodel.fluid.C.poros[p])
                     self.results['poros'+' ' + str(p)].append(rtmodel.solid.poros[p])
                     self.results['vol'+' ' + str(p)].append(rtmodel.solid.vol[p])
                     self.results['De'+' ' + str(p)].append(rtmodel.fluid.H.De[p])
                     self.results['vol_CH'+' ' + str(p)].append(rtmodel.solid.portlandite.vol[p])
                     self.results['pH'+' ' + str(p)].append(rtmodel.phrqc.selected_output()['pH'][p])
                     self.results['calcite'+' ' + str(p)].append(rtmodel.solid.calcite.c[p])
-                    self.results['C'+' ' + str(p)].append(rtmodel.fluid.C._c[p]+\
-                                 rtmodel.fluid.C._ss[p]/rtmodel.fluid.C.poros[p])
                     self.results['vol_CC'+' ' + str(p)].append(rtmodel.solid.calcite.vol[p])
-                    self.results['solid_CSHQ'+' ' + str(p)].append(rtmodel.solid.CSHQ_TobD.c[p] + \
-                                 rtmodel.solid.CSHQ_TobH.c[p] + rtmodel.solid.CSHQ_JenD.c[p] + \
-                                 rtmodel.solid.CSHQ_JenH.c[p] )
+                    self.results['sio2am'+' ' + str(p)].append(rtmodel.solid.sio2am.c[p])
+                    self.results['CSHQ_TobD'+' ' + str(p)].append(rtmodel.solid.CSHQ_TobD.c[p])
+                    self.results['CSHQ_TobH'+' ' + str(p)].append(rtmodel.solid.CSHQ_TobH.c[p])
+                    self.results['CSHQ_JenD'+' ' + str(p)].append(rtmodel.solid.CSHQ_JenD.c[p])
+                    self.results['CSHQ_JenH'+' ' + str(p)].append(rtmodel.solid.CSHQ_JenH.c[p])
+                    self.results['solid_CSHQ'+' ' + str(p)].append(self.__class__.CSHQ_solid(rtmodel)[p])
+                    self.results['solid_Ca'+' ' + str(p)].append(self.__class__.Ca_solid(rtmodel)[p])
+                    self.results['solid_Si'+' ' + str(p)].append(self.__class__.Si_solid(rtmodel)[p])
+                    self.results['ratio_CaSi'+' ' + str(p)].append(self.__class__.CaSi_ratio(rtmodel)[p])
+                    self.results['density_CSHQ'+' ' + str(p)].append(self.__class__.CSHQ_density(rtmodel)[p])
                     self.results['vol_CSHQ'+' ' + str(p)].append(rtmodel.solid.csh_vol[p])
+                    
                     
     @staticmethod
     def delta_CC(rt):
@@ -727,38 +790,70 @@ class ResultsCSHQ(Results):
         '''
         s = np.sum(rt.solid.csh_vol>0)
         return(s)
-        
+    
+    
     @staticmethod
     def CSHQ_solid(rt): #TODO check
-        csh = np.sum(rt.solid.CSHQ_TobD.c + rt.solid.CSHQ_TobH.c + 
-                     rt.solid.CSHQ_JenH.c + 1.5*rt.solid.CSHQ_JenD.c)
+        csh = rt.solid.CSHQ_TobD.c + rt.solid.CSHQ_TobH.c + \
+            rt.solid.CSHQ_JenH.c + 1.5*rt.solid.CSHQ_JenD.c
+        return(csh)
+        
+    @staticmethod
+    def sum_CSHQ_solid(rt): 
+        csh = np.sum(ResultsCSHQ.CSHQ_solid(rt))
         return(csh)
         
     @staticmethod
     def Ca_solid(rt): #TODO check
-        ca = np.sum(0.8333333*rt.solid.CSHQ_TobD.c[:,:] + 0.6666667*rt.solid.CSHQ_TobH.c[:,:] + 
-                    1.3333333*rt.solid.CSHQ_JenH.c[:,:] + 1.5*rt.solid.CSHQ_JenD.c[:,:])
+        ca = 0.8333333*rt.solid.CSHQ_TobD.c[:,:] + 0.6666667*rt.solid.CSHQ_TobH.c[:,:] + \
+                    1.3333333*rt.solid.CSHQ_JenH.c[:,:] + 1.5*rt.solid.CSHQ_JenD.c[:,:]
+        return(ca)
+        
+    @staticmethod
+    def sum_Ca_solid(rt): #TODO check
+        ca = np.sum(ResultsCSHQ.Ca_solid(rt))
         return(ca)
         
     @staticmethod
     def Si_solid(rt): #TODO check
-        si = np.sum(0.6666667*rt.solid.CSHQ_TobD.c[:,:] + 1.0*rt.solid.CSHQ_TobH.c[:,:] + 
-                    1.0*rt.solid.CSHQ_JenH.c[:,:] + 0.6666667*rt.solid.CSHQ_JenD.c[:,:])
+        si = 0.6666667*rt.solid.CSHQ_TobD.c[:,:] + 1.0*rt.solid.CSHQ_TobH.c[:,:] + \
+             1.0*rt.solid.CSHQ_JenH.c[:,:] + 0.6666667*rt.solid.CSHQ_JenD.c[:,:] +\
+             1.0*rt.solid.sio2am.c[:,:]
+        return (si)
+    
+    @staticmethod
+    def sum_Si_solid(rt): #TODO check
+        si = np.sum(ResultsCSHQ.Ca_solid(rt))
         return (si)
     
     @staticmethod
     def CaSi_ratio(rt):
         r = ResultsCSHQ.Ca_solid(rt)/ResultsCSHQ.Si_solid(rt)
         return(r)
-
+        
+    @staticmethod
+    def sum_CaSi_ratio(rt):
+        r = ResultsCSHQ.sum_Ca_solid(rt)/ResultsCSHQ.sum_Si_solid(rt)
+        return(r)
+        
     @staticmethod
     def CSHQ_density(rt):
         m_ca = 56.0774 #g/mol
         m_si = 60.08 #g/mol
         m_h2o = 18.01528 #g/mol
+        h2o= 1.8333333333*rt.solid.CSHQ_TobD.c[:,:] + 1.5*rt.solid.CSHQ_TobH.c[:,:] + \
+            2.1666666667*rt.solid.CSHQ_JenH.c[:,:] + 2.5*rt.solid.CSHQ_JenD.c[:,:]
+        d = h2o*m_h2o + ResultsCSHQ.Ca_solid(rt)*m_ca + ResultsCSHQ.Si_solid(rt)*m_si
+        return(d)
+            
+    @staticmethod
+    def sum_CSHQ_density(rt):
+        m_ca = 56.0774 #g/mol
+        m_si = 60.08 #g/mol
+        m_h2o = 18.01528 #g/mol
         h2o= np.sum(1.8333333333*rt.solid.CSHQ_TobD.c[:,:] + 1.5*rt.solid.CSHQ_TobH.c[:,:] + 
             2.1666666667*rt.solid.CSHQ_JenH.c[:,:] + 2.5*rt.solid.CSHQ_JenD.c[:,:])
-        d = h2o*m_h2o + ResultsCSHQ.Ca_solid(rt)*m_ca + ResultsCSHQ.Si_solid(rt)*m_si
+        d = h2o*m_h2o + ResultsCSHQ.sum_Ca_solid(rt)*m_ca + ResultsCSHQ.sum_Si_solid(rt)*m_si
         return(d)
     #%% PRINT and PLOT
     

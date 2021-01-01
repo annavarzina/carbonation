@@ -160,11 +160,27 @@ log_k = np.array([29.133, 28.724, 27.572, 26.443, 25.328, 24.222, 23.124,
                   14.583, 13.55, 12.529, 11.531, 11.15])
 s = np.array([865, 880, 925,  970, 1015, 1060, 1105, 1150, 1195, 1240, 1285, 1330,
               1375, 1420, 1465, 1510, 1555, 1600, 1615])
+    
+d = np.array([-8.40, -8.47, -8.53, -8.53, -8.56, -8.67, -8.89, -9.20, -9.58,
+              -9.98, -10.36, -10.67, -10.88, -10.97, -10.95, -10.86, -10.79, 
+              -10.87, -10.99])
+    
 n = np.array(range(10000, 5000, -250))
-
+'''
+for j in range(0, len(ca_si)):
+    csh = {'name':'CSH', 'stochiometry':{'Ca':ca_si[j], 'Si':1.0, 
+                                         'H2O':h2o[j], 'H+':h_plus[j]}, 
+           'log_k':log_k[j]}
+    fraction = krate * s[j] 
+    print('Ca/Si %.2f' %ca_si[j])   
+    print('Kinetic rate = ' + str(krate))
+    print('Mixing fraction = ' + str(fraction))
+    pm = PhreeqcMixingCSH(n[j], fraction, csh, database)
+    pm.phases()
+    print('\n'.join(pm.phrqc_input))
+'''
 #%% LOOP
-#for i in range(0, len(ca_si)):
-for j in [0,9, 18]: # range(16, 18):
+for j in [0]: # range(16, 18):
     print('Ca/Si %.2f' %ca_si[j])    
     csh = {'name':'CSH', 'stochiometry':{'Ca':ca_si[j], 'Si':1.0, 
                                          'H2O':h2o[j], 'H+':h_plus[j]}, 
@@ -172,7 +188,7 @@ for j in [0,9, 18]: # range(16, 18):
     fraction = krate * s[j] 
     print('Kinetic rate = ' + str(krate))
     print('Mixing fraction = ' + str(fraction))
-    #%% RUN
+    
     
     pm = PhreeqcMixingCSH(n[j], fraction, csh, database)
     pm.run_phreeqc()
@@ -183,9 +199,8 @@ for j in [0,9, 18]: # range(16, 18):
     print('Kinetic rate simulation time = ' + str(pk.simulation_time))
     print('Mixing fraction simulation time = ' + str(pm.simulation_time))
 
-#%% PLOT    
     t = range(1, n[j]+1)
-    t = [i/3600. for i in t]
+    t = [i/3600.*int(10**(-6-d[j])) for i in t]
     ca_m = []
     si_m = []
     for i in range(len(pm.selected_output)):
@@ -199,14 +214,13 @@ for j in [0,9, 18]: # range(16, 18):
         if pk.selected_output[i][0]==1:
             ca_k.append(pk.selected_output[i][1])
             si_k.append(pk.selected_output[i][2])
-    
-    '''     
+
     plt.figure()
     plt.plot(t, ca_m, label = "mix")
     plt.plot(t[0::h], ca_k[1:], label = "kin")
     plt.xlabel('time (h)')
     plt.ylabel('Ca (mol/l)')
-    plt.title('Ca concentration change for Ca/Si %.2f' %ca_si[j])    
+    plt.title('Ca concentration change for Ca/Si=%.2f' %ca_si[j])    
     plt.legend()
     
     plt.figure()
@@ -214,20 +228,49 @@ for j in [0,9, 18]: # range(16, 18):
     plt.plot(t[0::h], si_k[1:], label = "kin")
     plt.xlabel('time (h)')
     plt.ylabel('Si (mol/l)')
-    plt.title('Si concentration change for Ca/Si %.2f' %ca_si[j])    
+    plt.title('Si concentration change for Ca/Si=%.2f' %ca_si[j])    
     plt.legend()
     plt.show()
-    '''
+#%% Plot in high resolution
+#'''
+plt.figure(figsize=(3,2), dpi = 600)
+plt.plot(t, ca_m, label = "mix")
+plt.plot(t[0::h], ca_k[1:], label = "kin")
+plt.xlabel('time (h)')
+plt.ylabel('Ca (mol/l)')
+#plt.title('Ca concentration change\n for Ca/Si=%.2f' %ca_si[j])    
+plt.legend()
+
+plt.figure(figsize=(3,2), dpi = 600)
+plt.plot(t, si_m, label = "mix")
+plt.plot(t[0::h], si_k[1:], label = "kin")
+plt.xlabel('time (h)')
+plt.ylabel('Si (mol/l)')
+#plt.title('Si concentration change\n for Ca/Si=%.2f' %ca_si[j])    
+plt.legend()
+plt.show()
+#'''
 #%% Predict model
 d = np.array([-8.40, -8.47, -8.53, -8.53, -8.56, -8.67, -8.89, -9.20, -9.58,
               -9.98, -10.36, -10.67, -10.88, -10.97, -10.95, -10.86, -10.79, 
               -10.87, -10.99])
 #d = np.array([-9.01,-9.12,-9.28,-9.30,-9.07,-9.06,-9.28,-9.45,-9.79,-10.49,-10.70,
 #              -10.45,-10.4,-10.9,-10.95,-10.95,-10.9,-10.9,-10.99])
+    
+fig = plt.figure(figsize=(3,2), dpi = 600)
+plt.plot(ca_si, d)
+plt.xlabel('Ca/Si')
+plt.ylabel(r'log k $(mol/m^2/s)$')
+plt.show()
+
 sigma = (10**d) * s
+fig = plt.figure(figsize=(3,2), dpi = 600)
 plt.plot(ca_si, sigma)
+plt.xlabel('Ca/Si')
+plt.ylabel(r'$\sigma$')
 plt.yscale("log")
 plt.show()
+#plt.savefig(fname='07_csh_casi_logk.png' )
 ''' #or
 d = np.array([-8.40, -8.43, -8.47, -8.51, -8.56, -8.67, -8.89, -9.20, -9.58,
               -9.98, -10.36, -10.67, -10.88, -10.92, -10.95, -10.96, -10.97, 

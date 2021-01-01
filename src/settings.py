@@ -347,6 +347,7 @@ class Results((object)):
             if not names:
                 names = self.results['pointparamslist']
             for k in names:
+                print(k)
                 plt.figure(figsize=fsize)        
                 for p in self.results['nodes']:  
                     plt.plot(self.results['time'], self.results[k+' '+str(p)], label = str(p))
@@ -389,26 +390,30 @@ class Results((object)):
         
     #%% SAVE
     
+    @staticmethod   
     def  make_output_dir(path):
         try:
             os.mkdir(path)
         except WindowsError:
             pass
                     
-                
+    @staticmethod            
     def save_obj(obj, name ):
         with open(name + '.pkl', 'wb') as f:
             pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
             f.close()
     
+    @staticmethod    
     def load_obj(name ):
         with open(name + '.pkl', 'rb') as f:
             return pickle.load(f)
-        
+    
+    @staticmethod   
     def save_pickle(rt, t, path, name):
         Results.save_obj(rt.phases, path + str(name) +'_nodetype_' + str(t))  
         Results.save_obj(rt.solid._poros, path + str(name) +'_porosity_' + str(t)) 
         
+    @staticmethod   
     def save_vti(rt, t, path, name):
         
         nx = rt.fluid.Ca.nx -1
@@ -428,6 +433,7 @@ class Results((object)):
                                          "porosity":porosity,
                                          })
         
+    @staticmethod   
     def save_vts(domain, t, path, name):
         filename = path + str(name) +'_nodetype_' + str(t) #"./fname"
         x,y = domain.meshgrid()
