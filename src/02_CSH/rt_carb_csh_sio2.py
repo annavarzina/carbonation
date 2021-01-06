@@ -823,7 +823,7 @@ class ResultsCSHQ(Results):
     
     @staticmethod
     def sum_Si_solid(rt): #TODO check
-        si = np.sum(ResultsCSHQ.Ca_solid(rt))
+        si = np.sum(ResultsCSHQ.Si_solid(rt))
         return (si)
     
     @staticmethod

@@ -129,7 +129,7 @@ csh= rt.CarbonationCSHQ('MultilevelDiffusion',  domain,
 res = rt.ResultsCSHQ(nodes= [(1,n) for n in np.arange(0, 4)])
 #%% results dict
 nitr = 5
-Ts  = 5.0*3600# 36 * 3 #s
+Ts  = 4.0*3600# 36 * 3 #s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
 N_res = 1e+4
@@ -163,16 +163,79 @@ rt.ResultsCSHQ.print_profiles(csh)
 #res.plot_avg()
 #res.plot_nodes(names=[])
 #res.plot_fields(csh, names=[],fsize=(15,1))
-#%% plot ca/si against density
-'''
-plt.figure()
-plt.plot(results['Ca_Si'], results['csh_density'])
-plt.legend()
-plt.ylabel('CSH density')
-plt.xlabel('C/S')
-plt.show()
-'''
-
+#%% plot Ca/Si against density
+fig = plt.figure(figsize = (5,3), dpi = 200)
+plt.plot(res.results['ratio_CaSi (1, 2)'], res.results['density_CSHQ'])
+#plt.legend(fontsize=18)
+plt.ylabel('C-S-H density (g/l)', fontsize=16)
+plt.xlabel('Ca/Si', fontsize=16)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+fig.savefig('07_equi_casi_density.png', bbox_inches='tight')
+#plt.show()
+#%% plot Ca/Si against density
+fig = plt.figure(figsize = (5,3), dpi = 200)
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['ratio_CaSi (1, 2)'])
+#plt.legend(fontsize=18)
+plt.ylabel('Ca/Si', fontsize=16)
+plt.xlabel('Time (h)', fontsize=16)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+fig.savefig('07_equi_casi.png', bbox_inches='tight')
+#plt.show()
+#%% CSHQ phases
+fig = plt.figure(figsize = (5,3), dpi = 200)
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['CSHQ_JenD'], label = 'JenD', ls = '-')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['CSHQ_JenH'], label = 'JenH', ls = '--')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['CSHQ_TobD'], label = 'TobD', ls = '-.')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['CSHQ_TobH'], label = 'TobH', ls = ':')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['calcite'], label = '$C\overline{C}$', ls = '--')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['sio2am'], label = '$SiO_2$', ls = '--')
+plt.xlabel('Time (h)', fontsize=16)
+plt.ylabel(r'C-S-H ($mol/dm^3$)', fontsize=16)
+plt.legend(fontsize=10, loc = 'upper left' )
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+fig.savefig('07_equi_csh_phases_5h.png', bbox_inches='tight')
+#%% CSHQ phases 30 min
+t = 1000
+fig = plt.figure(figsize = (5,3), dpi = 200)
+plt.plot(np.array(res.results['time'])[0:t]*scale/60, res.results['CSHQ_JenD'][0:t], label = 'JenD', ls = '-')
+plt.plot(np.array(res.results['time'])[0:t]*scale/60, res.results['CSHQ_JenH'][0:t], label = 'JenH', ls = '--')
+plt.plot(np.array(res.results['time'])[0:t]*scale/60, res.results['CSHQ_TobD'][0:t], label = 'TobD', ls = '-.')
+plt.plot(np.array(res.results['time'])[0:t]*scale/60, res.results['CSHQ_TobH'][0:t], label = 'TobH', ls = ':')
+plt.plot(np.array(res.results['time'])[0:t]*scale/60, res.results['calcite'][0:t], label = r'$C\overline{C}$', ls = '--')
+plt.plot(np.array(res.results['time'])[0:t]*scale/60, res.results['sio2am'][0:t], label = r'$SiO_2$', ls = '--')
+plt.xlabel('Time (min)', fontsize=16)
+plt.ylabel(r'C-S-H ($mol/dm^3$)', fontsize=16)
+plt.legend(fontsize=10)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+fig.savefig('07_equi_csh_phases_30min.png', bbox_inches='tight')
+#%% pH 
+t = 1000
+fig = plt.figure(figsize = (5,3), dpi = 200)
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['pH (1, 1)'], label = 'Water voxel', ls = '-')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['pH (1, 2)'], label = 'C-S-H voxel', ls = '--')
+plt.xlabel('Time (h)', fontsize=16)
+plt.ylabel('pH', fontsize=16)
+plt.legend(fontsize=10)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+fig.savefig('07_equi_ph_change.png', bbox_inches='tight')
+#%% CC and SiO2
+t = 1000
+fig = plt.figure(figsize = (5,3), dpi = 200)
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['calcite (1, 1)'], label = r'$C\overline{C}$ in water voxel', ls = '-', color = 'tab:blue')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['calcite (1, 2)'], label = r'$C\overline{C}$ C-S-H voxel', ls = '-', color = 'tab:orange')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['sio2am (1, 1)'], label = r'$SiO_2$ in water voxel', ls = '--', color = 'tab:blue')
+plt.plot(np.array(res.results['time'])*scale/3600, res.results['sio2am (1, 2)'], label = r'$SiO_2$ C-S-H voxel', ls = '--', color = 'tab:orange')
+plt.xlabel('Time (h)', fontsize=16)
+plt.ylabel(r'Phase ($mol/dm^3$)', fontsize=16)
+plt.legend(fontsize=10, loc = 'upper left')
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+fig.savefig('07_equi_cc_sio2_change.png', bbox_inches='tight')
 #%% C-S-H profile
 '''
 linetype = np.array(['dotted', 'solid', 'dashed', 'dashdot', 'dotted'])

@@ -1,9 +1,8 @@
 
 # -*- coding: utf-8 -*-
 '''
-Molar volume = 100
-Liquid layer = 5 um
-Fraction = 0.004
+CO2 10%
+PCO2 1.0
 '''
 
 from __future__ import division  
@@ -68,7 +67,7 @@ path = root_dir+'\\results\\output_csh\\01_default\\' + nn + '\\'
 fn.make_output_dir(path)
 
 
-phrqc_input = {'c_bc':{'type':'pco2', 'value': 3.41},
+phrqc_input = {'c_bc':{'type':'pco2', 'value': 1.0},
                #'c_bc':{'type':'conc', 'value': 0.01},
                'c_mlvl':{'type':'eq', 'value': 'calcite'}, 
                'c_liq':{'type':'eq', 'value': 'calcite'},
@@ -129,7 +128,7 @@ csh= rt.CarbonationCSHQ('MultilevelDiffusion',  domain,
 res = rt.ResultsCSHQ(nodes= [(1,n) for n in np.arange(3, 9)])
 #%% results dict
 nitr = 5
-Ts  = 3*3600# 36 * 3 #s
+Ts  = 10*3600# 36 * 3 #s
 Ts = Ts/scale + 0.001
 N = Ts/csh.dt
 N_res = 1e+4
@@ -173,7 +172,7 @@ plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 fig.savefig('07_sg_casi_density.png', bbox_inches='tight')
 #plt.show()
-'''
+
 #%% plot Ca/Si 
 fig = plt.figure(figsize = (5,3), dpi = 200)
 plt.plot(np.array(res.results['time'])*scale/3600, res.results['ratio_CaSi (1, 5)'], label = 'Voxel 6', ls = '-')
@@ -364,8 +363,9 @@ plt.xticks(fontsize=10)
 plt.yticks(fontsize=10)  
 plt.show()
 fig.savefig('07_sg_ph_profile.png', bbox_inches='tight')
-#%% SAVE
 '''
+#%% SAVE
+
 rt.ResultsCSHQ.save_obj(res.results, path + str(nn) +'_results')
 np.save(path + 'SI', csh.phrqc.selected_output()['SI_calcite'][1,:])
 np.save(path + 'pH', csh.phrqc.selected_output()['pH'][1,:])
@@ -384,4 +384,3 @@ np.save(path + 'CSHQ_TobH', np.array(csh.solid.CSHQ_TobH.c[1,:]))
 np.save(path + 'CSHQ_JenD', np.array(csh.solid.CSHQ_JenD.c[1,:]))
 np.save(path + 'CSHQ_JenH', np.array(csh.solid.CSHQ_JenH.c[1,:]))
 np.save(path + 'SiO2_am', np.array(csh.solid.sio2am.c[1,:]))
-'''

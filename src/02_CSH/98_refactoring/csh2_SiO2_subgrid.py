@@ -163,12 +163,12 @@ rt.ResultsCSHQ.print_profiles(csh)
 #res.plot_avg()
 #res.plot_nodes(names=[])
 #res.plot_fields(csh, names=[],fsize=(15,1))
-#%% plot ca/si against density
+#%% plot Ca/si against density
 '''
 plt.figure()
 plt.plot(results['Ca_Si'], results['csh_density'])
 plt.legend()
-plt.ylabel('CSH density')
+plt.ylabel('CSH solid density')
 plt.xlabel('C/S')
 plt.show()
 '''
